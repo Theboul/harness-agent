@@ -55,4 +55,4 @@ Devolver:
 - `assets/importlinter.toml` — contratos de import-linter.
 - `assets/test_fronteras.py` — test de respaldo con `ast`.
 - `assets/ci.yml` — job de integración continua.
-- `docs/CONTEXTO_HARNESS.md` — contratos entre módulos (sección 4).
+- `docs/02-arquitectura.md` — contratos entre módulos (sección 4).

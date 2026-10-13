@@ -4,13 +4,18 @@
 harness-agent/
 ├── pyproject.toml          # dependencias y herramientas (pytest, mypy, ruff, import-linter)
 ├── README.md
-├── CLAUDE.md               # resumen corto que apunta a docs/CONTEXTO_HARNESS.md
+├── CLAUDE.md               # resumen corto que apunta a docs/00-indice.md
 ├── .env.example            # plantilla sin secretos
 ├── config.example.toml     # modelo, límites, rutas, reglas de permisos
 ├── docs/
-│   ├── CONTEXTO_HARNESS.md # contexto completo del análisis
-│   ├── arquitectura.md     # diagramas y decisiones
-│   └── demo.md             # guion de demostración (10 a 15 min)
+│   ├── 00-indice.md                # mapa de la documentación y dónde está cada ID
+│   ├── 01-vision-y-decisiones.md   # equipo, alcance, decisiones V-01 a V-14
+│   ├── 02-arquitectura.md          # diagramas, contratos, eventos, modelo de datos
+│   ├── 03-plan-sprints.md          # pruebas, riesgos, épicas, sprints, tareas
+│   ├── 04a..04d-historias-*.md     # historias de usuario por épicas
+│   ├── 05-trazabilidad.md          # requisito -> historia y arranque
+│   ├── PROGRESO.md                 # qué se hizo y dónde está
+│   └── demo.md                     # guion de demostración (10 a 15 min)
 ├── src/harness_agent/
 │   ├── core/               # NÚCLEO: sin imports externos
 │   │   ├── loop.py         # bucle del agente (máquina de estados)

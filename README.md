@@ -13,7 +13,7 @@
 
 **harness-agent** es un harness de agente en terminal: la aplicación que rodea a un modelo de lenguaje y lo conecta con el mundo mediante un bucle razonar–actuar–observar, herramientas, permisos, contexto, memoria y sesiones. El núcleo es reutilizable y está desacoplado de la interfaz.
 
-> **Estado:** en inicialización. Aún no hay código en `src/`; este README describe el diseño acordado. El contexto completo está en [`docs/CONTEXTO_HARNESS.md`](docs/CONTEXTO_HARNESS.md).
+> **Estado:** en inicialización. Aún no hay código en `src/`; este README describe el diseño acordado. El contexto completo está en [`docs/00-indice.md`](docs/00-indice.md).
 
 ## Decisiones principales
 
@@ -89,4 +89,5 @@ Pendiente hasta cerrar HU-00-01 (esqueleto del repositorio) y HU-00-04 (configur
 
 ## Documentación
 
-- [`docs/CONTEXTO_HARNESS.md`](docs/CONTEXTO_HARNESS.md): requisitos, arquitectura, contratos, backlog y sprints.
+- [`docs/00-indice.md`](docs/00-indice.md): índice de la documentación (visión, arquitectura, plan, historias y trazabilidad).
+- [`docs/PROGRESO.md`](docs/PROGRESO.md): qué se hizo y dónde está.
