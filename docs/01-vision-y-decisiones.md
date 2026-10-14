@@ -22,6 +22,8 @@ Un **harness** es la aplicación que rodea a un modelo de lenguaje (el «cerebro
 | Persistencia | SQLite (sesiones, eventos, memoria, auditoría, trazas) |
 | Herramientas externas | Cliente MCP (SDK de Python), stdio primero. Servidor de demostración local y sin credenciales (se elige en [SPK-04](04d-historias-conexiones.md#spk-04)) |
 | Reto | Subagentes con contexto aislado (obligatorio) |
+| Enfoque | Coding Harness basado en tickets (Proyecto 1 de los apuntes). Si hay tiempo, también el Proyecto 2 |
+| Plazo informado | Hasta noviembre, posiblemente a mediados; presentaciones cada 1 o 2 semanas sin fecha fija. Plan en 3 sprints; lo opcional pasa a un posible cuarto |
 | Estimación | Puntos de historia (PHU) con Fibonacci; planning poker en el Sprint 1 |
 
 Reglas del equipo: cada área tiene un dueño, pero todo cambio lo revisa otra persona. Definition of Done:
@@ -34,7 +36,9 @@ Reglas del equipo: cada área tiene un dueño, pero todo cambio lo revisa otra p
 
 ## 2. Alcance
 
-- **Obligatorio (prioridad Alta):** bucle con herramientas, contexto con compactación, sesiones reanudables, memoria, permisos con aprobación humana, CLI, dos proveedores con conmutación por fallo, MCP, subagentes, trazas.
+**Enfoque:** Coding Harness basado en tickets (Proyecto 1 de los apuntes de la cátedra) sobre un núcleo general. Si hay tiempo, se muestra también el Proyecto 2 (agente con herramientas), que el núcleo ya cubre. Flujo de la demostración: ticket → agente → análisis → cambios → pruebas → verificación de criterios → aprobación humana → Pull Request.
+
+- **Obligatorio (prioridad Alta):** bucle con herramientas, contexto con compactación, sesiones reanudables, memoria, permisos con aprobación humana, CLI, dos proveedores con conmutación por fallo, MCP, subagentes, trazas y el flujo de tarea con criterios, Git, pruebas, verificación y Pull Request (E11).
 - **Si hay capacidad (Media):** varias llamadas por turno, detección de repeticiones, compactación manual, costos, memoria editable, modo solo lectura, reglas por archivo, subagentes explorador/verificador.
 - **Innovación (después del mínimo):** interfaz web, ejecución en entorno aislado, comparación con LangGraph, panel de costos.
 
@@ -64,6 +68,9 @@ Cambios a la captura de requisitos:
 
 | Requisito | Cambio |
 |---|---|
+| RF-11 (nuevo) | Coding Harness del ticket al Pull Request: tarea con criterios (11.1), herramientas Git (11.2), pruebas y lint (11.3), verificación de criterios (11.4), aprobación del diff (11.5), Pull Request (11.6) y worktree por ticket (11.7, Should). Viene de los apuntes de la cátedra. |
+| RF-7.5, RF-8.5, RF-9.7 (re-priorizados) | Pasan de Must a Should para hacer espacio a RF-11: reintentos con espera, aislamiento de fallos de MCP y errores explícitos del subagente. También pasan a opcionales la prueba de inyección de prompt (RNF-17/18) y la cobertura mínima (RNF-11/14). |
+| RF-5.1 (precisado) | Borrar archivos, push, merge y deploy siempre requieren aprobación. |
 | RF-2.9 (nuevo, Could) | Cargar un archivo de instrucciones del proyecto en el prefijo del contexto. |
 | RF-2.4 (precisado) | La compactación conserva el historial original y no puede eliminar el objetivo ni las decisiones del usuario. |
 | RF-4.3 (precisado) | Relevancia de la memoria = recencia dentro de un presupuesto de tokens. |
@@ -75,6 +82,8 @@ Decisiones tomadas:
 
 | Pregunta | Respuesta |
 |---|---|
+| ¿Cuál de los tres tipos de harness de los apuntes se hace? | El Proyecto 1: Coding Harness basado en tickets, construido sobre el núcleo general. Si da tiempo, se muestra también el Proyecto 2 (agente con herramientas), que el núcleo ya cubre. |
+| ¿Cuándo termina el proyecto? | Hasta noviembre, posiblemente a mediados. Habrá presentaciones cada una o dos semanas, sin fecha fija. Es solo informativo: el plan sigue en 3 sprints y lo que sobre pasa a un posible cuarto. |
 | ¿El límite de costo en dinero o en tokens? | En tokens. El costo en moneda es solo informativo. |
 | ¿Dónde vive la memoria? | En SQLite, con el comando /memoria para consultarla y borrarla. |
 | ¿Qué sistema operativo usa cada integrante? | Windows y Linux (Arch Linux). La integración continua y el shell cubren ambos. |

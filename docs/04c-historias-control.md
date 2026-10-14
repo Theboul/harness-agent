@@ -31,6 +31,7 @@
 1. Denegar siempre prevalece sobre preguntar y permitir.
 2. La política se aplica en el harness, no en el prompt.
 3. Las instrucciones halladas en archivos no cambian la política.
+4. Borrar archivos, hacer push, merge y deploy siempre requieren aprobación.
 
 **Criterios de aceptación**
 
@@ -206,7 +207,7 @@
 <a id="hu-05-08"></a>
 #### HU-05-08 — Contenido externo tratado como datos
 
-**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** C — Control y conexiones  
+**Prioridad:** Media · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** C — Control y conexiones  
 **Requisitos:** RNF-17, RNF-18 · **Depende de:** [HU-05-01](04c-historias-control.md#hu-05-01)
 
 - **Como:** evaluador del proyecto

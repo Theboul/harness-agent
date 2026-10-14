@@ -12,7 +12,7 @@ harness-agent/
 │   ├── 01-vision-y-decisiones.md   # equipo, alcance, decisiones V-01 a V-14
 │   ├── 02-arquitectura.md          # diagramas, contratos, eventos, modelo de datos
 │   ├── 03-plan-sprints.md          # pruebas, riesgos, épicas, sprints, tareas
-│   ├── 04a..04d-historias-*.md     # historias de usuario por épicas
+│   ├── 04a..04e-historias-*.md     # historias de usuario por épicas
 │   ├── 05-trazabilidad.md          # requisito -> historia y arranque
 │   ├── PROGRESO.md                 # qué se hizo y dónde está
 │   └── demo.md                     # guion de demostración (10 a 15 min)

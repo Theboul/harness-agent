@@ -19,6 +19,7 @@
 
 | Tema | Decisión |
 |---|---|
+| Enfoque | Coding Harness basado en tickets: ticket → agente → cambios → pruebas → verificación → aprobación → Pull Request |
 | Lenguaje | Python 3.12+ |
 | Interfaz | Terminal (CLI). El núcleo emite eventos por un bus y nunca imprime |
 | Proveedores | LiteLLM detrás de una interfaz propia `Provider`; al menos dos con conmutación por fallo |
@@ -39,6 +40,7 @@
 - Cliente MCP.
 - Subagentes.
 - Trazas y auditoría con redacción de secretos.
+- Flujo de tarea con criterios de aceptación, herramientas Git, pruebas y lint, verificación de criterios, aprobación del diff y Pull Request (E11).
 
 ## Arquitectura
 
@@ -81,7 +83,7 @@ Guías para el agente de código, en `.claude/skills/`:
 |---|---|
 | 1 | Tarea de tres pasos de principio a fin con modelo real; sesión guardada; política de permisos |
 | 2 | Aprobación y rechazo, reanudación de sesión, compactación y subagente básico |
-| 3 | MCP bajo permisos, conmutación de proveedor, memoria entre sesiones, documentación y pruebas |
+| 3 | Una tarea con criterios llega a Pull Request tras aprobar el diff; además MCP bajo permisos, conmutación de proveedor y memoria entre sesiones |
 
 ## Instalación y uso
 

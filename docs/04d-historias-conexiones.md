@@ -1,6 +1,6 @@
 # Historias: proveedores, MCP, subagentes, trazas e innovación (E7 a E10, EI)
 
-> [← 04c-historias-control.md](04c-historias-control.md) · [Índice](00-indice.md) · [05-trazabilidad.md →](05-trazabilidad.md)  
+> [← 04c-historias-control.md](04c-historias-control.md) · [Índice](00-indice.md) · [04e-historias-coding-harness.md →](04e-historias-coding-harness.md)  
 > Sección 10 del contexto original, continuación: épicas E7, E8, E9, E10 y EI (incluye SPK-01 y SPK-04).  
 > Ver también: [02-arquitectura.md](02-arquitectura.md) · [03-plan-sprints.md](03-plan-sprints.md) · [PROGRESO.md](PROGRESO.md)
 >
@@ -88,7 +88,7 @@
 <a id="hu-07-04"></a>
 #### HU-07-04 — Reintentos con espera exponencial
 
-**Prioridad:** Alta · **PHU:** 1 · **Sprint:** Sprint 3 · **Desarrollador:** A — Núcleo  
+**Prioridad:** Media · **PHU:** 1 · **Sprint:** Sprint 3 · **Desarrollador:** A — Núcleo  
 **Requisitos:** RF-7.5, RNF-6 · **Depende de:** [HU-07-02](04d-historias-conexiones.md#hu-07-02)
 
 - **Como:** usuario operador
@@ -297,7 +297,7 @@
 <a id="hu-08-04"></a>
 #### HU-08-04 — Aislar los fallos de un servidor MCP
 
-**Prioridad:** Alta · **PHU:** 1 · **Sprint:** Sprint 3 · **Desarrollador:** C — Control y conexiones  
+**Prioridad:** Media · **PHU:** 1 · **Sprint:** Sprint 3 · **Desarrollador:** C — Control y conexiones  
 **Requisitos:** RF-8.5, RNF-8 · **Depende de:** [HU-08-01](04d-historias-conexiones.md#hu-08-01)
 
 - **Como:** usuario operador
@@ -483,7 +483,7 @@
 <a id="hu-09-05"></a>
 #### HU-09-05 — Propagación explícita de errores del subagente
 
-**Prioridad:** Alta · **PHU:** 1 · **Sprint:** Sprint 3 · **Desarrollador:** A — Núcleo  
+**Prioridad:** Media · **PHU:** 1 · **Sprint:** Sprint 3 · **Desarrollador:** A — Núcleo  
 **Requisitos:** RF-9.7 · **Depende de:** [HU-09-03](04d-historias-conexiones.md#hu-09-03)
 
 - **Como:** agente principal
@@ -633,6 +633,7 @@
 
 - **AC-01 — Atributos estándar de IA generativa.** Dado una traza, cuando se exporta, entonces usa los nombres de atributos de las convenciones de IA generativa.
 
+
 ### EI. Innovación
 
 <a id="hu-in-01"></a>
@@ -738,4 +739,4 @@
 
 ---
 
-[← 04c-historias-control.md](04c-historias-control.md) · [Índice](00-indice.md) · [05-trazabilidad.md →](05-trazabilidad.md)
+[← 04c-historias-control.md](04c-historias-control.md) · [Índice](00-indice.md) · [04e-historias-coding-harness.md →](04e-historias-coding-harness.md)

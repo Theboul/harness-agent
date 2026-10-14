@@ -13,6 +13,7 @@
 | [04b-historias-estado.md](04b-historias-estado.md) | E2 Contexto, E3 Sesiones, E4 Memoria | §10 |
 | [04c-historias-control.md](04c-historias-control.md) | E5 Permisos, E6 Interacción | §10 |
 | [04d-historias-conexiones.md](04d-historias-conexiones.md) | E7 Proveedores, E8 MCP, E9 Subagentes, E10 Trazas, EI Innovación | §10 |
+| [04e-historias-coding-harness.md](04e-historias-coding-harness.md) | E11 Coding Harness: del ticket al Pull Request | §10 |
 | [05-trazabilidad.md](05-trazabilidad.md) | Requisito → historia y cómo empezar | §11, §12 |
 | [PROGRESO.md](PROGRESO.md) | **Qué se hizo y dónde está** | nuevo |
 
@@ -28,6 +29,7 @@
 | `HU-02-xx`, `HU-03-xx`, `HU-04-xx`, `SPK-03` | [04b-historias-estado.md](04b-historias-estado.md) |
 | `HU-05-xx`, `HU-06-xx` | [04c-historias-control.md](04c-historias-control.md) |
 | `HU-07-xx` a `HU-10-xx`, `HU-IN-xx`, `SPK-01`, `SPK-04` | [04d-historias-conexiones.md](04d-historias-conexiones.md) |
+| `HU-11-xx` (Coding Harness) | [04e-historias-coding-harness.md](04e-historias-coding-harness.md) |
 | Estado, commits y evidencia de cualquiera | [PROGRESO.md](PROGRESO.md) |
 
 ## Convenciones
@@ -35,6 +37,7 @@
 - Cada historia tiene un ancla con su ID en minúsculas: `04c-historias-control.md#hu-05-03`.
 - Los IDs en texto enlazan a su historia; el estado no se repite fuera de `PROGRESO.md`.
 - La numeración de secciones (§1 a §12) conserva la del documento original.
+- El documento original del análisis se conserva solo como histórico en [archivo/CONTEXTO_HARNESS_v1.md](archivo/CONTEXTO_HARNESS_v1.md); no se edita. Los cambios van a `01` a `05` y `PROGRESO.md`.
 - Las skills del proyecto están en `.claude/skills/`: `arquitectura-hexagonal-clean`, `estructura-carpetas-harness`, `verificar-fronteras-hexagonales`.
 
 ---

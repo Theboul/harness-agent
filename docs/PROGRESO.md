@@ -2,7 +2,7 @@
 
 > [← 05-trazabilidad.md](05-trazabilidad.md) · [Índice](00-indice.md)  
 > Única fuente de estado del proyecto: qué se hizo, dónde está y con qué evidencia.  
-> Ver también: [03-plan-sprints.md](03-plan-sprints.md) · [04a](04a-historias-fundacion.md) · [04b](04b-historias-estado.md) · [04c](04c-historias-control.md) · [04d](04d-historias-conexiones.md)
+> Ver también: [03-plan-sprints.md](03-plan-sprints.md) · [04a](04a-historias-fundacion.md) · [04b](04b-historias-estado.md) · [04c](04c-historias-control.md) · [04d](04d-historias-conexiones.md) · [04e](04e-historias-coding-harness.md)
 
 ## Cómo mantenerlo
 
@@ -19,7 +19,7 @@ Estados: `Pendiente` · `En curso` · `En revisión` · `Hecha` · `Bloqueada`.
 |---|---|---|---|---|
 | Sprint 1 | 16 | 0 | 38 | 0 |
 | Sprint 2 | 19 | 0 | 40 | 0 |
-| Sprint 3 | 28 | 0 | 53 | 0 |
+| Sprint 3 | 35 | 0 | 68 | 0 |
 | Backlog | 12 | 0 | 39 | 0 |
 
 Actualizar esta tabla al cerrar cada historia.
@@ -75,7 +75,7 @@ Actualizar esta tabla al cerrar cada historia.
 |---|---|---|---|---|---|---|---|---|
 | [HU-00-05](04a-historias-fundacion.md#hu-00-05) | Pruebas de integración y de fallos | Alta | 3 | A — Núcleo | Pendiente |  |  |  |
 | [HU-00-06](04a-historias-fundacion.md#hu-00-06) | README, guion de demostración y documento de arquitectura | Alta | 3 | B — Estado | Pendiente |  |  |  |
-| [HU-00-07](04a-historias-fundacion.md#hu-00-07) | Cobertura mínima y prueba de instalación | Alta | 2 | C — Control y conexiones | Pendiente |  |  |  |
+| [HU-00-07](04a-historias-fundacion.md#hu-00-07) | Cobertura mínima y prueba de instalación | Media | 2 | C — Control y conexiones | Pendiente |  |  |  |
 | [HU-01-07](04a-historias-fundacion.md#hu-01-07) | Varias llamadas a herramientas en un mismo turno | Media | 2 | A — Núcleo | Pendiente |  |  |  |
 | [HU-01-08](04a-historias-fundacion.md#hu-01-08) | Detección de llamadas repetidas | Media | 1 | A — Núcleo | Pendiente |  |  |  |
 | [HU-02-04](04b-historias-estado.md#hu-02-04) | Comando para compactar manualmente | Media | 1 | B — Estado | Pendiente |  |  |  |
@@ -88,19 +88,26 @@ Actualizar esta tabla al cerrar cada historia.
 | [HU-04-05](04b-historias-estado.md#hu-04-05) | No almacenar secretos en memoria | Alta | 2 | C — Control y conexiones | Pendiente |  |  |  |
 | [HU-05-06](04c-historias-control.md#hu-05-06) | Reglas de permisos por archivo | Media | 2 | C — Control y conexiones | Pendiente |  |  |  |
 | [HU-05-07](04c-historias-control.md#hu-05-07) | Modo de solo lectura | Media | 1 | C — Control y conexiones | Pendiente |  |  |  |
-| [HU-05-08](04c-historias-control.md#hu-05-08) | Contenido externo tratado como datos | Alta | 2 | C — Control y conexiones | Pendiente |  |  |  |
+| [HU-05-08](04c-historias-control.md#hu-05-08) | Contenido externo tratado como datos | Media | 2 | C — Control y conexiones | Pendiente |  |  |  |
 | [HU-06-03](04c-historias-control.md#hu-06-03) | Interrumpir la ejecución sin perder la sesión | Media | 2 | A — Núcleo | Pendiente |  |  |  |
-| [HU-07-04](04d-historias-conexiones.md#hu-07-04) | Reintentos con espera exponencial | Alta | 1 | A — Núcleo | Pendiente |  |  |  |
+| [HU-07-04](04d-historias-conexiones.md#hu-07-04) | Reintentos con espera exponencial | Media | 1 | A — Núcleo | Pendiente |  |  |  |
 | [HU-07-05](04d-historias-conexiones.md#hu-07-05) | Conmutación por fallo con umbral por modelo | Alta | 3 | A — Núcleo | Pendiente |  |  |  |
 | [HU-08-01](04d-historias-conexiones.md#hu-08-01) | Conexión a un servidor MCP por stdio | Alta | 2 | C — Control y conexiones | Pendiente |  |  |  |
 | [HU-08-02](04d-historias-conexiones.md#hu-08-02) | Descubrir herramientas MCP y traducirlas al formato interno | Alta | 2 | C — Control y conexiones | Pendiente |  |  |  |
 | [HU-08-03](04d-historias-conexiones.md#hu-08-03) | Invocar herramientas MCP bajo la misma política de permisos | Alta | 2 | C — Control y conexiones | Pendiente |  |  |  |
-| [HU-08-04](04d-historias-conexiones.md#hu-08-04) | Aislar los fallos de un servidor MCP | Alta | 1 | C — Control y conexiones | Pendiente |  |  |  |
+| [HU-08-04](04d-historias-conexiones.md#hu-08-04) | Aislar los fallos de un servidor MCP | Media | 1 | C — Control y conexiones | Pendiente |  |  |  |
 | [HU-09-04](04d-historias-conexiones.md#hu-09-04) | Un solo nivel de anidamiento y límites por subagente | Alta | 2 | A — Núcleo | Pendiente |  |  |  |
-| [HU-09-05](04d-historias-conexiones.md#hu-09-05) | Propagación explícita de errores del subagente | Alta | 1 | A — Núcleo | Pendiente |  |  |  |
+| [HU-09-05](04d-historias-conexiones.md#hu-09-05) | Propagación explícita de errores del subagente | Media | 1 | A — Núcleo | Pendiente |  |  |  |
 | [HU-09-06](04d-historias-conexiones.md#hu-09-06) | Dos tipos de subagente: explorador y verificador | Media | 2 | A — Núcleo | Pendiente |  |  |  |
 | [HU-10-01](04d-historias-conexiones.md#hu-10-01) | Trazas estructuradas de cada llamada | Alta | 2 | B — Estado | Pendiente |  |  |  |
 | [HU-10-02](04d-historias-conexiones.md#hu-10-02) | Redacción de secretos en registros | Alta | 1 | B — Estado | Pendiente |  |  |  |
+| [HU-11-01](04e-historias-coding-harness.md#hu-11-01) | Tarea con objetivo, contexto, reglas y criterios de aceptación | Alta | 2 | A — Núcleo | Pendiente |  |  |  |
+| [HU-11-02](04e-historias-coding-harness.md#hu-11-02) | Herramientas Git: estado, diff, rama y commit | Alta | 2 | C — Control y conexiones | Pendiente |  |  |  |
+| [HU-11-03](04e-historias-coding-harness.md#hu-11-03) | Herramienta para ejecutar pruebas y lint | Alta | 2 | C — Control y conexiones | Pendiente |  |  |  |
+| [HU-11-04](04e-historias-coding-harness.md#hu-11-04) | Verificación de criterios de aceptación antes de terminar | Alta | 2 | A — Núcleo | Pendiente |  |  |  |
+| [HU-11-05](04e-historias-coding-harness.md#hu-11-05) | Resumen de cambios y aprobación humana del diff | Alta | 2 | C — Control y conexiones | Pendiente |  |  |  |
+| [HU-11-06](04e-historias-coding-harness.md#hu-11-06) | Pull Request tras la aprobación | Alta | 2 | A — Núcleo | Pendiente |  |  |  |
+| [HU-11-07](04e-historias-coding-harness.md#hu-11-07) | Una sesión por ticket con un worktree propio | Media | 3 | C — Control y conexiones | Pendiente |  |  |  |
 
 ## Backlog (sin sprint)
 
@@ -124,6 +131,8 @@ Actualizar esta tabla al cerrar cada historia.
 | Fecha | Cambio | ID afectado | Quién |
 |---|---|---|---|
 | 2026-10-12 | Contexto dividido en `docs/00` a `docs/05` y `PROGRESO.md`; Python 3.12+ | — | — |
+| 2026-10-13 | Alineado con `docs/archivo/CONTEXTO_HARNESS_v1.md`: enfoque Coding Harness, nueva épica E11 (HU-11-01 a HU-11-07), Sprint 3 rehecho, cinco historias pasan a Media | HU-11-xx, HU-00-07, HU-05-08, HU-07-04, HU-08-04, HU-09-05 | — |
+| 2026-10-13 | Original archivado en `docs/archivo/CONTEXTO_HARNESS_v1.md` (solo histórico); se elimina el puntero `docs/CONTEXTO_HARNESS.md` | — | — |
 
 ## Decisiones abiertas
 

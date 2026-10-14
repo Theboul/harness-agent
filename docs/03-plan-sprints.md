@@ -41,6 +41,7 @@ Riesgos nuevos (se suman a R-1 a R-10 de la captura):
 | E8 | Integración MCP | Cliente MCP por stdio, descubrimiento y traducción de herramientas, mismos permisos que las nativas, aislamiento de fallos. | 7 | 13 |
 | E9 | Subagentes (reto) | Delegación en sesiones hijas con contexto aislado, herramientas restringidas y resultado estructurado. | 7 | 17 |
 | E10 | Trazabilidad | Trazas estructuradas, auditoría y redacción de secretos en los registros. | 3 | 6 |
+| E11 | Coding Harness: del ticket al Pull Request | Tarea con criterios verificables, herramientas Git y de pruebas, verificación de criterios, aprobación del diff y Pull Request. Es el flujo con el que se demuestra el proyecto. | 7 | 15 |
 | EI | Innovación | Interfaz web, sandbox, comparación con LangGraph y panel de costos. Solo si el mínimo está cerrado. | 4 | 21 |
 
 ## 8. Plan de sprints
@@ -102,17 +103,17 @@ PHU obligatorios: A 12 · B 13 · C 13 (capacidad 13 por persona).
 
 PHU obligatorios: A 13 · B 14 · C 13 (capacidad 13 por persona). B queda 1 por encima; si no cabe, partir [HU-06-04](04c-historias-control.md#hu-06-04).
 
-### Sprint 3 — Subagente, MCP y cierre
+### Sprint 3 — Del ticket al Pull Request
 
 - **Scrum Master:** C — Control y conexiones
-- **Hito:** Una herramienta MCP corre bajo permisos, el sistema conmuta de proveedor al fallar uno, la memoria sobrevive entre sesiones y el repositorio queda documentado y probado.
-- **Demostración:** Demostración completa siguiendo el guion de 10 a 15 minutos.
+- **Hito:** Una tarea con criterios se convierte en cambios, pasa las pruebas, se verifica contra sus criterios, el usuario aprueba el diff y se crea el Pull Request. Además una herramienta MCP corre bajo permisos, el sistema conmuta de proveedor al fallar uno y la memoria sobrevive entre sesiones.
+- **Demostración:** Demostración completa del flujo ticket → Pull Request siguiendo el guion de 10 a 15 minutos.
 
 | Id | Historia | Prioridad | PHU | Responsable |
 |---|---|---|---|---|
 | [HU-00-05](04a-historias-fundacion.md#hu-00-05) | Pruebas de integración y de fallos | Alta | 3 | A — Núcleo |
 | [HU-00-06](04a-historias-fundacion.md#hu-00-06) | README, guion de demostración y documento de arquitectura | Alta | 3 | B — Estado |
-| [HU-00-07](04a-historias-fundacion.md#hu-00-07) | Cobertura mínima y prueba de instalación | Alta | 2 | C — Control y conexiones |
+| [HU-00-07](04a-historias-fundacion.md#hu-00-07) | Cobertura mínima y prueba de instalación | Media | 2 | C — Control y conexiones |
 | [HU-01-07](04a-historias-fundacion.md#hu-01-07) | Varias llamadas a herramientas en un mismo turno | Media | 2 | A — Núcleo |
 | [HU-01-08](04a-historias-fundacion.md#hu-01-08) | Detección de llamadas repetidas | Media | 1 | A — Núcleo |
 | [HU-02-04](04b-historias-estado.md#hu-02-04) | Comando para compactar manualmente | Media | 1 | B — Estado |
@@ -125,21 +126,28 @@ PHU obligatorios: A 13 · B 14 · C 13 (capacidad 13 por persona). B queda 1 por
 | [HU-04-05](04b-historias-estado.md#hu-04-05) | No almacenar secretos en memoria | Alta | 2 | C — Control y conexiones |
 | [HU-05-06](04c-historias-control.md#hu-05-06) | Reglas de permisos por archivo | Media | 2 | C — Control y conexiones |
 | [HU-05-07](04c-historias-control.md#hu-05-07) | Modo de solo lectura | Media | 1 | C — Control y conexiones |
-| [HU-05-08](04c-historias-control.md#hu-05-08) | Contenido externo tratado como datos | Alta | 2 | C — Control y conexiones |
+| [HU-05-08](04c-historias-control.md#hu-05-08) | Contenido externo tratado como datos | Media | 2 | C — Control y conexiones |
 | [HU-06-03](04c-historias-control.md#hu-06-03) | Interrumpir la ejecución sin perder la sesión | Media | 2 | A — Núcleo |
-| [HU-07-04](04d-historias-conexiones.md#hu-07-04) | Reintentos con espera exponencial | Alta | 1 | A — Núcleo |
+| [HU-07-04](04d-historias-conexiones.md#hu-07-04) | Reintentos con espera exponencial | Media | 1 | A — Núcleo |
 | [HU-07-05](04d-historias-conexiones.md#hu-07-05) | Conmutación por fallo con umbral por modelo | Alta | 3 | A — Núcleo |
 | [HU-08-01](04d-historias-conexiones.md#hu-08-01) | Conexión a un servidor MCP por stdio | Alta | 2 | C — Control y conexiones |
 | [HU-08-02](04d-historias-conexiones.md#hu-08-02) | Descubrir herramientas MCP y traducirlas al formato interno | Alta | 2 | C — Control y conexiones |
 | [HU-08-03](04d-historias-conexiones.md#hu-08-03) | Invocar herramientas MCP bajo la misma política de permisos | Alta | 2 | C — Control y conexiones |
-| [HU-08-04](04d-historias-conexiones.md#hu-08-04) | Aislar los fallos de un servidor MCP | Alta | 1 | C — Control y conexiones |
+| [HU-08-04](04d-historias-conexiones.md#hu-08-04) | Aislar los fallos de un servidor MCP | Media | 1 | C — Control y conexiones |
 | [HU-09-04](04d-historias-conexiones.md#hu-09-04) | Un solo nivel de anidamiento y límites por subagente | Alta | 2 | A — Núcleo |
-| [HU-09-05](04d-historias-conexiones.md#hu-09-05) | Propagación explícita de errores del subagente | Alta | 1 | A — Núcleo |
+| [HU-09-05](04d-historias-conexiones.md#hu-09-05) | Propagación explícita de errores del subagente | Media | 1 | A — Núcleo |
 | [HU-09-06](04d-historias-conexiones.md#hu-09-06) | Dos tipos de subagente: explorador y verificador | Media | 2 | A — Núcleo |
 | [HU-10-01](04d-historias-conexiones.md#hu-10-01) | Trazas estructuradas de cada llamada | Alta | 2 | B — Estado |
 | [HU-10-02](04d-historias-conexiones.md#hu-10-02) | Redacción de secretos en registros | Alta | 1 | B — Estado |
+| [HU-11-01](04e-historias-coding-harness.md#hu-11-01) | Tarea con objetivo, contexto, reglas y criterios de aceptación | Alta | 2 | A — Núcleo |
+| [HU-11-02](04e-historias-coding-harness.md#hu-11-02) | Herramientas Git: estado, diff, rama y commit | Alta | 2 | C — Control y conexiones |
+| [HU-11-03](04e-historias-coding-harness.md#hu-11-03) | Herramienta para ejecutar pruebas y lint | Alta | 2 | C — Control y conexiones |
+| [HU-11-04](04e-historias-coding-harness.md#hu-11-04) | Verificación de criterios de aceptación antes de terminar | Alta | 2 | A — Núcleo |
+| [HU-11-05](04e-historias-coding-harness.md#hu-11-05) | Resumen de cambios y aprobación humana del diff | Alta | 2 | C — Control y conexiones |
+| [HU-11-06](04e-historias-coding-harness.md#hu-11-06) | Pull Request tras la aprobación | Alta | 2 | A — Núcleo |
+| [HU-11-07](04e-historias-coding-harness.md#hu-11-07) | Una sesión por ticket con un worktree propio | Media | 3 | C — Control y conexiones |
 
-PHU obligatorios: A 10 · B 13 · C 13 (capacidad 13 por persona).
+PHU obligatorios: A 14 · B 13 · C 14 (capacidad 13 por persona). A y C quedan 1 por encima; si no cabe, sale [HU-11-06](04e-historias-coding-harness.md#hu-11-06) (Pull Request). Las historias de prioridad Media pasan a un posible cuarto sprint.
 
 ### Sin sprint (backlog)
 
@@ -279,9 +287,9 @@ Estimación en horas: reparto inicial de los PHU (1 PHU ≈ 2,5 h) entre las tar
 | Sp3-05 | [HU-00-06](04a-historias-fundacion.md#hu-00-06) | Redactar README con instalación, configuración y primeros pasos | 2,5 | B |
 | Sp3-06 | [HU-00-06](04a-historias-fundacion.md#hu-00-06) | Escribir el guion de demostración de 10 a 15 minutos | 2,5 | B |
 | Sp3-07 | [HU-00-06](04a-historias-fundacion.md#hu-00-06) | Documentar la arquitectura con los diagramas del análisis | 2,5 | B |
-| Sp3-08 | [HU-00-07](04a-historias-fundacion.md#hu-00-07) | Revisar la cobertura y cubrir los módulos que falten | 1,5 | C |
-| Sp3-09 | [HU-00-07](04a-historias-fundacion.md#hu-00-07) | Coordinar la prueba de instalación con una persona externa | 1,5 | C |
-| Sp3-10 | [HU-00-07](04a-historias-fundacion.md#hu-00-07) | Corregir lo detectado | 1,5 | C |
+| Sp3-08 | [HU-00-07](04a-historias-fundacion.md#hu-00-07) (opc.) | Revisar la cobertura y cubrir los módulos que falten | 1,5 | C |
+| Sp3-09 | [HU-00-07](04a-historias-fundacion.md#hu-00-07) (opc.) | Coordinar la prueba de instalación con una persona externa | 1,5 | C |
+| Sp3-10 | [HU-00-07](04a-historias-fundacion.md#hu-00-07) (opc.) | Corregir lo detectado | 1,5 | C |
 | Sp3-11 | [HU-01-07](04a-historias-fundacion.md#hu-01-07) (opc.) | Ejecutar las llamadas y asociar cada resultado a su identificador | 2,5 | A |
 | Sp3-12 | [HU-01-07](04a-historias-fundacion.md#hu-01-07) (opc.) | Prueba con respuesta simulada de varias llamadas | 2,5 | A |
 | Sp3-13 | [HU-01-08](04a-historias-fundacion.md#hu-01-08) (opc.) | Contar repeticiones por herramienta y argumentos | 1 | A |
@@ -307,12 +315,12 @@ Estimación en horas: reparto inicial de los PHU (1 PHU ≈ 2,5 h) entre las tar
 | Sp3-33 | [HU-05-06](04c-historias-control.md#hu-05-06) (opc.) | Cargar reglas desde archivo | 2,5 | C |
 | Sp3-34 | [HU-05-06](04c-historias-control.md#hu-05-06) (opc.) | Validar el formato de las reglas | 2,5 | C |
 | Sp3-35 | [HU-05-07](04c-historias-control.md#hu-05-07) (opc.) | Perfil de política de solo lectura | 2,5 | C |
-| Sp3-36 | [HU-05-08](04c-historias-control.md#hu-05-08) | Marcar el contenido externo en el contexto | 2,5 | C |
-| Sp3-37 | [HU-05-08](04c-historias-control.md#hu-05-08) | Pruebas de inyección con archivo y con servidor simulado | 2,5 | C |
+| Sp3-36 | [HU-05-08](04c-historias-control.md#hu-05-08) (opc.) | Marcar el contenido externo en el contexto | 2,5 | C |
+| Sp3-37 | [HU-05-08](04c-historias-control.md#hu-05-08) (opc.) | Pruebas de inyección con archivo y con servidor simulado | 2,5 | C |
 | Sp3-38 | [HU-06-03](04c-historias-control.md#hu-06-03) (opc.) | Cancelación cooperativa del turno | 2,5 | A |
 | Sp3-39 | [HU-06-03](04c-historias-control.md#hu-06-03) (opc.) | Terminar el proceso de la herramienta en curso | 2,5 | A |
-| Sp3-40 | [HU-07-04](04d-historias-conexiones.md#hu-07-04) | Implementar la política de reintentos | 1 | A |
-| Sp3-41 | [HU-07-04](04d-historias-conexiones.md#hu-07-04) | Prueba con el proveedor simulado | 1 | A |
+| Sp3-40 | [HU-07-04](04d-historias-conexiones.md#hu-07-04) (opc.) | Implementar la política de reintentos | 1 | A |
+| Sp3-41 | [HU-07-04](04d-historias-conexiones.md#hu-07-04) (opc.) | Prueba con el proveedor simulado | 1 | A |
 | Sp3-42 | [HU-07-05](04d-historias-conexiones.md#hu-07-05) | Orden de proveedores y detección de errores de cuota | 2,5 | A |
 | Sp3-43 | [HU-07-05](04d-historias-conexiones.md#hu-07-05) | Repetir el turno en curso con el respaldo | 2,5 | A |
 | Sp3-44 | [HU-07-05](04d-historias-conexiones.md#hu-07-05) | Umbral de compactación por modelo | 2,5 | A |
@@ -323,12 +331,12 @@ Estimación en horas: reparto inicial de los PHU (1 PHU ≈ 2,5 h) entre las tar
 | Sp3-49 | [HU-08-03](04d-historias-conexiones.md#hu-08-03) | Enrutar la invocación por la política | 1,5 | C |
 | Sp3-50 | [HU-08-03](04d-historias-conexiones.md#hu-08-03) | Devolver el resultado al bucle | 1,5 | C |
 | Sp3-51 | [HU-08-03](04d-historias-conexiones.md#hu-08-03) | Prueba con el servidor de la demostración | 1,5 | C |
-| Sp3-52 | [HU-08-04](04d-historias-conexiones.md#hu-08-04) | Capturar fallos del servidor | 1 | C |
-| Sp3-53 | [HU-08-04](04d-historias-conexiones.md#hu-08-04) | Deshabilitar solo sus herramientas | 1 | C |
+| Sp3-52 | [HU-08-04](04d-historias-conexiones.md#hu-08-04) (opc.) | Capturar fallos del servidor | 1 | C |
+| Sp3-53 | [HU-08-04](04d-historias-conexiones.md#hu-08-04) (opc.) | Deshabilitar solo sus herramientas | 1 | C |
 | Sp3-54 | [HU-09-04](04d-historias-conexiones.md#hu-09-04) | Quitar la herramienta de delegación a los subagentes | 2,5 | A |
 | Sp3-55 | [HU-09-04](04d-historias-conexiones.md#hu-09-04) | Aplicar los límites del bucle a la sesión hija | 2,5 | A |
-| Sp3-56 | [HU-09-05](04d-historias-conexiones.md#hu-09-05) | Resultado de error en el esquema | 1 | A |
-| Sp3-57 | [HU-09-05](04d-historias-conexiones.md#hu-09-05) | Prueba de fallo del subagente | 1 | A |
+| Sp3-56 | [HU-09-05](04d-historias-conexiones.md#hu-09-05) (opc.) | Resultado de error en el esquema | 1 | A |
+| Sp3-57 | [HU-09-05](04d-historias-conexiones.md#hu-09-05) (opc.) | Prueba de fallo del subagente | 1 | A |
 | Sp3-58 | [HU-09-06](04d-historias-conexiones.md#hu-09-06) (opc.) | Definir los dos perfiles | 2,5 | A |
 | Sp3-59 | [HU-09-06](04d-historias-conexiones.md#hu-09-06) (opc.) | Pruebas por perfil | 2,5 | A |
 | Sp3-60 | [HU-10-01](04d-historias-conexiones.md#hu-10-01) | Suscribir un registrador de trazas al bus de eventos | 1,5 | B |
@@ -336,6 +344,27 @@ Estimación en horas: reparto inicial de los PHU (1 PHU ≈ 2,5 h) entre las tar
 | Sp3-62 | [HU-10-01](04d-historias-conexiones.md#hu-10-01) | Comando o consulta para ver una traza | 1,5 | B |
 | Sp3-63 | [HU-10-02](04d-historias-conexiones.md#hu-10-02) | Filtro de redacción en el registrador | 1 | B |
 | Sp3-64 | [HU-10-02](04d-historias-conexiones.md#hu-10-02) | Prueba con claves de ejemplo | 1 | B |
+| Sp3-65 | [HU-11-01](04e-historias-coding-harness.md#hu-11-01) | Definir el formato de la tarea y su validación | 1,5 | A |
+| Sp3-66 | [HU-11-01](04e-historias-coding-harness.md#hu-11-01) | Leer la tarea desde archivo y desde un issue con la CLI de GitHub | 1,5 | A |
+| Sp3-67 | [HU-11-01](04e-historias-coding-harness.md#hu-11-01) | Crear la sesión con la tarea como objetivo | 1,5 | A |
+| Sp3-68 | [HU-11-02](04e-historias-coding-harness.md#hu-11-02) | Implementar estado, diff, rama y commit sobre la CLI de Git | 1,5 | C |
+| Sp3-69 | [HU-11-02](04e-historias-coding-harness.md#hu-11-02) | Declarar el riesgo de cada herramienta | 1,5 | C |
+| Sp3-70 | [HU-11-02](04e-historias-coding-harness.md#hu-11-02) | Pruebas sobre un repositorio temporal | 1,5 | C |
+| Sp3-71 | [HU-11-03](04e-historias-coding-harness.md#hu-11-03) | Ejecutar el comando de pruebas configurado y analizar su salida | 1,5 | C |
+| Sp3-72 | [HU-11-03](04e-historias-coding-harness.md#hu-11-03) | Ejecutar el lint y devolver los errores | 1,5 | C |
+| Sp3-73 | [HU-11-03](04e-historias-coding-harness.md#hu-11-03) | Pruebas con un proyecto de ejemplo | 1,5 | C |
+| Sp3-74 | [HU-11-04](04e-historias-coding-harness.md#hu-11-04) | Representar los criterios como lista verificable | 1,5 | A |
+| Sp3-75 | [HU-11-04](04e-historias-coding-harness.md#hu-11-04) | Herramienta para que el agente reporte la evidencia de cada criterio | 1,5 | A |
+| Sp3-76 | [HU-11-04](04e-historias-coding-harness.md#hu-11-04) | Bloquear el cierre si falta alguno | 1,5 | A |
+| Sp3-77 | [HU-11-05](04e-historias-coding-harness.md#hu-11-05) | Generar el resumen de cambios a partir del diff | 1,5 | C |
+| Sp3-78 | [HU-11-05](04e-historias-coding-harness.md#hu-11-05) | Mostrar el diff en la terminal | 1,5 | C |
+| Sp3-79 | [HU-11-05](04e-historias-coding-harness.md#hu-11-05) | Conectar la decisión con la política de permisos | 1,5 | C |
+| Sp3-80 | [HU-11-06](04e-historias-coding-harness.md#hu-11-06) | Herramienta de push y de creación de Pull Request con la CLI de GitHub | 1,5 | A |
+| Sp3-81 | [HU-11-06](04e-historias-coding-harness.md#hu-11-06) | Descripción generada con resumen y criterios | 1,5 | A |
+| Sp3-82 | [HU-11-06](04e-historias-coding-harness.md#hu-11-06) | Prueba con un repositorio de demostración | 1,5 | A |
+| Sp3-83 | [HU-11-07](04e-historias-coding-harness.md#hu-11-07) (opc.) | Crear y eliminar worktrees por tarea | 2,5 | C |
+| Sp3-84 | [HU-11-07](04e-historias-coding-harness.md#hu-11-07) (opc.) | Asociar la sesión con su worktree | 2,5 | C |
+| Sp3-85 | [HU-11-07](04e-historias-coding-harness.md#hu-11-07) (opc.) | Prueba con dos tareas en paralelo | 2,5 | C |
 
 ---
 

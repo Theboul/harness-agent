@@ -1,6 +1,6 @@
 # Trazabilidad y arranque
 
-> [← 04d-historias-conexiones.md](04d-historias-conexiones.md) · [Índice](00-indice.md) · [PROGRESO.md →](PROGRESO.md)  
+> [← 04e-historias-coding-harness.md](04e-historias-coding-harness.md) · [Índice](00-indice.md) · [PROGRESO.md →](PROGRESO.md)  
 > Secciones 11 y 12 del contexto original.  
 > Ver también: [03-plan-sprints.md](03-plan-sprints.md) · [PROGRESO.md](PROGRESO.md)
 
@@ -57,14 +57,14 @@
 | RF-7.2 | Alta | [HU-07-01](04d-historias-conexiones.md#hu-07-01) |
 | RF-7.3 | Alta | [HU-07-02](04d-historias-conexiones.md#hu-07-02), [HU-07-03](04d-historias-conexiones.md#hu-07-03), [SPK-01](04d-historias-conexiones.md#spk-01) |
 | RF-7.4 | Alta | [HU-07-05](04d-historias-conexiones.md#hu-07-05) |
-| RF-7.5 | Alta | [HU-07-04](04d-historias-conexiones.md#hu-07-04) |
+| RF-7.5 | Media | [HU-07-04](04d-historias-conexiones.md#hu-07-04) |
 | RF-7.6 | Alta | [HU-00-04](04a-historias-fundacion.md#hu-00-04), [HU-07-02](04d-historias-conexiones.md#hu-07-02) |
 | RF-7.7 | Baja | [HU-07-06](04d-historias-conexiones.md#hu-07-06) |
 | RF-8.1 | Alta | [SPK-04](04d-historias-conexiones.md#spk-04), [HU-08-01](04d-historias-conexiones.md#hu-08-01) |
 | RF-8.2 | Alta | [HU-08-02](04d-historias-conexiones.md#hu-08-02) |
 | RF-8.3 | Alta | [HU-08-03](04d-historias-conexiones.md#hu-08-03) |
 | RF-8.4 | Alta | [HU-08-03](04d-historias-conexiones.md#hu-08-03) |
-| RF-8.5 | Alta | [HU-08-04](04d-historias-conexiones.md#hu-08-04) |
+| RF-8.5 | Media | [HU-08-04](04d-historias-conexiones.md#hu-08-04) |
 | RF-8.6 | Media | [HU-08-05](04d-historias-conexiones.md#hu-08-05) |
 | RF-8.7 | Media | [HU-08-05](04d-historias-conexiones.md#hu-08-05) |
 | RF-8.8 | Baja | [HU-08-06](04d-historias-conexiones.md#hu-08-06) |
@@ -74,7 +74,7 @@
 | RF-9.4 | Alta | [HU-09-03](04d-historias-conexiones.md#hu-09-03) |
 | RF-9.5 | Alta | [HU-09-04](04d-historias-conexiones.md#hu-09-04) |
 | RF-9.6 | Alta | [HU-09-04](04d-historias-conexiones.md#hu-09-04) |
-| RF-9.7 | Alta | [HU-09-05](04d-historias-conexiones.md#hu-09-05) |
+| RF-9.7 | Media | [HU-09-05](04d-historias-conexiones.md#hu-09-05) |
 | RF-9.8 | Media | [HU-09-06](04d-historias-conexiones.md#hu-09-06) |
 | RF-9.9 | Baja | [HU-09-07](04d-historias-conexiones.md#hu-09-07), [SPK-02](04a-historias-fundacion.md#spk-02) |
 | RF-10.1 | Alta | [HU-10-01](04d-historias-conexiones.md#hu-10-01) |
@@ -82,6 +82,13 @@
 | RF-10.3 | Alta | [HU-05-05](04c-historias-control.md#hu-05-05) |
 | RF-10.4 | Alta | [HU-10-02](04d-historias-conexiones.md#hu-10-02) |
 | RF-10.5 | Baja | [HU-10-03](04d-historias-conexiones.md#hu-10-03) |
+| RF-11.1 | Alta | [HU-11-01](04e-historias-coding-harness.md#hu-11-01) |
+| RF-11.2 | Alta | [HU-11-02](04e-historias-coding-harness.md#hu-11-02) |
+| RF-11.3 | Alta | [HU-11-03](04e-historias-coding-harness.md#hu-11-03) |
+| RF-11.4 | Alta | [HU-11-04](04e-historias-coding-harness.md#hu-11-04) |
+| RF-11.5 | Alta | [HU-11-05](04e-historias-coding-harness.md#hu-11-05) |
+| RF-11.6 | Alta | [HU-11-06](04e-historias-coding-harness.md#hu-11-06) |
+| RF-11.7 | Media | [HU-11-07](04e-historias-coding-harness.md#hu-11-07) |
 | RNF-1 | — | [HU-00-03](04a-historias-fundacion.md#hu-00-03), [HU-00-05](04a-historias-fundacion.md#hu-00-05) |
 | RNF-2 | — | [HU-01-02](04a-historias-fundacion.md#hu-01-02) |
 | RNF-3 | — | [HU-02-03](04b-historias-estado.md#hu-02-03) |
@@ -108,10 +115,11 @@
 
 1. Planning del Sprint 1 (lunes, 1 hora): confirmar PHU con planning poker y fijar fechas.
 2. Cerrar los dos modelos y el presupuesto de API antes de [SPK-01](04d-historias-conexiones.md#spk-01).
-3. [HU-00-01](04a-historias-fundacion.md#hu-00-01): crear el repositorio y escribir las interfaces del capítulo 4 en una reunión de 1 hora.
-4. Spikes del Sprint 1: [SPK-01](04d-historias-conexiones.md#spk-01) (OpenAI y Anthropic con LiteLLM) y [SPK-02](04a-historias-fundacion.md#spk-02) (asyncio y cancelación).
-5. Estructura sugerida: `src/harness_agent/core/` (bucle, contexto, permisos), `src/harness_agent/adapters/` (providers, store, MCP), `src/harness_agent/cli/`, `tests/`. Detalle en las skills `estructura-carpetas-harness` y `arquitectura-hexagonal-clean`.
+3. Redactar la constitución de Spec Kit con las reglas de arquitectura y de aprobación (push, merge y deploy siempre piden aprobación).
+4. [HU-00-01](04a-historias-fundacion.md#hu-00-01): crear el repositorio y escribir las interfaces del capítulo 4 en una reunión de 1 hora.
+5. Spikes del Sprint 1: [SPK-01](04d-historias-conexiones.md#spk-01) (dos proveedores con LiteLLM) y [SPK-02](04a-historias-fundacion.md#spk-02) (asyncio y cancelación).
+6. Estructura sugerida: `src/harness_agent/core/` (bucle, contexto, permisos, tareas), `src/harness_agent/adapters/` (providers, store, MCP, herramientas incluidas Git y pruebas), `src/harness_agent/cli/`, `tests/`. Detalle en las skills `estructura-carpetas-harness` y `arquitectura-hexagonal-clean`.
 
 ---
 
-[← 04d-historias-conexiones.md](04d-historias-conexiones.md) · [Índice](00-indice.md) · [PROGRESO.md →](PROGRESO.md)
+[← 04e-historias-coding-harness.md](04e-historias-coding-harness.md) · [Índice](00-indice.md) · [PROGRESO.md →](PROGRESO.md)

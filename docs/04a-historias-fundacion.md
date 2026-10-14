@@ -184,7 +184,7 @@ Formato: plantilla F4 del material de Scrum de la cátedra. PHU = puntos de hist
 <a id="hu-00-07"></a>
 #### HU-00-07 — Cobertura mínima y prueba de instalación
 
-**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** C — Control y conexiones  
+**Prioridad:** Media · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** C — Control y conexiones  
 **Requisitos:** RNF-11, RNF-14 · **Depende de:** [HU-00-02](04a-historias-fundacion.md#hu-00-02), [HU-00-06](04a-historias-fundacion.md#hu-00-06)
 
 - **Como:** equipo de desarrollo
