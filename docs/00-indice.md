@@ -37,7 +37,7 @@
 - Cada historia tiene un ancla con su ID en minúsculas: `04c-historias-control.md#hu-05-03`.
 - Los IDs en texto enlazan a su historia; el estado no se repite fuera de `PROGRESO.md`.
 - La numeración de secciones (§1 a §12) conserva la del documento original.
-- El documento original del análisis se conserva solo como histórico en [archivo/CONTEXTO_HARNESS_v1.md](archivo/CONTEXTO_HARNESS_v1.md); no se edita. Los cambios van a `01` a `05` y `PROGRESO.md`.
+- Las versiones del documento original del análisis se conservan solo como histórico en `archivo/`: [v1](archivo/CONTEXTO_HARNESS_v1.md) y [v2](archivo/CONTEXTO_HARNESS_v2.md) (la vigente). No se editan. Los cambios van a `01` a `05` y `PROGRESO.md`.
 - Las skills del proyecto están en `.claude/skills/`: `arquitectura-hexagonal-clean`, `estructura-carpetas-harness`, `verificar-fronteras-hexagonales`.
 
 ---

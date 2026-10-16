@@ -298,33 +298,36 @@ Formato: plantilla F4 del material de Scrum de la cátedra. PHU = puntos de hist
 - **AC-02 — Escritura sujeta a permiso.** Dado una escritura, cuando se ejecuta, entonces queda clasificada como acción que requiere permiso según la política.
 
 <a id="hu-01-04"></a>
-#### HU-01-04 — Herramienta de shell con tiempo límite
+#### HU-01-04 — Herramienta de shell portable con tiempo límite
 
-**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 2 · **Desarrollador:** C — Control y conexiones  
+**Prioridad:** Alta · **PHU:** 3 · **Sprint:** Sprint 2 · **Desarrollador:** C — Control y conexiones  
 **Requisitos:** RF-1.2, RNF-20 · **Depende de:** [HU-01-02](04a-historias-fundacion.md#hu-01-02), [HU-05-01](04c-historias-control.md#hu-05-01)
 
 - **Como:** usuario operador
-- **Quiero:** que el agente pueda ejecutar comandos con tiempo límite y salida acotada
-- **Para:** automatizar tareas sin riesgo de que se cuelgue
-- **Descripción:** El agente puede ejecutar comandos de shell con un tiempo máximo y salida acotada, usando el intérprete de la plataforma del usuario.
+- **Quiero:** que el agente pueda ejecutar comandos con tiempo límite y salida acotada, en PowerShell en Windows y en bash en Linux
+- **Para:** automatizar tareas en cualquiera de los dos sistemas sin riesgo de que se cuelgue
+- **Descripción:** El agente puede ejecutar comandos de shell con un tiempo máximo y salida acotada. En Windows usa PowerShell y en Linux usa bash, y el modelo sabe cuál de los dos tiene delante. El shell es la herramienta general: Git, pruebas y lint se hacen con él, bajo reglas de permisos.
 
 **Flujo general**
 
 1. El modelo solicita ejecutar un comando.
-2. La política de permisos pide aprobación.
-3. El sistema ejecuta el comando con tiempo máximo.
+2. La política de permisos evalúa el comando y, si corresponde, pide aprobación.
+3. El sistema lo ejecuta con tiempo máximo en el intérprete de la plataforma.
 4. Si excede el tiempo, lo termina y lo informa.
 5. La salida se acota y vuelve al modelo.
 
 **Reglas de negocio**
 
-1. El intérprete se elige según el sistema operativo.
-2. La lista de comandos denegados es propia de cada plataforma.
+1. El intérprete se elige según el sistema operativo (PowerShell o bash) detrás de una misma interfaz.
+2. El prefijo del contexto indica al modelo el sistema operativo y el intérprete.
+3. La lista de comandos denegados es propia de cada plataforma.
 
 **Criterios de aceptación**
 
 - **AC-01 — Tiempo máximo de ejecución.** Dado un comando que excede el tiempo máximo, cuando se ejecuta, entonces se termina y el modelo recibe un resultado de tiempo agotado.
-- **AC-02 — Intérprete según plataforma.** Dado el sistema operativo del usuario, cuando se ejecuta un comando, entonces se usa el intérprete propio de esa plataforma.
+- **AC-02 — Intérprete según plataforma.** Dado el sistema operativo del usuario, cuando se ejecuta un comando, entonces se usa PowerShell en Windows y bash en Linux.
+- **AC-03 — El modelo conoce su entorno.** Dado el arranque de una sesión, cuando se arma el contexto, entonces el prefijo indica al modelo el sistema operativo y el intérprete que se usan.
+- **AC-04 — Mismas pruebas en Windows y Linux.** Dado el mismo conjunto de pruebas de shell, cuando corre en integración continua, entonces pasa en Windows y en Linux.
 
 <a id="hu-01-05"></a>
 #### HU-01-05 — Bus de eventos desacoplado de la interfaz

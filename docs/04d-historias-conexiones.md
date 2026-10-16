@@ -506,29 +506,32 @@
 - **AC-01 — Error explícito con causa.** Dado un subagente que falla, cuando termina, entonces el orquestador recibe un resultado de error con la causa.
 
 <a id="hu-09-06"></a>
-#### HU-09-06 — Dos tipos de subagente: explorador y verificador
+#### HU-09-06 — Subagente verificador y subagente explorador
 
-**Prioridad:** Media · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** A — Núcleo  
+**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** C — Control y conexiones  
 **Requisitos:** RF-9.8 · **Depende de:** [HU-09-02](04d-historias-conexiones.md#hu-09-02)
 
 - **Como:** agente principal
-- **Quiero:** elegir entre un subagente explorador y uno verificador
-- **Para:** delegar según la naturaleza de la tarea
-- **Descripción:** El orquestador elige entre un subagente explorador (solo lectura) y uno verificador (ejecuta pruebas, no edita).
+- **Quiero:** elegir entre un subagente explorador de solo lectura y un verificador que ejecuta pruebas y devuelve evidencia por criterio
+- **Para:** delegar según la naturaleza de la tarea y que otra sesión, sin mi contexto, compruebe el trabajo
+- **Descripción:** El orquestador elige entre un subagente explorador (solo lectura) y uno verificador (ejecuta pruebas, no edita y devuelve evidencia por criterio). El verificador respalda el cierre de la tarea: otra sesión sin el contexto del agente comprueba su trabajo.
 
 **Flujo general**
 
 1. El orquestador elige el tipo según la tarea.
 2. El harness aplica el perfil del tipo.
 3. El subagente trabaja con sus herramientas.
+4. El verificador devuelve, por cada criterio, si se cumple, con el comando y su resultado.
 
 **Reglas de negocio**
 
 1. Cada tipo tiene instrucciones y herramientas propias.
+2. El verificador no puede editar archivos ni marcar passes: solo informa.
 
 **Criterios de aceptación**
 
 - **AC-01 — Herramientas por tipo de subagente.** Dado el tipo explorador, cuando se lanza, entonces solo tiene herramientas de lectura; dado el verificador, entonces puede ejecutar pruebas pero no editar archivos.
+- **AC-02 — Informe del verificador por criterio.** Dado una lista de criterios, cuando se lanza el verificador, entonces devuelve por cada criterio si se cumple, con el comando ejecutado y su resultado.
 
 <a id="hu-09-07"></a>
 #### HU-09-07 — Subagentes en paralelo con agregación de resultados

@@ -40,31 +40,36 @@
 - **AC-03 — Instrucciones en archivos no alteran la política.** Dado instrucciones en el contenido de un archivo, cuando el modelo las sigue, entonces la política las evalúa igual que cualquier otra llamada.
 
 <a id="hu-05-02"></a>
-#### HU-05-02 — Lista de denegados que ninguna configuración puede vaciar
+#### HU-05-02 — Lista de denegados y análisis de comandos compuestos
 
-**Prioridad:** Alta · **PHU:** 1 · **Sprint:** Sprint 2 · **Desarrollador:** C — Control y conexiones  
+**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 2 · **Desarrollador:** C — Control y conexiones  
 **Requisitos:** RNF-19, RF-5.2 · **Depende de:** [HU-05-01](04c-historias-control.md#hu-05-01), [HU-01-04](04a-historias-fundacion.md#hu-01-04)
 
 - **Como:** usuario operador
-- **Quiero:** una lista de comandos peligrosos denegados por defecto
-- **Para:** que un error de configuración no abra un hueco de seguridad
-- **Descripción:** El sistema trae una lista de comandos peligrosos denegados que ninguna configuración puede vaciar ni una aprobación de sesión anular.
+- **Quiero:** una lista de comandos peligrosos denegados por defecto y que cada parte de un comando encadenado se evalúe por separado
+- **Para:** que ni un error de configuración ni un comando encadenado abran un hueco de seguridad
+- **Descripción:** El sistema trae una lista de comandos peligrosos denegados que ninguna configuración puede vaciar ni una aprobación de sesión anular. Como el shell es la herramienta general, un comando encadenado se separa y cada parte se evalúa por separado.
 
 **Flujo general**
 
 1. El sistema carga la lista base al arrancar.
 2. Fusiona la configuración del usuario sin poder quitar la base.
-3. Ante un comando denegado, la política lo rechaza aunque exista aprobación de sesión.
+3. Ante un comando con &&, ; o |, separa sus partes y evalúa cada una.
+4. Manda la decisión más restrictiva; si no entiende el comando, pregunta.
+5. Ante un comando denegado, la política lo rechaza aunque exista aprobación de sesión.
 
 **Reglas de negocio**
 
 1. La lista es propia de cada plataforma.
 2. Una aprobación de sesión nunca anula una denegación.
+3. Lo que el analizador no entiende se pregunta; nunca se permite por defecto.
 
 **Criterios de aceptación**
 
 - **AC-01 — Lista base inalterable.** Dado un archivo de configuración que intenta vaciar la lista, cuando arranca el sistema, entonces la lista base se mantiene.
 - **AC-02 — Aprobación de sesión no anula denegación.** Dado una aprobación para toda la sesión, cuando se pide un comando denegado, entonces sigue denegado.
+- **AC-03 — Comandos encadenados evaluados por partes.** Dado un comando encadenado con &&, ; o |, cuando la política lo evalúa, entonces evalúa cada parte y manda la más restrictiva.
+- **AC-04 — Falla cerrada ante lo no entendido.** Dado un comando que el analizador no logra entender, cuando se evalúa, entonces se pregunta al usuario (falla cerrada).
 
 <a id="hu-05-03"></a>
 #### HU-05-03 — Aprobación con detalle: una vez, toda la sesión o rechazar
@@ -106,7 +111,7 @@
 <a id="hu-05-04"></a>
 #### HU-05-04 — Rechazo con motivo que vuelve al modelo
 
-**Prioridad:** Alta · **PHU:** 1 · **Sprint:** Sprint 2 · **Desarrollador:** C — Control y conexiones  
+**Prioridad:** Alta · **PHU:** 1 · **Sprint:** Sprint 2 · **Desarrollador:** B — Estado  
 **Requisitos:** RF-5.6 · **Depende de:** [HU-05-03](04c-historias-control.md#hu-05-03)
 
 - **Como:** usuario operador
@@ -333,7 +338,7 @@ x Error: la ruta 'src/pago.py' no existe. Sugerencia: usa 'listar' para ver los 
 <a id="hu-06-04"></a>
 #### HU-06-04 — Comandos de control de la sesión
 
-**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 2 · **Desarrollador:** B — Estado  
+**Prioridad:** Media · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** B — Estado  
 **Requisitos:** RF-6.6 · **Depende de:** [HU-03-03](04b-historias-estado.md#hu-03-03), [HU-03-04](04b-historias-estado.md#hu-03-04)
 
 - **Como:** usuario operador

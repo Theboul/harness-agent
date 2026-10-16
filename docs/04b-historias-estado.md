@@ -39,7 +39,7 @@
 <a id="hu-02-02"></a>
 #### HU-02-02 — Recorte de salidas largas de herramientas
 
-**Prioridad:** Alta · **PHU:** 1 · **Sprint:** Sprint 2 · **Desarrollador:** C — Control y conexiones  
+**Prioridad:** Alta · **PHU:** 1 · **Sprint:** Sprint 1 · **Desarrollador:** A — Núcleo  
 **Requisitos:** RF-2.5 · **Depende de:** [HU-01-02](04a-historias-fundacion.md#hu-01-02)
 
 - **Como:** usuario operador
@@ -512,7 +512,7 @@ id        fecha        estado     título
 <a id="hu-04-05"></a>
 #### HU-04-05 — No almacenar secretos en memoria
 
-**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** C — Control y conexiones  
+**Prioridad:** Media · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** C — Control y conexiones  
 **Requisitos:** RF-4.6 · **Depende de:** [HU-04-02](04b-historias-estado.md#hu-04-02)
 
 - **Como:** usuario operador

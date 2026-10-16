@@ -38,8 +38,8 @@ Reglas del equipo: cada área tiene un dueño, pero todo cambio lo revisa otra p
 
 **Enfoque:** Coding Harness basado en tickets (Proyecto 1 de los apuntes de la cátedra) sobre un núcleo general. Si hay tiempo, se muestra también el Proyecto 2 (agente con herramientas), que el núcleo ya cubre. Flujo de la demostración: ticket → agente → análisis → cambios → pruebas → verificación de criterios → aprobación humana → Pull Request.
 
-- **Obligatorio (prioridad Alta):** bucle con herramientas, contexto con compactación, sesiones reanudables, memoria, permisos con aprobación humana, CLI, dos proveedores con conmutación por fallo, MCP, subagentes, trazas y el flujo de tarea con criterios, Git, pruebas, verificación y Pull Request (E11).
-- **Si hay capacidad (Media):** varias llamadas por turno, detección de repeticiones, compactación manual, costos, memoria editable, modo solo lectura, reglas por archivo, subagentes explorador/verificador.
+- **Obligatorio (prioridad Alta):** bucle con herramientas, contexto con compactación, sesiones reanudables, memoria, permisos con aprobación humana, CLI, dos proveedores con conmutación por fallo, MCP, subagentes, trazas y el flujo de tarea con criterios en JSON, Git y pruebas por shell, subagente verificador, aprobación del diff, Pull Request y relevo entre sesiones con archivo de progreso (E11).
+- **Si hay capacidad (Media):** varias llamadas por turno, detección de repeticiones, compactación manual, costos, memoria editable, modo solo lectura, reglas por archivo, subagente explorador y reglas de permisos por archivo.
 - **Innovación (después del mínimo):** interfaz web, ejecución en entorno aislado, comparación con LangGraph, panel de costos.
 
 
@@ -63,12 +63,20 @@ Salen de revisar los requisitos. Cada una tiene historias asociadas.
 | V-12 | **Faltaba un archivo de instrucciones del proyecto.** Es práctica común en harnesses actuales. Se añade RF-2.9 (Could): cargar un archivo de instrucciones al prefijo. | [HU-02-07](04b-historias-estado.md#hu-02-07) |
 | V-13 | **La detección de secretos no puede ser total.** No existe garantía absoluta. Se declara el alcance: patrones conocidos más los valores de las variables de entorno cargadas. | [HU-04-05](04b-historias-estado.md#hu-04-05), [HU-10-02](04d-historias-conexiones.md#hu-10-02) |
 | V-14 | **Hace falta un proveedor simulado.** Sin él las pruebas dependen de la red y de la cuota. Se crea FakeProvider en el Sprint 1 como base de todas las pruebas. | [HU-00-03](04a-historias-fundacion.md#hu-00-03) |
+| V-15 | **El agente podía dar por terminada una tarea sin estarlo.** Si el propio modelo marca sus criterios como cumplidos, el cierre depende de su palabra. El artículo de Anthropic lo llama «victoria prematura». Los criterios viven en una lista JSON que el agente no puede editar. Solo el harness cambia «passes», con evidencia de las pruebas o del subagente verificador. | [HU-11-01](04e-historias-coding-harness.md#hu-11-01), [HU-11-04](04e-historias-coding-harness.md#hu-11-04), [HU-09-06](04d-historias-conexiones.md#hu-09-06) |
+| V-16 | **Una sesión nueva de un mismo ticket no sabe qué pasó antes.** Sin memoria entre ventanas de contexto, el agente adivina el estado o construye sobre código roto. Rutina de arranque fija: leer el archivo de progreso y el log de git, correr la prueba básica y reparar antes de avanzar. Al cerrar, se anota el progreso. | [HU-11-08](04e-historias-coding-harness.md#hu-11-08), [HU-03-04](04b-historias-estado.md#hu-03-04) |
+| V-17 | **Con un shell general los permisos se aplican sobre texto libre.** Un comando encadenado (a && b \| c) puede esconder una acción peligrosa detrás de una permitida. Se separa el comando, se evalúa cada parte y manda la más restrictiva; lo que no se entiende se pregunta. Push y merge siempre piden aprobación. | [HU-05-02](04c-historias-control.md#hu-05-02), [HU-11-02](04e-historias-coding-harness.md#hu-11-02) |
 
 Cambios a la captura de requisitos:
 
 | Requisito | Cambio |
 |---|---|
-| RF-11 (nuevo) | Coding Harness del ticket al Pull Request: tarea con criterios (11.1), herramientas Git (11.2), pruebas y lint (11.3), verificación de criterios (11.4), aprobación del diff (11.5), Pull Request (11.6) y worktree por ticket (11.7, Should). Viene de los apuntes de la cátedra. |
+| RF-11 (nuevo) | Coding Harness del ticket al Pull Request: tarea con criterios en una lista JSON protegida (11.1), Git por shell con reglas de permisos (11.2), pruebas y lint por shell (11.3), verificación de criterios por el harness (11.4), aprobación del diff (11.5), Pull Request (11.6), worktree por ticket (11.7, Should) y arranque de sesión con archivo de progreso (11.8). Viene de los apuntes de la cátedra y del artículo de Anthropic sobre agentes de larga duración. |
+| Herramientas (precisado) | El conjunto mínimo es shell, leer, escribir y editar archivos, preguntar al usuario y delegar en un subagente. Git, pruebas y lint ya no son herramientas propias: son comandos del shell bajo reglas de permisos ([HU-11-02](04e-historias-coding-harness.md#hu-11-02), [HU-11-03](04e-historias-coding-harness.md#hu-11-03) bajan a 1 punto cada una). Memoria y MCP se registran igual, como complementos. |
+| RF-1.2 (precisado) | El shell es portable: PowerShell en Windows y bash en Linux detrás de una misma interfaz, y el prefijo del contexto dice al modelo cuál usa ([HU-01-04](04a-historias-fundacion.md#hu-01-04) sube de 2 a 3 puntos). |
+| RF-5.2 (precisado) | Los comandos encadenados se separan y se evalúa cada parte; manda la más restrictiva y lo que no se entiende se pregunta ([HU-05-02](04c-historias-control.md#hu-05-02) sube de 1 a 2 puntos). |
+| RF-9.8 (re-priorizado) | El subagente verificador pasa de Should a Must: respalda el cierre de la tarea ([HU-09-06](04d-historias-conexiones.md#hu-09-06)). |
+| RF-4.6, RF-6.6 (re-priorizados) | Pasan de Must a Should para hacer espacio: no guardar secretos en memoria y el conjunto de comandos de control de la sesión. Siguen vigentes la redacción de secretos en registros (RF-10.4) y los comandos propios de listar ([HU-03-03](04b-historias-estado.md#hu-03-03)) y reanudar ([HU-03-04](04b-historias-estado.md#hu-03-04)). |
 | RF-7.5, RF-8.5, RF-9.7 (re-priorizados) | Pasan de Must a Should para hacer espacio a RF-11: reintentos con espera, aislamiento de fallos de MCP y errores explícitos del subagente. También pasan a opcionales la prueba de inyección de prompt (RNF-17/18) y la cobertura mínima (RNF-11/14). |
 | RF-5.1 (precisado) | Borrar archivos, push, merge y deploy siempre requieren aprobación. |
 | RF-2.9 (nuevo, Could) | Cargar un archivo de instrucciones del proyecto en el prefijo del contexto. |
@@ -89,6 +97,8 @@ Decisiones tomadas:
 | ¿Qué sistema operativo usa cada integrante? | Windows y Linux (Arch Linux). La integración continua y el shell cubren ambos. |
 | ¿Quién es el Product Owner? | Brad. |
 | ¿Cuántas horas tiene cada persona? | 15 a 28 horas por semana en los 5 días hábiles, más los sábados y domingos completos. Equivale a unas 27 a 44 horas por sprint, según cuánto se trabaje el fin de semana. |
+| ¿Qué herramientas tiene el agente? | Un conjunto mínimo: shell, leer, escribir y editar archivos, preguntar al usuario y delegar en un subagente. Memoria y MCP son complementos. Git, pruebas y lint van por el shell bajo reglas de permisos. |
+| ¿Cómo se pasa el trabajo entre sesiones de un mismo ticket? | Con una lista de criterios en JSON, un archivo de progreso en el repositorio y el log de git, más una prueba básica antes de avanzar (patrón del artículo de Anthropic). |
 | ¿Qué servidor MCP usamos en la demostración? | Se elige en [SPK-04](04d-historias-conexiones.md#spk-04): servidor local por stdio, sin credenciales. |
 
 Preguntas abiertas:
@@ -97,6 +107,7 @@ Preguntas abiertas:
 |---|---|---|
 | ¿Qué dos modelos entre Claude, OpenAI y Gemini, y con qué presupuesto de API? | Define el proveedor principal y el de respaldo ([HU-07-02](04d-historias-conexiones.md#hu-07-02), [HU-07-03](04d-historias-conexiones.md#hu-07-03), [SPK-01](04d-historias-conexiones.md#spk-01)). | Antes de [SPK-01](04d-historias-conexiones.md#spk-01) |
 | ¿Se confirma asyncio como modelo de concurrencia? | Depende del resultado de [SPK-02](04a-historias-fundacion.md#spk-02). | Fin del Sprint 1 |
+| ¿Se dejan listar y buscar archivos como herramientas propias o se resuelven con el shell? | Afecta a [HU-01-03](04a-historias-fundacion.md#hu-01-03) (3 puntos) y a cuántas herramientas ve el modelo. | Planning del Sprint 1 |
 
 ---
 
