@@ -43,7 +43,7 @@ Formato: plantilla F4 del material de Scrum de la cátedra. PHU = puntos de hist
 <a id="hu-00-02"></a>
 #### HU-00-02 — Integración continua con pruebas, tipado y formato
 
-**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 1 · **Desarrollador:** C — Control y conexiones  
+**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 1 · **Desarrollador:** A — Núcleo  
 **Requisitos:** RNF-14, RNF-15, RNF-20 · **Depende de:** ninguna
 
 - **Como:** equipo de desarrollo
@@ -124,22 +124,22 @@ Formato: plantilla F4 del material de Scrum de la cátedra. PHU = puntos de hist
 - **AC-01 — Cambio de modelo sin tocar el código.** Dado un archivo de configuración con otro modelo, cuando arranca el sistema, entonces usa ese modelo sin cambios de código.
 - **AC-02 — Sin claves en el repositorio.** Dado el repositorio completo, cuando se busca un secreto, entonces ninguna clave aparece en archivos ni en el historial de cambios.
 
-<a id="hu-00-05"></a>
-#### HU-00-05 — Pruebas de integración y de fallos
+<a id="hu-00-05.1"></a>
+#### HU-00-05.1 — Pruebas de integración y de fallos del núcleo
 
-**Prioridad:** Alta · **PHU:** 3 · **Sprint:** Sprint 3 · **Desarrollador:** A — Núcleo  
-**Requisitos:** RNF-1, RNF-5, RNF-6, RNF-7, RNF-8 · **Depende de:** [HU-03-02](04b-historias-estado.md#hu-03-02), [HU-07-05](04d-historias-conexiones.md#hu-07-05), [HU-08-04](04d-historias-conexiones.md#hu-08-04)
+**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** A — Núcleo  
+**Requisitos:** RNF-1, RNF-5, RNF-6, RNF-7 · **Depende de:** [HU-03-02](04b-historias-estado.md#hu-03-02), [HU-07-05](04d-historias-conexiones.md#hu-07-05)
 
 - **Como:** evaluador del proyecto
-- **Quiero:** evidencia automatizada de que el sistema resiste fallos
+- **Quiero:** evidencia automatizada de que el núcleo resiste cierres abruptos, proveedores caídos y herramientas defectuosas, y de cuánto tiempo añade el propio harness
 - **Para:** confiar en su fiabilidad y en el rendimiento propio del harness
-- **Descripción:** El equipo cuenta con pruebas automatizadas que demuestran que el sistema resiste cierres abruptos, proveedores caídos y herramientas defectuosas, y que mide el tiempo propio del harness.
+- **Descripción:** El equipo cuenta con pruebas automatizadas que demuestran que el núcleo resiste cierres abruptos, proveedores caídos y herramientas defectuosas, y que mide el tiempo propio del harness. Las pruebas de servidores MCP caídos están en [HU-00-05.2](04a-historias-fundacion.md#hu-00-05.2).
 
 **Flujo general**
 
 1. Se simula un cierre forzado a mitad de sesión y se reanuda.
-2. Se simula un proveedor caído y se verifica la conmutación.
-3. Se simula un servidor MCP caído y una herramienta con excepción.
+2. Se simula un proveedor caído con error elegible y se verifica la conmutación.
+3. Se simula una herramienta con excepción.
 4. Se mide el tiempo propio del harness por turno con proveedor simulado.
 
 **Reglas de negocio**
@@ -150,8 +150,36 @@ Formato: plantilla F4 del material de Scrum de la cátedra. PHU = puntos de hist
 **Criterios de aceptación**
 
 - **AC-01 — Sin pérdida de eventos tras cierre forzado.** Dado un cierre forzado del proceso a mitad de sesión, cuando se reanuda, entonces no se pierde ningún evento confirmado.
-- **AC-02 — Fallo MCP aislado.** Dado un servidor MCP inexistente o caído, cuando arranca la sesión, entonces solo sus herramientas quedan deshabilitadas y el resto funciona.
+- **AC-02 — Proveedor caído y herramienta defectuosa.** Dado un proveedor principal caído con un error elegible, cuando corre el turno, entonces el sistema conmuta al de respaldo y el turno termina; dado una herramienta que lanza una excepción, entonces el modelo recibe un error y el bucle continúa.
 - **AC-03 — Tiempo propio del harness medido.** Dado un turno con proveedor simulado y herramientas instantáneas, cuando se mide, entonces el tiempo propio del harness es pequeño y queda registrado.
+
+<a id="hu-00-05.2"></a>
+#### HU-00-05.2 — Prueba de aislamiento de fallos de un servidor MCP
+
+**Prioridad:** Alta · **PHU:** 1 · **Sprint:** Sprint 4 · **Desarrollador:** A — Núcleo  
+**Requisitos:** RNF-8 · **Depende de:** [HU-08-04](04d-historias-conexiones.md#hu-08-04), [HU-00-05.1](04a-historias-fundacion.md#hu-00-05.1)
+
+- **Como:** evaluador del proyecto
+- **Quiero:** evidencia automatizada de que la caída de un servidor MCP no rompe la sesión
+- **Para:** confiar en que una conexión externa defectuosa no tumba al agente
+- **Descripción:** El equipo cuenta con una prueba automática de que la caída de un servidor MCP, al arrancar o a mitad de sesión, solo deshabilita sus herramientas. Se divide de HU-00-05 para que las pruebas del núcleo no dependan de la integración MCP.
+
+**Flujo general**
+
+1. Se configura un servidor MCP inexistente y se arranca la sesión.
+2. Se matan el servidor de demostración a mitad de sesión.
+3. El modelo invoca una herramienta de ese servidor y recibe un error.
+4. Se comprueba que las demás herramientas siguen funcionando.
+
+**Reglas de negocio**
+
+1. La prueba no se da por cumplida si no se ejecutó con un servidor real de demostración.
+2. Requiere [HU-08-04](04d-historias-conexiones.md#hu-08-04) (aislar los fallos del servidor), que es de prioridad Alta por este motivo.
+
+**Criterios de aceptación**
+
+- **AC-01 — Servidor MCP inexistente al arrancar.** Dado un servidor MCP inexistente o caído, cuando arranca la sesión, entonces solo sus herramientas quedan deshabilitadas y el resto funciona.
+- **AC-02 — Caída del servidor a mitad de sesión.** Dado un servidor que se cae a mitad de sesión, cuando el modelo invoca su herramienta, entonces recibe un error y las demás herramientas siguen funcionando.
 
 <a id="hu-00-06"></a>
 #### HU-00-06 — README, guion de demostración y documento de arquitectura
@@ -174,12 +202,12 @@ Formato: plantilla F4 del material de Scrum de la cátedra. PHU = puntos de hist
 **Reglas de negocio**
 
 1. El README no asume pasos que no estén escritos.
-2. El guion recorre todos los criterios de aceptación obligatorios.
+2. El guion de Sprint 3 recorre los criterios obligatorios comprometidos hasta Sprint 3; los de MCP y demás historias diferidas tienen guion adicional para Sprint 4 condicionado a PD-01. Ninguna funcionalidad diferida se declara completada.
 
 **Criterios de aceptación**
 
 - **AC-01 — Instalación solo con el README.** Dado una máquina limpia, cuando una persona ajena sigue el README, entonces instala y ejecuta una tarea sin ayuda del equipo.
-- **AC-02 — Guion de demostración completo.** Dado el guion de demostración, cuando se sigue, entonces recorre todos los criterios de aceptación en 10 a 15 minutos.
+- **AC-02 — Guion de demostración completo.** Dado el guion de Sprint 3, cuando se sigue, entonces demuestra en 10 a 15 minutos el flujo ticket → pruebas → aprobación → Pull Request y sus controles indispensables, sin afirmar que las historias pospuestas para Sprint 4 estén terminadas.
 
 <a id="hu-00-07"></a>
 #### HU-00-07 — Cobertura mínima y prueba de instalación
@@ -272,30 +300,45 @@ Formato: plantilla F4 del material de Scrum de la cátedra. PHU = puntos de hist
 <a id="hu-01-03"></a>
 #### HU-01-03 — Herramientas de archivos: leer, escribir, listar y buscar
 
-**Prioridad:** Alta · **PHU:** 3 · **Sprint:** Sprint 1 · **Desarrollador:** C — Control y conexiones  
+**Prioridad:** Alta · **PHU:** 4 · **Sprint:** Sprint 1 · **Desarrollador:** C — Control y conexiones  
 **Requisitos:** RF-1.2 · **Depende de:** [HU-01-02](04a-historias-fundacion.md#hu-01-02)
 
 - **Como:** usuario operador
-- **Quiero:** que el agente pueda leer, escribir, listar y buscar texto en archivos
-- **Para:** trabajar sobre mis proyectos
-- **Descripción:** El agente puede leer, escribir, listar y buscar texto en archivos del proyecto del usuario.
+- **Quiero:** que el agente pueda leer, escribir, listar y buscar texto en archivos, y que toda escritura quede limitada a un área de trabajo autorizada por el harness
+- **Para:** trabajar sobre mis proyectos sin que el agente pueda escribir en cualquier otra ubicación del equipo
+- **Descripción:** El agente puede leer, escribir, listar y buscar texto en archivos. Las escrituras solo se permiten dentro de un área de trabajo autorizada explícitamente por el harness; cualquier ruta que se resuelva fuera de ella se trata como una acción que requiere permiso.
 
 **Flujo general**
 
 1. El modelo solicita una herramienta de archivos.
-2. La política de permisos evalúa la llamada.
-3. La herramienta opera sobre la ruta indicada.
-4. El resultado o un error claro vuelve al modelo.
+2. La herramienta calcula la ruta real (normaliza, sigue enlaces simbólicos y comprueba unidad y ruta UNC en Windows).
+3. La política de permisos evalúa la llamada con esa ruta real.
+4. Si está dentro del área autorizada se ejecuta; si no, se pregunta o se deniega.
+5. El resultado o un error claro vuelve al modelo.
 
 **Reglas de negocio**
 
-1. Las lecturas se clasifican como bajo riesgo y las escrituras como acción que requiere permiso.
-2. Una ruta inexistente devuelve un error claro, no una excepción.
+1. Las lecturas se clasifican como bajo riesgo; las escrituras solo se permiten dentro del área autorizada.
+2. La contención se comprueba sobre la ruta real, nunca sobre el texto de la ruta recibida.
+3. No existe una autorización global para escribir en cualquier ubicación.
+4. Una ruta inexistente devuelve un error claro, no una excepción.
+
+**Prototipo**
+
+```
+Área autorizada: ~/proyecto-demo
+  escribir ~/proyecto-demo/notas.txt          permitido
+  escribir ~/proyecto-demo/../.bashrc          rechazado: sale del área
+  escribir /etc/hosts                          rechazado: fuera del área
+  escribir enlace-a-/tmp/x (enlace simbólico)  rechazado: la ruta real sale del área
+```
 
 **Criterios de aceptación**
 
-- **AC-01 — Lectura y error de ruta inexistente.** Dado una ruta existente, cuando el agente la lee, entonces recibe su contenido; si no existe, recibe un error claro.
-- **AC-02 — Escritura sujeta a permiso.** Dado una escritura, cuando se ejecuta, entonces queda clasificada como acción que requiere permiso según la política.
+- **AC-01 — Lectura y error de ruta inexistente.** Dado una ruta existente dentro del área de trabajo, cuando el agente la lee, entonces recibe su contenido; si no existe, recibe un error claro.
+- **AC-02 — Escritura dentro del área autorizada.** Dado una escritura cuya ruta real queda dentro del área de trabajo autorizada, cuando la política la evalúa, entonces se permite y la decisión queda registrada; dado una escritura fuera del área, entonces es una acción que requiere permiso.
+- **AC-03 — Intentos de escapar del área.** Dado una ruta con «..», una ruta absoluta, un enlace simbólico o, en Windows, otra unidad, una ruta UNC o un flujo alterno, cuando se resuelve, entonces se calcula la ruta real y, si el destino queda fuera del área, se rechaza antes de escribir y el modelo recibe el motivo.
+- **AC-04 — Sin área configurada.** Dado que no hay un área de trabajo configurada, cuando el agente intenta escribir, entonces toda escritura requiere permiso: no existe un área por defecto fuera de la carpeta de la sesión.
 
 <a id="hu-01-04"></a>
 #### HU-01-04 — Herramienta de shell portable con tiempo límite

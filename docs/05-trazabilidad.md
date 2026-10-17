@@ -1,8 +1,8 @@
 # Trazabilidad y arranque
 
-> [← 04e-historias-coding-harness.md](04e-historias-coding-harness.md) · [Índice](00-indice.md) · [PROGRESO.md →](PROGRESO.md)  
+> [← 04e-historias-coding-harness.md](04e-historias-coding-harness.md) · [Índice](00-indice.md) · [06-historial-planificacion.md →](06-historial-planificacion.md)  
 > Secciones 11 y 12 del contexto original.  
-> Ver también: [03-plan-sprints.md](03-plan-sprints.md) · [PROGRESO.md](PROGRESO.md)
+> Ver también: [03-plan-sprints.md](03-plan-sprints.md) · [06-historial-planificacion.md](06-historial-planificacion.md) · [PROGRESO.md](PROGRESO.md)
 
 ## 11. Trazabilidad requisito → historia
 
@@ -22,7 +22,7 @@
 | RF-2.4 | Alta | [HU-02-03](04b-historias-estado.md#hu-02-03), [SPK-03](04b-historias-estado.md#spk-03) |
 | RF-2.5 | Alta | [HU-02-02](04b-historias-estado.md#hu-02-02) |
 | RF-2.6 | Media | [HU-02-04](04b-historias-estado.md#hu-02-04) |
-| RF-2.7 | Alta | [HU-02-06](04b-historias-estado.md#hu-02-06), [SPK-03](04b-historias-estado.md#spk-03) |
+| RF-2.7 | Alta | [HU-02-06.1](04b-historias-estado.md#hu-02-06.1), [HU-02-06.2](04b-historias-estado.md#hu-02-06.2), [SPK-03](04b-historias-estado.md#spk-03) |
 | RF-2.8 | Baja | [HU-02-05](04b-historias-estado.md#hu-02-05) |
 | RF-2.9 | Baja | [HU-02-07](04b-historias-estado.md#hu-02-07) |
 | RF-3.1 | Alta | [HU-03-01](04b-historias-estado.md#hu-03-01) |
@@ -64,7 +64,7 @@
 | RF-8.2 | Alta | [HU-08-02](04d-historias-conexiones.md#hu-08-02) |
 | RF-8.3 | Alta | [HU-08-03](04d-historias-conexiones.md#hu-08-03) |
 | RF-8.4 | Alta | [HU-08-03](04d-historias-conexiones.md#hu-08-03) |
-| RF-8.5 | Media | [HU-08-04](04d-historias-conexiones.md#hu-08-04) |
+| RF-8.5 | Alta | [HU-08-04](04d-historias-conexiones.md#hu-08-04) |
 | RF-8.6 | Media | [HU-08-05](04d-historias-conexiones.md#hu-08-05) |
 | RF-8.7 | Media | [HU-08-05](04d-historias-conexiones.md#hu-08-05) |
 | RF-8.8 | Baja | [HU-08-06](04d-historias-conexiones.md#hu-08-06) |
@@ -75,7 +75,7 @@
 | RF-9.5 | Alta | [HU-09-04](04d-historias-conexiones.md#hu-09-04) |
 | RF-9.6 | Alta | [HU-09-04](04d-historias-conexiones.md#hu-09-04) |
 | RF-9.7 | Media | [HU-09-05](04d-historias-conexiones.md#hu-09-05) |
-| RF-9.8 | Alta | [HU-09-06](04d-historias-conexiones.md#hu-09-06) |
+| RF-9.8 | Alta | [HU-09-06](04d-historias-conexiones.md#hu-09-06), [HU-11-04.2](04e-historias-coding-harness.md#hu-11-04.2) |
 | RF-9.9 | Baja | [HU-09-07](04d-historias-conexiones.md#hu-09-07), [SPK-02](04a-historias-fundacion.md#spk-02) |
 | RF-10.1 | Alta | [HU-10-01](04d-historias-conexiones.md#hu-10-01) |
 | RF-10.2 | Alta | [HU-10-01](04d-historias-conexiones.md#hu-10-01) |
@@ -85,19 +85,19 @@
 | RF-11.1 | Alta | [HU-11-01](04e-historias-coding-harness.md#hu-11-01) |
 | RF-11.2 | Alta | [HU-11-02](04e-historias-coding-harness.md#hu-11-02) |
 | RF-11.3 | Alta | [HU-11-03](04e-historias-coding-harness.md#hu-11-03) |
-| RF-11.4 | Alta | [HU-11-04](04e-historias-coding-harness.md#hu-11-04) |
+| RF-11.4 | Alta | [HU-11-04.1](04e-historias-coding-harness.md#hu-11-04.1), [HU-11-04.2](04e-historias-coding-harness.md#hu-11-04.2) |
 | RF-11.5 | Alta | [HU-11-05](04e-historias-coding-harness.md#hu-11-05) |
 | RF-11.6 | Alta | [HU-11-06](04e-historias-coding-harness.md#hu-11-06) |
 | RF-11.7 | Media | [HU-11-07](04e-historias-coding-harness.md#hu-11-07) |
-| RF-11.8 | Alta | [HU-11-08](04e-historias-coding-harness.md#hu-11-08) |
-| RNF-1 | — | [HU-00-03](04a-historias-fundacion.md#hu-00-03), [HU-00-05](04a-historias-fundacion.md#hu-00-05) |
+| RF-11.8 | Alta | [HU-11-08.1](04e-historias-coding-harness.md#hu-11-08.1), [HU-11-08.2](04e-historias-coding-harness.md#hu-11-08.2) |
+| RNF-1 | — | [HU-00-03](04a-historias-fundacion.md#hu-00-03), [HU-00-05.1](04a-historias-fundacion.md#hu-00-05.1) |
 | RNF-2 | — | [HU-01-02](04a-historias-fundacion.md#hu-01-02) |
 | RNF-3 | — | [HU-02-03](04b-historias-estado.md#hu-02-03) |
 | RNF-4 | — | [HU-02-01](04b-historias-estado.md#hu-02-01) |
-| RNF-5 | — | [HU-00-05](04a-historias-fundacion.md#hu-00-05) |
-| RNF-6 | — | [HU-00-03](04a-historias-fundacion.md#hu-00-03), [HU-00-05](04a-historias-fundacion.md#hu-00-05), [HU-07-04](04d-historias-conexiones.md#hu-07-04), [HU-07-05](04d-historias-conexiones.md#hu-07-05) |
-| RNF-7 | — | [HU-00-05](04a-historias-fundacion.md#hu-00-05) |
-| RNF-8 | — | [HU-00-05](04a-historias-fundacion.md#hu-00-05), [HU-08-04](04d-historias-conexiones.md#hu-08-04) |
+| RNF-5 | — | [HU-00-05.1](04a-historias-fundacion.md#hu-00-05.1) |
+| RNF-6 | — | [HU-00-03](04a-historias-fundacion.md#hu-00-03), [HU-00-05.1](04a-historias-fundacion.md#hu-00-05.1), [HU-07-04](04d-historias-conexiones.md#hu-07-04), [HU-07-05](04d-historias-conexiones.md#hu-07-05) |
+| RNF-7 | — | [HU-00-05.1](04a-historias-fundacion.md#hu-00-05.1) |
+| RNF-8 | — | [HU-00-05.2](04a-historias-fundacion.md#hu-00-05.2), [HU-08-04](04d-historias-conexiones.md#hu-08-04) |
 | RNF-9 | — | [HU-05-03](04c-historias-control.md#hu-05-03) |
 | RNF-10 | — | [HU-06-01](04c-historias-control.md#hu-06-01) |
 | RNF-11 | — | [HU-00-06](04a-historias-fundacion.md#hu-00-06), [HU-00-07](04a-historias-fundacion.md#hu-00-07) |
@@ -123,4 +123,4 @@
 
 ---
 
-[← 04e-historias-coding-harness.md](04e-historias-coding-harness.md) · [Índice](00-indice.md) · [PROGRESO.md →](PROGRESO.md)
+[← 04e-historias-coding-harness.md](04e-historias-coding-harness.md) · [Índice](00-indice.md) · [06-historial-planificacion.md →](06-historial-planificacion.md)

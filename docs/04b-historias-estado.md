@@ -39,7 +39,7 @@
 <a id="hu-02-02"></a>
 #### HU-02-02 — Recorte de salidas largas de herramientas
 
-**Prioridad:** Alta · **PHU:** 1 · **Sprint:** Sprint 1 · **Desarrollador:** A — Núcleo  
+**Prioridad:** Alta · **PHU:** 1 · **Sprint:** Sprint 2 · **Desarrollador:** C — Control y conexiones  
 **Requisitos:** RF-2.5 · **Depende de:** [HU-01-02](04a-historias-fundacion.md#hu-01-02)
 
 - **Como:** usuario operador
@@ -148,33 +148,63 @@ Contexto compactado: 38 400 → 9 100 tokens (historial original conservado)
 
 - **AC-01 — Compactación pedida por el modelo.** Dado que el agente va a leer un volumen grande de información, cuando invoca la herramienta, entonces se compacta antes de continuar.
 
-<a id="hu-02-06"></a>
-#### HU-02-06 — Conservar objetivo, instrucciones y decisiones tras compactar
+<a id="hu-02-06.1"></a>
+#### HU-02-06.1 — Contexto esencial persistente fuera del historial compactable
 
-**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** B — Estado  
-**Requisitos:** RF-2.7 · **Depende de:** [HU-02-03](04b-historias-estado.md#hu-02-03), [HU-04-03](04b-historias-estado.md#hu-04-03)
+**Prioridad:** Alta · **PHU:** 1 · **Sprint:** Sprint 2 · **Desarrollador:** B — Estado  
+**Requisitos:** RF-2.7 · **Depende de:** [HU-02-03](04b-historias-estado.md#hu-02-03), [HU-11-01](04e-historias-coding-harness.md#hu-11-01)
 
 - **Como:** usuario operador
-- **Quiero:** que tras compactar el agente siga recordando el objetivo y las decisiones tomadas
-- **Para:** que no empiece de cero después de varias compactaciones
-- **Descripción:** Tras compactar, el agente sigue recordando el objetivo, las instrucciones y las decisiones del usuario, porque viven fuera del historial compactable.
+- **Quiero:** que el objetivo, las instrucciones del sistema, las reglas de la tarea, el identificador del ticket y la referencia a los criterios protegidos se guarden aparte y que la compactación no los toque
+- **Para:** que el agente no pierda lo esencial al compactar una sesión larga
+- **Descripción:** El objetivo, las instrucciones del sistema, las reglas de la tarea, el identificador del ticket y la referencia a los criterios protegidos viven en una tabla aparte del historial. En cada ensamblado se inyectan en el prefijo y la compactación no los toca. Es la parte mínima de la historia original HU-02-06 que necesita el Sprint 2; no usa la memoria estructurada ([HU-04-03](04b-historias-estado.md#hu-04-03)).
 
 **Flujo general**
 
-1. El sistema guarda el objetivo y las decisiones aparte del historial.
-2. En cada ensamblado inyecta ese bloque en el prefijo.
-3. Tras compactar, reconstruye el contexto con ese bloque.
-4. El agente responde sobre el objetivo original sin pérdida.
+1. Al crear la sesión del ticket se guardan los elementos esenciales en contexto_esencial.
+2. En cada ensamblado el sistema los inyecta en el prefijo, antes del historial.
+3. Al compactar solo se resume el historial; el bloque esencial queda fuera.
+4. Tras compactar, el agente responde sobre el objetivo y las reglas sin pérdida.
 
 **Reglas de negocio**
 
-1. Objetivo y decisiones nunca se resumen.
-2. Las instrucciones de sistema quedan intactas tras cada compactación.
+1. Lo esencial nunca se resume ni se reescribe en una compactación.
+2. Los criterios no se copian: el bloque guarda su referencia y se leen de su fuente protegida.
+3. Las decisiones acumuladas se añaden en [HU-02-06.2](04b-historias-estado.md#hu-02-06.2), no aquí.
 
 **Criterios de aceptación**
 
-- **AC-01 — Objetivo recordado tras tres compactaciones.** Dado una sesión compactada tres veces, cuando se pregunta por el objetivo original, entonces el agente lo responde correctamente.
-- **AC-02 — Instrucciones de sistema intactas.** Dado una compactación, cuando se reconstruye el contexto, entonces las instrucciones de sistema están intactas.
+- **AC-01 — Lo esencial sigue idéntico tras compactar.** Dado una sesión con objetivo, instrucciones, reglas, identificador de ticket y criterios, cuando se compacta, entonces esos elementos siguen en el prefijo del contexto, idénticos, y no forman parte de lo resumido.
+- **AC-02 — Instrucciones intactas y criterios desde su fuente.** Dado una compactación, cuando se reconstruye el contexto, entonces las instrucciones de sistema están intactas y los criterios se leen desde su fuente protegida, no desde el resumen.
+- **AC-03 — Objetivo recordado tras compactar.** Dado una sesión compactada, cuando se pregunta por el objetivo original, entonces el agente lo responde correctamente.
+
+<a id="hu-02-06.2"></a>
+#### HU-02-06.2 — Decisiones acumuladas y continuidad tras varias compactaciones
+
+**Prioridad:** Alta · **PHU:** 1 · **Sprint:** Sprint 3 · **Desarrollador:** B — Estado  
+**Requisitos:** RF-2.7 · **Depende de:** [HU-02-06.1](04b-historias-estado.md#hu-02-06.1), [HU-05-04](04c-historias-control.md#hu-05-04)
+
+- **Como:** usuario operador
+- **Quiero:** que las decisiones que tomo (aprobaciones, rechazos con motivo y respuestas) se acumulen en el contexto esencial y sobrevivan a varias compactaciones seguidas
+- **Para:** que el agente no repita lo que ya rechacé ni empiece de cero después de varias compactaciones
+- **Descripción:** Las decisiones del usuario (aprobaciones, rechazos con motivo, respuestas) se acumulan en el contexto esencial y el resumen de cada compactación incluye una sección de decisiones. Completa las garantías de la historia original HU-02-06 tras varias compactaciones.
+
+**Flujo general**
+
+1. El usuario toma una decisión (por ejemplo, rechaza una acción con motivo).
+2. El sistema la añade al bloque de decisiones del contexto esencial.
+3. Cada compactación genera además una sección de decisiones del tramo resumido.
+4. Tras varias compactaciones el agente respeta lo ya decidido.
+
+**Reglas de negocio**
+
+1. Las decisiones nunca se resumen: se conservan literales en el bloque esencial.
+2. Si la memoria estructurada ([HU-04-03](04b-historias-estado.md#hu-04-03)) está implementada, sus entradas pueden alimentar el bloque, pero no es requisito de esta historia.
+
+**Criterios de aceptación**
+
+- **AC-01 — Decisiones y objetivo tras tres compactaciones.** Dado una sesión con decisiones del usuario, entre ellas un rechazo con motivo, cuando se compacta tres veces seguidas, entonces las decisiones siguen en el bloque esencial sin resumirse y el agente responde correctamente el objetivo original.
+- **AC-02 — Sección de decisiones en el resumen.** Dado el resumen de una compactación, cuando se genera, entonces incluye una sección con las decisiones del tramo resumido.
 
 <a id="hu-02-07"></a>
 #### HU-02-07 — Archivo de instrucciones del proyecto
@@ -221,7 +251,7 @@ Contexto compactado: 38 400 → 9 100 tokens (historial original conservado)
 
 **Reglas de negocio**
 
-1. El resultado alimenta [HU-02-03](04b-historias-estado.md#hu-02-03) y [HU-02-06](04b-historias-estado.md#hu-02-06).
+1. El resultado alimenta [HU-02-03](04b-historias-estado.md#hu-02-03) y HU-02-06.
 
 **Criterios de aceptación**
 
@@ -284,7 +314,7 @@ Contexto compactado: 38 400 → 9 100 tokens (historial original conservado)
 <a id="hu-03-03"></a>
 #### HU-03-03 — Listar sesiones
 
-**Prioridad:** Alta · **PHU:** 1 · **Sprint:** Sprint 2 · **Desarrollador:** B — Estado  
+**Prioridad:** Alta · **PHU:** 1 · **Sprint:** Sprint 4 · **Desarrollador:** B — Estado  
 **Requisitos:** RF-3.3 · **Depende de:** [HU-03-01](04b-historias-estado.md#hu-03-01)
 
 - **Como:** usuario operador
@@ -318,7 +348,7 @@ id        fecha        estado     título
 <a id="hu-03-04"></a>
 #### HU-03-04 — Reanudar una sesión por identificador
 
-**Prioridad:** Alta · **PHU:** 3 · **Sprint:** Sprint 2 · **Desarrollador:** B — Estado  
+**Prioridad:** Alta · **PHU:** 3 · **Sprint:** Sprint 2 · **Desarrollador:** A — Núcleo  
 **Requisitos:** RF-3.4 · **Depende de:** [HU-03-02](04b-historias-estado.md#hu-03-02), [HU-02-03](04b-historias-estado.md#hu-02-03)
 
 - **Como:** usuario operador
@@ -400,7 +430,7 @@ id        fecha        estado     título
 <a id="hu-04-01"></a>
 #### HU-04-01 — Almacén de memoria separado del historial
 
-**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** B — Estado  
+**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 4 · **Desarrollador:** B — Estado  
 **Requisitos:** RF-4.1 · **Depende de:** [HU-03-01](04b-historias-estado.md#hu-03-01)
 
 - **Como:** usuario operador
@@ -425,7 +455,7 @@ id        fecha        estado     título
 <a id="hu-04-02"></a>
 #### HU-04-02 — Herramienta de memoria y carga al inicio
 
-**Prioridad:** Alta · **PHU:** 3 · **Sprint:** Sprint 3 · **Desarrollador:** B — Estado  
+**Prioridad:** Alta · **PHU:** 3 · **Sprint:** Sprint 4 · **Desarrollador:** B — Estado  
 **Requisitos:** RF-4.2, RF-4.3 · **Depende de:** [HU-04-01](04b-historias-estado.md#hu-04-01), [HU-01-02](04a-historias-fundacion.md#hu-01-02)
 
 - **Como:** usuario operador
@@ -453,7 +483,7 @@ id        fecha        estado     título
 <a id="hu-04-03"></a>
 #### HU-04-03 — Memoria estructurada de la sesión
 
-**Prioridad:** Media · **PHU:** 3 · **Sprint:** Sprint 3 · **Desarrollador:** B — Estado  
+**Prioridad:** Media · **PHU:** 3 · **Sprint:** Sprint 4 · **Desarrollador:** B — Estado  
 **Requisitos:** RF-4.4 · **Depende de:** [HU-04-01](04b-historias-estado.md#hu-04-01)
 
 - **Como:** agente principal
@@ -478,7 +508,7 @@ id        fecha        estado     título
 <a id="hu-04-04"></a>
 #### HU-04-04 — Inspeccionar y editar la memoria
 
-**Prioridad:** Media · **PHU:** 1 · **Sprint:** Sprint 3 · **Desarrollador:** C — Control y conexiones  
+**Prioridad:** Media · **PHU:** 1 · **Sprint:** Sprint 4 · **Desarrollador:** C — Control y conexiones  
 **Requisitos:** RF-4.5 · **Depende de:** [HU-04-01](04b-historias-estado.md#hu-04-01)
 
 - **Como:** usuario operador
@@ -512,7 +542,7 @@ id        fecha        estado     título
 <a id="hu-04-05"></a>
 #### HU-04-05 — No almacenar secretos en memoria
 
-**Prioridad:** Media · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** C — Control y conexiones  
+**Prioridad:** Media · **PHU:** 2 · **Sprint:** Sprint 4 · **Desarrollador:** C — Control y conexiones  
 **Requisitos:** RF-4.6 · **Depende de:** [HU-04-02](04b-historias-estado.md#hu-04-02)
 
 - **Como:** usuario operador

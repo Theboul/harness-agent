@@ -63,7 +63,7 @@
 <a id="hu-07-03"></a>
 #### HU-07-03 — Segundo proveedor y selección por configuración
 
-**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 2 · **Desarrollador:** A — Núcleo  
+**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** A — Núcleo  
 **Requisitos:** RF-7.3, RNF-21 · **Depende de:** [HU-07-02](04d-historias-conexiones.md#hu-07-02)
 
 - **Como:** usuario operador
@@ -94,7 +94,7 @@
 - **Como:** usuario operador
 - **Quiero:** que ante un error temporal el sistema reintente antes de rendirse
 - **Para:** no perder la sesión por un fallo pasajero
-- **Descripción:** Ante un error temporal, el sistema reintenta con esperas crecientes antes de rendirse.
+- **Descripción:** Ante un error temporal, el sistema reintenta con esperas crecientes antes de rendirse. Es una mejora opcional: la conmutación por fallo ([HU-07-05](04d-historias-conexiones.md#hu-07-05)) funciona sin ella.
 
 **Flujo general**
 
@@ -106,6 +106,7 @@
 
 1. Solo se reintentan errores temporales.
 2. El número de reintentos es limitado.
+3. Si está implementada, [HU-07-05](04d-historias-conexiones.md#hu-07-05) conmuta cuando los reintentos se agotan; si no, conmuta en el primer error elegible.
 
 **Criterios de aceptación**
 
@@ -115,29 +116,34 @@
 #### HU-07-05 — Conmutación por fallo con umbral por modelo
 
 **Prioridad:** Alta · **PHU:** 3 · **Sprint:** Sprint 3 · **Desarrollador:** A — Núcleo  
-**Requisitos:** RF-7.4, RNF-6 · **Depende de:** [HU-07-03](04d-historias-conexiones.md#hu-07-03), [HU-07-04](04d-historias-conexiones.md#hu-07-04)
+**Requisitos:** RF-7.4, RNF-6 · **Depende de:** [HU-07-03](04d-historias-conexiones.md#hu-07-03)
 
 - **Como:** usuario operador
-- **Quiero:** que si un proveedor se queda sin cuota el sistema continúe con el otro
+- **Quiero:** que si el proveedor activo falla por un motivo ajeno a mi petición, el sistema continúe con el de respaldo sin entrar en bucle
 - **Para:** no interrumpir mi trabajo
-- **Descripción:** Si un proveedor agota su cuota, el sistema continúa con el de respaldo y recalcula el umbral de compactación.
+- **Descripción:** Si el proveedor activo falla por un motivo ajeno a la petición, el sistema continúa con el de respaldo y recalcula el umbral de compactación. Solo ciertos errores activan la conmutación y el cambio ocurre una sola vez por proveedor y por turno, para evitar bucles.
 
 **Flujo general**
 
-1. Se agotan los reintentos con error de cuota.
-2. El sistema cambia al proveedor de respaldo.
-3. Repite el turno.
+1. El proveedor activo devuelve un error.
+2. El sistema lo clasifica como elegible o no elegible.
+3. Si es elegible, cambia al siguiente proveedor que no se haya probado en el turno y repite el turno.
 4. Recalcula el umbral de compactación para el nuevo modelo.
-5. Registra el cambio en la traza.
+5. Registra el cambio como evento mínimo de sesión y lo muestra al usuario; las trazas completas quedan para [HU-10-01](04d-historias-conexiones.md#hu-10-01)/02.
 
 **Reglas de negocio**
 
-1. El cambio es automático y queda visible para el usuario.
+1. Errores elegibles: cuota agotada, límite de tasa, tiempo agotado, servicio no disponible y error de conexión.
+2. Errores no elegibles: clave inválida, petición mal formada y rechazo por política de contenido.
+3. Cada proveedor se prueba como máximo una vez por turno; no hay vuelta automática al primero dentro del mismo turno.
+4. El cambio es automático y queda visible para el usuario.
 
 **Criterios de aceptación**
 
-- **AC-01 — Conmutación por fallo.** Dado un error de cuota tras agotar los reintentos, cuando ocurre, entonces el sistema cambia al respaldo, repite el turno y lo registra en la traza.
-- **AC-02 — Umbral propio del nuevo modelo.** Dado el cambio de modelo, cuando se evalúa la compactación, entonces se usa el umbral propio de la ventana del nuevo modelo.
+- **AC-01 — Conmutación ante error elegible.** Dado un error elegible (cuota agotada, límite de tasa, tiempo agotado, servicio no disponible o error de conexión) en el proveedor activo, cuando ocurre, entonces el sistema cambia al de respaldo, repite el turno y lo registra como evento de sesión y en pantalla.
+- **AC-02 — Error no elegible sin conmutación.** Dado un error no elegible (clave inválida, petición mal formada o rechazo por política de contenido), cuando ocurre, entonces no hay conmutación y el usuario recibe el error.
+- **AC-03 — Todos los proveedores fallan sin bucle.** Dado que el proveedor de respaldo también falla con un error elegible en el mismo turno, cuando se agota la lista de proveedores, entonces el turno termina con un error claro tras probar cada proveedor una sola vez, sin bucle y sin volver automáticamente al primero dentro del turno.
+- **AC-04 — Umbral propio del nuevo modelo.** Dado el cambio de modelo, cuando se evalúa la compactación, entonces se usa el umbral propio de la ventana del nuevo modelo.
 
 <a id="hu-07-06"></a>
 #### HU-07-06 — Respuesta en streaming
@@ -221,7 +227,7 @@
 <a id="hu-08-01"></a>
 #### HU-08-01 — Conexión a un servidor MCP por stdio
 
-**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** C — Control y conexiones  
+**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 4 · **Desarrollador:** C — Control y conexiones  
 **Requisitos:** RF-8.1 · **Depende de:** [SPK-04](04d-historias-conexiones.md#spk-04)
 
 - **Como:** usuario operador
@@ -246,7 +252,7 @@
 <a id="hu-08-02"></a>
 #### HU-08-02 — Descubrir herramientas MCP y traducirlas al formato interno
 
-**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** C — Control y conexiones  
+**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 4 · **Desarrollador:** C — Control y conexiones  
 **Requisitos:** RF-8.2 · **Depende de:** [HU-08-01](04d-historias-conexiones.md#hu-08-01), [HU-01-02](04a-historias-fundacion.md#hu-01-02)
 
 - **Como:** agente principal
@@ -271,7 +277,7 @@
 <a id="hu-08-03"></a>
 #### HU-08-03 — Invocar herramientas MCP bajo la misma política de permisos
 
-**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** C — Control y conexiones  
+**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 4 · **Desarrollador:** C — Control y conexiones  
 **Requisitos:** RF-8.3, RF-8.4 · **Depende de:** [HU-08-02](04d-historias-conexiones.md#hu-08-02), [HU-05-01](04c-historias-control.md#hu-05-01)
 
 - **Como:** usuario operador
@@ -297,7 +303,7 @@
 <a id="hu-08-04"></a>
 #### HU-08-04 — Aislar los fallos de un servidor MCP
 
-**Prioridad:** Media · **PHU:** 1 · **Sprint:** Sprint 3 · **Desarrollador:** C — Control y conexiones  
+**Prioridad:** Alta · **PHU:** 1 · **Sprint:** Sprint 4 · **Desarrollador:** C — Control y conexiones  
 **Requisitos:** RF-8.5, RNF-8 · **Depende de:** [HU-08-01](04d-historias-conexiones.md#hu-08-01)
 
 - **Como:** usuario operador
@@ -375,7 +381,7 @@
 <a id="hu-09-01"></a>
 #### HU-09-01 — Delegar en un subagente con contexto limpio
 
-**Prioridad:** Alta · **PHU:** 5 · **Sprint:** Sprint 2 · **Desarrollador:** A — Núcleo  
+**Prioridad:** Alta · **PHU:** 5 · **Sprint:** Sprint 3 · **Desarrollador:** B — Estado  
 **Requisitos:** RF-9.1, RF-9.2 · **Depende de:** [HU-01-01](04a-historias-fundacion.md#hu-01-01), [HU-03-01](04b-historias-estado.md#hu-03-01), [HU-01-05](04a-historias-fundacion.md#hu-01-05)
 
 - **Como:** agente principal
@@ -403,7 +409,7 @@
 <a id="hu-09-02"></a>
 #### HU-09-02 — Instrucciones propias y herramientas restringidas por subagente
 
-**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 2 · **Desarrollador:** A — Núcleo  
+**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** C — Control y conexiones  
 **Requisitos:** RF-9.3 · **Depende de:** [HU-09-01](04d-historias-conexiones.md#hu-09-01), [HU-01-02](04a-historias-fundacion.md#hu-01-02)
 
 - **Como:** usuario operador
@@ -429,7 +435,7 @@
 <a id="hu-09-03"></a>
 #### HU-09-03 — Resultado estructurado en lugar de la transcripción
 
-**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 2 · **Desarrollador:** A — Núcleo  
+**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** A — Núcleo  
 **Requisitos:** RF-9.4 · **Depende de:** [HU-09-01](04d-historias-conexiones.md#hu-09-01)
 
 - **Como:** agente principal
@@ -509,7 +515,7 @@
 #### HU-09-06 — Subagente verificador y subagente explorador
 
 **Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** C — Control y conexiones  
-**Requisitos:** RF-9.8 · **Depende de:** [HU-09-02](04d-historias-conexiones.md#hu-09-02)
+**Requisitos:** RF-9.8 · **Depende de:** [HU-09-02](04d-historias-conexiones.md#hu-09-02), [HU-09-03](04d-historias-conexiones.md#hu-09-03)
 
 - **Como:** agente principal
 - **Quiero:** elegir entre un subagente explorador de solo lectura y un verificador que ejecuta pruebas y devuelve evidencia por criterio
@@ -563,7 +569,7 @@
 <a id="hu-10-01"></a>
 #### HU-10-01 — Trazas estructuradas de cada llamada
 
-**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** B — Estado  
+**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 4 · **Desarrollador:** B — Estado  
 **Requisitos:** RF-10.1, RF-10.2 · **Depende de:** [HU-01-05](04a-historias-fundacion.md#hu-01-05)
 
 - **Como:** evaluador del proyecto
@@ -589,7 +595,7 @@
 <a id="hu-10-02"></a>
 #### HU-10-02 — Redacción de secretos en registros
 
-**Prioridad:** Alta · **PHU:** 1 · **Sprint:** Sprint 3 · **Desarrollador:** B — Estado  
+**Prioridad:** Alta · **PHU:** 1 · **Sprint:** Sprint 4 · **Desarrollador:** B — Estado  
 **Requisitos:** RF-10.4, RNF-16 · **Depende de:** [HU-10-01](04d-historias-conexiones.md#hu-10-01)
 
 - **Como:** usuario operador

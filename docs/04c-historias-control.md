@@ -12,12 +12,12 @@
 #### HU-05-01 — Política denegar, preguntar, permitir que falla cerrada
 
 **Prioridad:** Alta · **PHU:** 3 · **Sprint:** Sprint 1 · **Desarrollador:** C — Control y conexiones  
-**Requisitos:** RF-5.1, RF-5.2, RF-5.3 · **Depende de:** [HU-00-01](04a-historias-fundacion.md#hu-00-01)
+**Requisitos:** RF-5.1, RF-5.2, RF-5.3 · **Depende de:** [HU-00-01](04a-historias-fundacion.md#hu-00-01), [HU-01-03](04a-historias-fundacion.md#hu-01-03), [HU-01-05](04a-historias-fundacion.md#hu-01-05)
 
 - **Como:** usuario operador
-- **Quiero:** que cada acción del agente se clasifique en denegar, preguntar o permitir, y que lo no previsto pida aprobación
-- **Para:** que nada sensible ocurra sin mi control
-- **Descripción:** Cada acción del agente se clasifica en denegar, preguntar o permitir, y toda acción no prevista pide aprobación (falla cerrada).
+- **Quiero:** que cada acción del agente se clasifique en denegar, preguntar o permitir, que lo no previsto pida aprobación, y que el único permiso explícito del Sprint 1 sea escribir dentro del área de trabajo autorizada
+- **Para:** que nada sensible ocurra sin mi control y que aun así se pueda demostrar el agente antes de tener la interfaz de aprobación
+- **Descripción:** Cada acción del agente se clasifica en denegar, preguntar o permitir, y toda acción no prevista pide aprobación (falla cerrada). En el Sprint 1, sin interfaz de aprobación, «preguntar» se resuelve como denegar con motivo; el único permiso explícito es escribir dentro del área de trabajo autorizada.
 
 **Flujo general**
 
@@ -25,6 +25,7 @@
 2. La política evalúa la llamada en orden: denegar, preguntar, permitir.
 3. Si ninguna regla coincide, pide aprobación.
 4. Se ejecuta, se pide aprobación o se deniega según el resultado.
+5. Mientras no exista [HU-05-03](04c-historias-control.md#hu-05-03), «preguntar» se deniega con motivo y la decisión se registra.
 
 **Reglas de negocio**
 
@@ -32,12 +33,15 @@
 2. La política se aplica en el harness, no en el prompt.
 3. Las instrucciones halladas en archivos no cambian la política.
 4. Borrar archivos, hacer push, merge y deploy siempre requieren aprobación.
+5. El permiso de escritura está acotado al área autorizada; no hay regla de «permitir todo».
 
 **Criterios de aceptación**
 
 - **AC-01 — Falla cerrada ante lo no previsto.** Dado una llamada que no coincide con ninguna regla, cuando se evalúa, entonces requiere aprobación manual.
 - **AC-02 — Orden de precedencia.** Dado reglas que se contradicen, cuando se evalúan, entonces prevalece el orden denegar, preguntar, permitir.
 - **AC-03 — Instrucciones en archivos no alteran la política.** Dado instrucciones en el contenido de un archivo, cuando el modelo las sigue, entonces la política las evalúa igual que cualquier otra llamada.
+- **AC-04 — Escritura permitida solo en el área autorizada.** Dado una escritura cuya ruta real queda dentro del área de trabajo autorizada, cuando se evalúa, entonces una regla explícita acotada a esa área la permite; dado cualquier otra ubicación, entonces se pregunta. No existe ninguna regla que permita escribir en cualquier ruta.
+- **AC-05 — «Preguntar» provisional en el Sprint 1.** Dado el Sprint 1, sin la interfaz de aprobación ([HU-05-03](04c-historias-control.md#hu-05-03)), cuando una acción resulta en «preguntar», entonces se deniega provisionalmente, el modelo recibe el motivo y la decisión queda registrada como evento; esta resolución provisional se retira cuando [HU-05-03](04c-historias-control.md#hu-05-03) existe.
 
 <a id="hu-05-02"></a>
 #### HU-05-02 — Lista de denegados y análisis de comandos compuestos
@@ -111,7 +115,7 @@
 <a id="hu-05-04"></a>
 #### HU-05-04 — Rechazo con motivo que vuelve al modelo
 
-**Prioridad:** Alta · **PHU:** 1 · **Sprint:** Sprint 2 · **Desarrollador:** B — Estado  
+**Prioridad:** Alta · **PHU:** 1 · **Sprint:** Sprint 2 · **Desarrollador:** A — Núcleo  
 **Requisitos:** RF-5.6 · **Depende de:** [HU-05-03](04c-historias-control.md#hu-05-03)
 
 - **Como:** usuario operador
@@ -137,7 +141,7 @@
 <a id="hu-05-05"></a>
 #### HU-05-05 — Registro de auditoría de decisiones
 
-**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 2 · **Desarrollador:** C — Control y conexiones  
+**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** B — Estado  
 **Requisitos:** RF-5.7, RF-10.3 · **Depende de:** [HU-05-03](04c-historias-control.md#hu-05-03)
 
 - **Como:** evaluador del proyecto
@@ -158,6 +162,7 @@
 **Criterios de aceptación**
 
 - **AC-01 — Decisión registrada en auditoría.** Dado una decisión de aprobación, rechazo o denegación automática, cuando ocurre, entonces queda registrada con herramienta, argumentos, decisión y hora.
+- **AC-02 — Auditoría mínima con argumentos redactados.** Dado un registro de aprobación, rechazo o denegación que contenga una clave con patrón conocido o el valor de una variable de entorno sensible, cuando se persiste el registro en el Sprint 3, entonces el dato queda sustituido por una marca antes de escribirse. Este control mínimo no reemplaza [HU-10-01](04d-historias-conexiones.md#hu-10-01) ni [HU-10-02](04d-historias-conexiones.md#hu-10-02) (trazas de modelo y herramientas, Sprint 4).
 
 <a id="hu-05-06"></a>
 #### HU-05-06 — Reglas de permisos por archivo
@@ -212,7 +217,7 @@
 <a id="hu-05-08"></a>
 #### HU-05-08 — Contenido externo tratado como datos
 
-**Prioridad:** Media · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** C — Control y conexiones  
+**Prioridad:** Media · **PHU:** 2 · **Sprint:** Sprint 4 · **Desarrollador:** C — Control y conexiones  
 **Requisitos:** RNF-17, RNF-18 · **Depende de:** [HU-05-01](04c-historias-control.md#hu-05-01)
 
 - **Como:** evaluador del proyecto
@@ -234,7 +239,7 @@
 **Criterios de aceptación**
 
 - **AC-01 — Archivo con instrucción maliciosa.** Dado un archivo con una instrucción para borrar archivos, cuando el agente lo lee, entonces cualquier acción derivada pasa por la política y pide aprobación.
-- **AC-02 — Resultado MCP marcado como dato.** Dado un resultado de servidor MCP con instrucciones, cuando vuelve al contexto, entonces va marcado como dato y no altera los permisos.
+- **AC-02 — Resultado MCP marcado como dato.** Dado un resultado MCP, cuando la integración MCP esté disponible en el Sprint 4 condicional, entonces vuelve marcado como dato y no altera permisos; esta parte del criterio no puede darse por completada en Sprint 3.
 
 ### E6. Interacción con el usuario
 
@@ -276,7 +281,7 @@ x Error: la ruta 'src/pago.py' no existe. Sugerencia: usa 'listar' para ver los 
 <a id="hu-06-02"></a>
 #### HU-06-02 — Herramienta para preguntar al usuario con opciones
 
-**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 2 · **Desarrollador:** C — Control y conexiones  
+**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 4 · **Desarrollador:** C — Control y conexiones  
 **Requisitos:** RF-6.1, RF-6.2, RF-6.3 · **Depende de:** [HU-01-02](04a-historias-fundacion.md#hu-01-02), [HU-01-05](04a-historias-fundacion.md#hu-01-05)
 
 - **Como:** agente principal
@@ -312,33 +317,35 @@ x Error: la ruta 'src/pago.py' no existe. Sugerencia: usa 'listar' para ver los 
 #### HU-06-03 — Interrumpir la ejecución sin perder la sesión
 
 **Prioridad:** Media · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** A — Núcleo  
-**Requisitos:** RF-6.5 · **Depende de:** [SPK-02](04a-historias-fundacion.md#spk-02), [HU-01-01](04a-historias-fundacion.md#hu-01-01)
+**Requisitos:** RF-6.5 · **Depende de:** [SPK-02](04a-historias-fundacion.md#spk-02), [HU-01-01](04a-historias-fundacion.md#hu-01-01), [HU-11-08.1](04e-historias-coding-harness.md#hu-11-08.1)
 
 - **Como:** usuario operador
-- **Quiero:** interrumpir lo que el agente está haciendo
-- **Para:** corregir el rumbo sin perder el trabajo
-- **Descripción:** El usuario interrumpe lo que el agente está haciendo sin perder la sesión.
+- **Quiero:** cancelar de forma controlada la herramienta que el agente está ejecutando
+- **Para:** corregir el rumbo sin perder la sesión ni el trabajo ya registrado
+- **Descripción:** El usuario cancela de forma controlada la herramienta que el agente está ejecutando, sin perder la sesión. Es distinto de cerrar el proceso (que se recupera con los eventos y el último punto de control) y de terminar con normalidad.
 
 **Flujo general**
 
 1. El usuario pulsa la tecla de interrupción.
 2. El sistema cancela la herramienta en curso.
-3. Registra la herramienta como interrumpida.
+3. Registra la herramienta como interrumpida y escribe un punto de control del progreso.
 4. El modelo recibe el resultado de cancelado en el siguiente turno.
 
 **Reglas de negocio**
 
-1. La sesión sigue disponible tras interrumpir.
+1. La sesión sigue disponible tras cancelar.
 2. La semántica de cancelación se define en [SPK-02](04a-historias-fundacion.md#spk-02).
+3. Terminar el proceso no es una cancelación: lo cubren [HU-03-02](04b-historias-estado.md#hu-03-02) y [HU-11-08.1](04e-historias-coding-harness.md#hu-11-08.1).
 
 **Criterios de aceptación**
 
-- **AC-01 — Interrupción sin perder la sesión.** Dado un comando en ejecución, cuando interrumpo, entonces se cancela, el modelo recibe un resultado de cancelado y la sesión sigue disponible.
+- **AC-01 — Cancelación sin perder la sesión.** Dado un comando en ejecución, cuando interrumpo, entonces se cancela esa herramienta, el modelo recibe un resultado de cancelado y la sesión sigue disponible.
+- **AC-02 — Eventos y progreso guardados al cancelar.** Dado una cancelación, cuando termina, entonces los eventos hasta ese punto están guardados y el archivo de progreso del ticket se actualiza con un punto de control.
 
 <a id="hu-06-04"></a>
 #### HU-06-04 — Comandos de control de la sesión
 
-**Prioridad:** Media · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** B — Estado  
+**Prioridad:** Media · **PHU:** 2 · **Sprint:** Sprint 4 · **Desarrollador:** B — Estado  
 **Requisitos:** RF-6.6 · **Depende de:** [HU-03-03](04b-historias-estado.md#hu-03-03), [HU-03-04](04b-historias-estado.md#hu-03-04)
 
 - **Como:** usuario operador

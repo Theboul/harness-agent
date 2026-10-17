@@ -76,14 +76,15 @@ Guías para el agente de código, en `.claude/skills/`:
 ## Equipo y plan
 
 - **Equipo:** A = Núcleo, B = Estado, C = Control y conexiones. Product Owner: Brad.
-- **Plazo:** 3 sprints de 1 semana.
+- **Plazo:** 4 sprints de 1 semana, con cierre máximo el 14/11/2026 (19–23/10, 26–30/10, 02–06/11 y 09–13/11). La cuarta semana está aprobada por el Product Owner; el reparto ampliado del Sprint 4 está por ratificar en el Planning.
 - **Definition of Done:** integrado con CI en verde, con pruebas, tipos y formato correctos, sin secretos, revisado por otra persona y mostrado en la demostración.
 
 | Sprint | Hito |
 |---|---|
-| 1 | Tarea de tres pasos de principio a fin con modelo real; sesión guardada; política de permisos |
-| 2 | Aprobación y rechazo, reanudación de sesión, compactación y subagente básico |
-| 3 | Una tarea con criterios llega a Pull Request tras aprobar el diff; además MCP bajo permisos, conmutación de proveedor y memoria entre sesiones |
+| 1 | Agente ejecutable en terminal: resuelve una tarea de varios pasos con herramientas de archivos y modelo real, escribe solo dentro de un área autorizada y deja la sesión guardada en SQLite |
+| 2 | Primer flujo del Coding Harness: ticket → cambios → pruebas → verificación automática de criterios, con aprobación y rechazo, sesión reanudable y compactación que conserva el contexto esencial |
+| 3 | Flujo completo hasta el Pull Request: subagente verificador, aprobación del diff, commit y PR; progreso del ticket, conmutación de proveedor y auditoría mínima con secretos redactados |
+| 4 | MCP bajo permisos con fallos aislados; memoria entre sesiones, trazas completas, listado de sesiones y preguntas al usuario (este reparto está por ratificar) |
 
 ## Instalación y uso
 

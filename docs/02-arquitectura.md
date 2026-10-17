@@ -59,9 +59,10 @@ flowchart TD
 |---|---|---|---|
 | Historial completo | SQLite, `eventos`, solo se añade | Reanudar, auditar, exportar | No se toca; se marcan los eventos cubiertos |
 | Memoria persistente | SQLite, `memorias` | Preferencias y datos entre sesiones | No se toca |
+| Contexto esencial | SQLite, `contexto_esencial` (objetivo, instrucciones, reglas, ticket, referencia a criterios, decisiones) | Lo que nunca puede perderse | No se toca ni se resume |
 | Ventana de contexto | RAM, se arma en cada turno | Lo que ve el modelo ahora | Se reconstruye más corta |
 
-La ventana se arma en este orden: prefijo fijo (instrucciones, herramientas, objetivo y decisiones) → memoria dentro de su presupuesto → resumen de lo antiguo → eventos recientes completos. El modelo no recuerda nada entre llamadas.
+La ventana se arma en este orden: prefijo fijo (instrucciones, herramientas y contexto esencial: objetivo, reglas, ticket, criterios y decisiones) → memoria dentro de su presupuesto → resumen de lo antiguo → eventos recientes completos. El modelo no recuerda nada entre llamadas.
 
 ### 3.5 Relevo entre sesiones (artículo de Anthropic)
 
@@ -69,12 +70,12 @@ Fuente: Anthropic Engineering, «Effective harnesses for long-running agents» (
 
 | Idea del artículo | Cómo se aplica aquí | Historias |
 |---|---|---|
-| Dos fallos de los agentes de larga duración: hacer todo de golpe y declarar victoria antes de tiempo. | Se atacan con un criterio por vez y con verificación externa antes de cerrar. | [HU-11-04](04e-historias-coding-harness.md#hu-11-04), [HU-11-08](04e-historias-coding-harness.md#hu-11-08) |
-| Lista de funcionalidades en JSON con «passes» en falso; el agente solo puede cambiar «passes». | Lista de criterios del ticket en JSON. Aquí lo impone el harness (permiso de escritura denegado y único punto que marca), no solo el prompt. | [HU-11-01](04e-historias-coding-harness.md#hu-11-01), [HU-11-04](04e-historias-coding-harness.md#hu-11-04) |
-| Archivo de progreso y commits descriptivos como relevo entre sesiones. | Archivo de progreso por ticket en el repositorio; SQLite sigue guardando el historial completo. | [HU-11-08](04e-historias-coding-harness.md#hu-11-08), [HU-11-02](04e-historias-coding-harness.md#hu-11-02) |
-| Rutina de arranque: ubicar el directorio, leer progreso y log de git, levantar el entorno y correr una prueba básica antes de trabajar. | Paso fijo del harness al reanudar un ticket; si la prueba básica falla, se repara antes de avanzar. | [HU-11-08](04e-historias-coding-harness.md#hu-11-08) |
-| Verificar de punta a punta, como un usuario, y no solo con pruebas unitarias o curl. | Los pasos de cada criterio describen la comprobación real. El subagente verificador ejecuta y devuelve evidencia. Una herramienta de navegador por MCP queda como extensión. | [HU-09-06](04d-historias-conexiones.md#hu-09-06), [HU-11-04](04e-historias-coding-harness.md#hu-11-04) |
-| Mismo harness en todas las sesiones; solo cambia el primer prompt (inicializador y agente de código). | Un solo bucle y dos prompts: uno que prepara el ticket (criterios y entorno) y otro que trabaja de a un criterio. | [HU-11-01](04e-historias-coding-harness.md#hu-11-01), [HU-11-08](04e-historias-coding-harness.md#hu-11-08) |
+| Dos fallos de los agentes de larga duración: hacer todo de golpe y declarar victoria antes de tiempo. | Se atacan con un criterio por vez y con verificación externa antes de cerrar. | [HU-11-04.1](04e-historias-coding-harness.md#hu-11-04.1), [HU-11-08.2](04e-historias-coding-harness.md#hu-11-08.2) |
+| Lista de funcionalidades en JSON con «passes» en falso; el agente solo puede cambiar «passes». | Criterios del ticket en SQLite con una copia JSON de solo lectura. Aquí lo impone el harness (escritura denegada, único punto que marca y copia restaurada si cambia), no solo el prompt. | [HU-11-01](04e-historias-coding-harness.md#hu-11-01), [HU-11-04.1](04e-historias-coding-harness.md#hu-11-04.1) |
+| Archivo de progreso y commits descriptivos como relevo entre sesiones. | Archivo de progreso por ticket en el repositorio; SQLite sigue guardando el historial completo. | [HU-11-08.1](04e-historias-coding-harness.md#hu-11-08.1), [HU-11-02](04e-historias-coding-harness.md#hu-11-02) |
+| Rutina de arranque: ubicar el directorio, leer progreso y log de git, levantar el entorno y correr una prueba básica antes de trabajar. | Paso fijo del harness al reanudar un ticket; si la prueba básica falla, se repara antes de avanzar. | [HU-11-08.2](04e-historias-coding-harness.md#hu-11-08.2) |
+| Verificar de punta a punta, como un usuario, y no solo con pruebas unitarias o curl. | Cada criterio objetivo lleva el comando que lo comprueba y el harness lo ejecuta. El subagente verificador (Sprint 3) aporta evidencia sobre los semánticos, que además confirma una persona. Una herramienta de navegador por MCP queda como extensión. | [HU-09-06](04d-historias-conexiones.md#hu-09-06), [HU-11-04.1](04e-historias-coding-harness.md#hu-11-04.1), [HU-11-04.2](04e-historias-coding-harness.md#hu-11-04.2) |
+| Mismo harness en todas las sesiones; solo cambia el primer prompt (inicializador y agente de código). | Un solo bucle y dos prompts: uno que prepara el ticket (criterios y entorno) y otro que trabaja de a un criterio. | [HU-11-01](04e-historias-coding-harness.md#hu-11-01), [HU-11-08.2](04e-historias-coding-harness.md#hu-11-08.2) |
 | Pregunta abierta: ¿un agente general o varios especializados? | Se prueba con dos perfiles de subagente (explorador y verificador) sin multiplicar los agentes. | [HU-09-06](04d-historias-conexiones.md#hu-09-06) |
 
 ### 3.6 Conjunto mínimo de herramientas
@@ -85,7 +86,7 @@ El modelo ve pocas herramientas generales. Git, pruebas y lint son comandos del 
 |---|---|---|---|
 | shell | Ejecutar comandos: git, pruebas, lint, búsquedas y la CLI de GitHub. | Permisos por comando y por subcomando; encadenados evaluados por partes; push y merge siempre piden aprobación. | [HU-01-04](04a-historias-fundacion.md#hu-01-04), [HU-05-02](04c-historias-control.md#hu-05-02), [HU-11-02](04e-historias-coding-harness.md#hu-11-02), [HU-11-03](04e-historias-coding-harness.md#hu-11-03) |
 | leer_archivo | Leer texto de un archivo. | Bajo riesgo. El contenido leído se marca como dato, no como instrucción. | [HU-01-03](04a-historias-fundacion.md#hu-01-03) |
-| escribir_archivo | Crear o reemplazar un archivo. | Pide aprobación fuera del directorio de trabajo; la lista de criterios está denegada. | [HU-01-03](04a-historias-fundacion.md#hu-01-03), [HU-11-01](04e-historias-coding-harness.md#hu-11-01) |
+| escribir_archivo | Crear o reemplazar un archivo. | Solo se permite dentro del área de trabajo autorizada (ruta real); fuera de ella se pregunta y, en el Sprint 1, se deniega con motivo. La base de datos y la copia de los criterios están denegadas. | [HU-01-03](04a-historias-fundacion.md#hu-01-03), [HU-11-01](04e-historias-coding-harness.md#hu-11-01) |
 | editar_archivo | Reemplazar un fragmento exacto de un archivo. | Igual que escribir; falla si el fragmento no es único. | [HU-01-03](04a-historias-fundacion.md#hu-01-03) |
 | preguntar_usuario | Pedir una decisión o un dato con opciones. | Es el canal de la aprobación humana. | [HU-06-02](04c-historias-control.md#hu-06-02), [HU-05-03](04c-historias-control.md#hu-05-03) |
 | delegar_subagente | Lanzar una sesión hija con perfil explorador o verificador. | Un solo nivel de anidamiento; el perfil restringe las herramientas. | [HU-09-01](04d-historias-conexiones.md#hu-09-01), [HU-09-06](04d-historias-conexiones.md#hu-09-06) |
@@ -97,7 +98,7 @@ Lo que cuesta esta decisión:
 |---|---|---|
 | Windows y Linux | No existe bash en Windows de forma nativa. | La interfaz Shell tiene una implementación para PowerShell y otra para bash; el prefijo informa cuál se usa; el shell se prueba en integración continua en ambos sistemas ([HU-01-04](04a-historias-fundacion.md#hu-01-04)). |
 | Permisos | Es más difícil decidir sobre una cadena de texto que sobre una herramienta con parámetros. | Se separan los comandos encadenados, manda la parte más restrictiva y lo no entendido se pregunta ([HU-05-02](04c-historias-control.md#hu-05-02)). |
-| Aislamiento | Un shell abierto puede tocar cualquier carpeta del usuario. | Directorio de trabajo acotado, aprobación fuera de él y worktree por ticket ([HU-11-07](04e-historias-coding-harness.md#hu-11-07), hoy Should); el entorno aislado queda como innovación ([HU-IN-02](04d-historias-conexiones.md#hu-in-02)). |
+| Aislamiento | Un shell abierto puede tocar cualquier carpeta del usuario. | Directorio de trabajo acotado, aprobación fuera de él y worktree por ticket ([HU-11-07](04e-historias-coding-harness.md#hu-11-07), hoy Should); el entorno aislado queda como innovación ([HU-IN-02](04d-historias-conexiones.md#hu-in-02)) y es la forma verificable de aislar el shell (R-21). |
 
 ## 4. Contratos entre módulos
 
@@ -116,7 +117,8 @@ Se escriben y acuerdan en [HU-00-01](04a-historias-fundacion.md#hu-00-01) para t
 | McpClient | conectar, listar_herramientas, llamar | Traduce cada herramienta MCP a Tool. |
 | SubagentRunner | ejecutar(perfil, objetivo, contexto, formato) → resultado | Crea la sesión hija y devuelve el resultado estructurado. |
 | Shell | ejecutar(comando, tiempo_máximo) → código de salida y salida; nombre del intérprete | Una implementación para bash y otra para PowerShell. Es la única puerta a comandos del sistema. |
-| TaskCriteria | cargar(tarea), pendientes(), marcar_pasa(id, evidencia) | Solo el harness llama a marcar_pasa. El agente solo lee. |
+| TaskCriteria | cargar(tarea), pendientes(), marcar_pasa(id, evidencia), exportar_copia() | Lee y escribe la tabla criterios de SQLite. Solo el harness llama a marcar_pasa. La copia JSON es de solo lectura y se restaura si cambia. |
+| AreaAutorizada | contiene(ruta) → verdadero o falso sobre la ruta real; raiz | Resuelve «..», enlaces simbólicos, unidades y rutas UNC antes de comparar. La usan las herramientas de archivos y la política de permisos. |
 | EventBus | emitir(evento), suscribir(tipo, función) | Único canal del núcleo hacia las interfaces. |
 
 ### Formato interno de mensajes
@@ -132,7 +134,7 @@ Se escriben y acuerdan en [HU-00-01](04a-historias-fundacion.md#hu-00-01) para t
 
 ### Eventos del bus
 
-`mensaje_usuario`, `mensaje_asistente`, `herramienta_solicitada`, `herramienta_terminada`, `aprobacion_pedida`, `aprobacion_resuelta`, `contexto_compactado`, `limite_alcanzado`, `error_proveedor`, `proveedor_conmutado`, `subagente_iniciado`, `subagente_terminado`, `interrumpido`, `sesion_arrancada`, `criterio_verificado`.
+`mensaje_usuario`, `mensaje_asistente`, `herramienta_solicitada`, `herramienta_terminada`, `aprobacion_pedida`, `aprobacion_resuelta`, `contexto_compactado`, `permiso_decidido`, `criterios_alterados`, `limite_alcanzado`, `error_proveedor`, `proveedor_conmutado`, `subagente_iniciado`, `subagente_terminado`, `interrumpido`, `sesion_arrancada`, `criterio_verificado`.
 
 ### Modelo de datos (SQLite)
 
@@ -141,6 +143,8 @@ Se escriben y acuerdan en [HU-00-01](04a-historias-fundacion.md#hu-00-01) para t
 | sesiones | id, padre_id (para subagentes), creada, modelo, objetivo, estado |
 | eventos | id, sesion_id, orden, tipo, contenido, compactado_por |
 | resumenes | id, sesion_id, evento_desde, evento_hasta, texto |
+| contexto_esencial | id, sesion_id, clave (objetivo, instrucciones, reglas, ticket, criterios_ref, decisiones), valor, origen, actualizado. Fuera de los eventos: la compactación no lo toca |
+| criterios | id, sesion_id, orden, descripcion, tipo (objetivo o semantico), comando, condicion, passes, evidencia, confirmado_por. Fuente de verdad; solo la escribe el harness |
 | memorias | id, clave, contenido, creada, actualizada |
 | auditoria | id, sesion_id, herramienta, argumentos_redactados, decision, momento |
 | trazas | id, sesion_id, tipo, duracion_ms, tokens, detalle_redactado |

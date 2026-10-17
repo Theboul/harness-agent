@@ -9,11 +9,12 @@ harness-agent/
 ├── config.example.toml     # modelo, límites, rutas, reglas de permisos
 ├── docs/
 │   ├── 00-indice.md                # mapa de la documentación y dónde está cada ID
-│   ├── 01-vision-y-decisiones.md   # equipo, alcance, decisiones V-01 a V-14
+│   ├── 01-vision-y-decisiones.md   # equipo, alcance, decisiones V-01 a V-17
 │   ├── 02-arquitectura.md          # diagramas, contratos, eventos, modelo de datos
 │   ├── 03-plan-sprints.md          # pruebas, riesgos, épicas, sprints, tareas
 │   ├── 04a..04e-historias-*.md     # historias de usuario por épicas
 │   ├── 05-trazabilidad.md          # requisito -> historia y arranque
+│   ├── 06-historial-planificacion.md  # auditoría, decisiones PD, capacidad (v2.5)
 │   ├── PROGRESO.md                 # qué se hizo y dónde está
 │   └── demo.md                     # guion de demostración (10 a 15 min)
 ├── src/harness_agent/
@@ -23,7 +24,7 @@ harness-agent/
 │   │   ├── events.py       # tipos de evento y EventBus
 │   │   ├── limits.py       # turnos, tiempo y consumo
 │   │   ├── errors.py       # errores de dominio
-│   │   ├── ports.py        # Provider, SessionStore, MemoryStore, McpClient, Approver
+│   │   ├── ports.py        # Provider, SessionStore, MemoryStore, McpClient, Approver, TaskCriteria, AreaAutorizada
 │   │   ├── context/        # ContextManager, estimación, compactación, recorte
 │   │   ├── permissions/    # política, lista base de denegados
 │   │   ├── tools/          # Tool, ToolRegistry, validación de esquema

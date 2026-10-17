@@ -9,21 +9,21 @@
 ### E11. Coding Harness: del ticket al Pull Request
 
 <a id="hu-11-01"></a>
-#### HU-11-01 — Tarea con criterios de aceptación en una lista estructurada y protegida
+#### HU-11-01 — Tarea con criterios de aceptación protegidos en SQLite
 
-**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** A — Núcleo  
-**Requisitos:** RF-11.1 · **Depende de:** [HU-03-01](04b-historias-estado.md#hu-03-01), [HU-01-01](04a-historias-fundacion.md#hu-01-01)
+**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 2 · **Desarrollador:** A — Núcleo  
+**Requisitos:** RF-11.1 · **Depende de:** [HU-03-01](04b-historias-estado.md#hu-03-01), [HU-01-01](04a-historias-fundacion.md#hu-01-01), [HU-05-01](04c-historias-control.md#hu-05-01)
 
 - **Como:** usuario operador
-- **Quiero:** definir una tarea (ticket) con objetivo, contexto, reglas y criterios de aceptación en un archivo o desde un issue de GitHub, y que los criterios se guarden en una lista estructurada que el agente no puede editar
-- **Para:** darle al agente una orden verificable y que no pueda modificar sus propias pruebas
-- **Descripción:** El usuario define una tarea con objetivo, contexto, reglas y criterios de aceptación en un archivo o en un issue de GitHub. El agente la recibe como una sesión nueva y los criterios se guardan en una lista JSON (descripción, pasos de verificación y passes) que el agente no puede editar.
+- **Quiero:** definir una tarea (ticket) con objetivo, contexto, reglas y criterios de aceptación en un archivo o desde un issue de GitHub, y que el harness niegue cambios a los criterios mediante herramientas controladas y registre cualquier anomalía
+- **Para:** darle al agente una orden verificable y que no pueda modificar sus propias pruebas de aceptación
+- **Descripción:** El usuario define una tarea con objetivo, contexto, reglas y criterios de aceptación en un archivo o en un issue de GitHub. El agente la recibe como una sesión nueva. Los criterios se guardan en la tabla criterios de SQLite y se exporta una copia JSON informativa. La política del harness deniega las modificaciones por herramientas autorizadas, pero SQLite no impide por sí solo el acceso de procesos shell que compartan la misma identidad del sistema operativo; la protección fuerte exige aislamiento o separación de privilegios. Cada criterio es objetivo (comando de verificación y condición esperada) o semántico (necesita validación humana).
 
 **Flujo general**
 
 1. El usuario escribe el archivo de tarea (o indica un issue de GitHub).
 2. El sistema lo lee y valida que tenga objetivo y criterios.
-3. Genera la lista JSON de criterios, todos con passes en falso.
+3. Guarda los criterios en SQLite, todos con passes en falso, y exporta una copia JSON de solo lectura.
 4. Crea una sesión nueva para la tarea.
 5. Inyecta el objetivo, las reglas y los criterios en el prefijo estable.
 
@@ -32,30 +32,35 @@
 1. Una sesión corresponde a una tarea.
 2. Una tarea sin criterios de aceptación se rechaza.
 3. El objetivo y los criterios viven fuera del historial compactable.
-4. El archivo de criterios es de solo lectura para el agente; el harness es el único que cambia passes. Se usa JSON y no texto libre porque es más difícil de alterar por error.
+4. La verificación lee siempre desde SQLite; la copia JSON es informativa y se restaura ante cambios. Debe fallar cerrada ante cualquier indicio de alteración de la fuente protegida.
+5. Un criterio objetivo declara su comando de verificación y su condición; uno sin comando es semántico.
+6. Limitación: la protección por reglas del shell depende de interpretar comandos; el aislamiento verificable es [HU-IN-02](04d-historias-conexiones.md#hu-in-02) (ver riesgo R-21).
 
 **Prototipo**
 
 ```
-TAREA-14  (criterios.json)
-[ {"id": 1, "descripcion": "El email es obligatorio",
-    "pasos": ["enviar formulario sin email", "ver error"],
+TAREA-14  (copia de solo lectura de la tabla criterios)
+[ {"id": 1, "tipo": "objetivo",
+    "descripcion": "El email es obligatorio",
+    "verificacion": {"comando": "pytest tests/test_email.py",
+                     "espera": "codigo_salida == 0"},
     "passes": false},
-  {"id": 2, "descripcion": "Las pruebas pasan",
-    "pasos": ["ejecutar pytest"], "passes": false} ]
-Solo el harness cambia "passes".
+  {"id": 2, "tipo": "semantico",
+    "descripcion": "El mensaje de error es claro",
+    "passes": false} ]
+La fuente de verdad es SQLite. Solo el harness cambia "passes".
 ```
 
 **Criterios de aceptación**
 
-- **AC-01 — Sesión y lista de criterios creadas desde la tarea.** Dado un archivo de tarea con objetivo, reglas y criterios, cuando se inicia la tarea, entonces se crea una sesión nueva con ese contenido en el contexto estable y una lista JSON de criterios con descripción, pasos de verificación y passes en falso.
+- **AC-01 — Sesión y criterios creados desde la tarea.** Dado un archivo de tarea con objetivo, reglas y criterios, cuando se inicia la tarea, entonces se crea una sesión nueva y los criterios (descripción, tipo objetivo o semántico, comando de verificación, condición esperada y passes en falso) se guardan en la tabla criterios de SQLite, con una copia JSON de solo lectura.
 - **AC-02 — Tarea sin criterios rechazada.** Dado un archivo de tarea sin criterios de aceptación, cuando se inicia, entonces el sistema lo rechaza e indica qué falta.
-- **AC-03 — Lista de criterios protegida.** Dado que el agente intenta editar la lista de criterios con las herramientas de archivos o con el shell, cuando la política lo evalúa, entonces lo deniega; solo el harness puede cambiar el campo passes.
+- **AC-03 — Criterios protegidos y copia restaurada.** Dado un intento de escritura sobre los criterios mediante las herramientas controladas del harness, cuando la política lo evalúa, entonces lo deniega y registra; si la copia JSON cambia, el harness ignora esa copia, la restaura desde SQLite y registra la anomalía. Esto NO demuestra aislamiento ante un shell arbitrario con los mismos privilegios que el harness: tal garantía queda condicionada a PD-06 y exige una prueba independiente de acceso denegado.
 
 <a id="hu-11-02"></a>
 #### HU-11-02 — Git mediante el shell con reglas de permisos por subcomando
 
-**Prioridad:** Alta · **PHU:** 1 · **Sprint:** Sprint 3 · **Desarrollador:** C — Control y conexiones  
+**Prioridad:** Alta · **PHU:** 1 · **Sprint:** Sprint 2 · **Desarrollador:** B — Estado  
 **Requisitos:** RF-11.2 · **Depende de:** [HU-01-04](04a-historias-fundacion.md#hu-01-04), [HU-05-02](04c-historias-control.md#hu-05-02)
 
 - **Como:** agente principal
@@ -83,7 +88,7 @@ Solo el harness cambia "passes".
 <a id="hu-11-03"></a>
 #### HU-11-03 — Pruebas y lint mediante el shell con salida recortada
 
-**Prioridad:** Alta · **PHU:** 1 · **Sprint:** Sprint 3 · **Desarrollador:** C — Control y conexiones  
+**Prioridad:** Alta · **PHU:** 1 · **Sprint:** Sprint 2 · **Desarrollador:** C — Control y conexiones  
 **Requisitos:** RF-11.3 · **Depende de:** [HU-01-04](04a-historias-fundacion.md#hu-01-04), [HU-02-02](04b-historias-estado.md#hu-02-02), [HU-11-01](04e-historias-coding-harness.md#hu-11-01)
 
 - **Como:** agente principal
@@ -108,59 +113,99 @@ Solo el harness cambia "passes".
 - **AC-01 — Fallo de pruebas informado al agente.** Dado un proyecto con una prueba fallida, cuando el agente corre el comando de pruebas configurado, entonces recibe un código de salida distinto de cero y los mensajes de fallo.
 - **AC-02 — Salida larga recortada.** Dado una salida muy larga de pruebas, cuando vuelve al contexto, entonces se recorta con marca de omisión.
 
-<a id="hu-11-04"></a>
-#### HU-11-04 — Verificación de criterios: solo el harness marca passes
+<a id="hu-11-04.1"></a>
+#### HU-11-04.1 — Verificación automática de criterios objetivos: solo el harness marca passes
 
-**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** A — Núcleo  
-**Requisitos:** RF-11.4 · **Depende de:** [HU-11-01](04e-historias-coding-harness.md#hu-11-01), [HU-11-03](04e-historias-coding-harness.md#hu-11-03), [HU-09-06](04d-historias-conexiones.md#hu-09-06)
+**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 2 · **Desarrollador:** A — Núcleo  
+**Requisitos:** RF-11.4 · **Depende de:** [HU-11-01](04e-historias-coding-harness.md#hu-11-01), [HU-11-03](04e-historias-coding-harness.md#hu-11-03), [HU-01-04](04a-historias-fundacion.md#hu-01-04)
 
 - **Como:** usuario operador
-- **Quiero:** que la tarea solo se dé por terminada cuando el harness haya verificado cada criterio y marcado passes con evidencia
-- **Para:** no aceptar código solo porque la IA dice que ya está
-- **Descripción:** El sistema no da la tarea por terminada hasta que el harness verifica cada criterio. El agente no puede marcar su propio trabajo: passes solo cambia con la evidencia de las pruebas o del subagente verificador.
+- **Quiero:** que el harness ejecute el comando de verificación de cada criterio objetivo y marque passes solo cuando se cumple la condición esperada
+- **Para:** no aceptar un resultado solo porque la IA dice que ya está
+- **Descripción:** Cuando el agente propone terminar, el harness ejecuta por su cuenta el comando de verificación de cada criterio objetivo y marca passes solo si se cumple la condición esperada. Los criterios semánticos quedan pendientes de validación humana. Es la primera versión de la verificación: no usa subagentes.
 
 **Flujo general**
 
 1. El agente propone terminar la tarea.
-2. El harness ejecuta las pruebas y lanza el verificador con la lista de criterios.
-3. Por cada criterio con evidencia, el harness pone passes en verdadero.
-4. Si falta algún criterio, la tarea sigue abierta y el agente recibe qué falta.
-5. El usuario ve el estado de cada criterio.
+2. El harness ejecuta el comando de verificación de cada criterio objetivo bajo la política de permisos.
+3. Si el resultado cumple la condición, pone passes en verdadero; si no, lo deja en falso y devuelve al agente la salida recortada.
+4. Los criterios semánticos quedan pendientes de validación humana.
+5. La CLI muestra el estado de cada criterio.
 
 **Reglas de negocio**
 
-1. Solo el harness cambia passes.
-2. Una tarea solo se cierra si todos los criterios tienen evidencia.
-3. Lo que el agente afirma no cuenta como evidencia.
+1. Solo el harness cambia passes; lo que el agente afirma no cuenta como evidencia.
+2. Un criterio sin comando de verificación nunca se marca automáticamente.
+3. Los comandos de verificación los define la tarea, no el agente.
+
+**Prototipo**
+
+```
+TAREA-14 — estado de los criterios
+  [x] 1 El email es obligatorio            (pytest: salida 0)
+  [ ] 2 La contraseña tiene 8 caracteres   (pytest: salida 1)
+  [?] 3 El mensaje de error es claro       pendiente de validación humana
+```
 
 **Criterios de aceptación**
 
-- **AC-01 — Verificación antes de cerrar.** Dado una tarea con tres criterios, cuando el agente propone terminarla, entonces el harness ejecuta la verificación y marca como cumplidos solo los criterios con evidencia.
-- **AC-02 — Tarea abierta si falta evidencia.** Dado un criterio sin evidencia, cuando se intenta cerrar la tarea, entonces queda abierta, passes sigue en falso y el agente recibe qué falta.
-- **AC-03 — El agente no marca su propio trabajo.** Dado que el agente afirma que un criterio pasa, cuando no hay evidencia del verificador o de las pruebas, entonces passes no cambia.
+- **AC-01 — Verificación por comandos del harness.** Dado un ticket con criterios objetivos, cada uno con un comando de verificación y una condición esperada, cuando el agente propone terminarlo, entonces el harness ejecuta cada comando y marca passes solo en los que cumplen la condición.
+- **AC-02 — Criterio semántico pendiente de validación humana.** Dado un criterio sin comando de verificación (semántico), cuando se intenta cerrar la tarea, entonces queda pendiente de validación humana y nunca se marca por una afirmación del modelo.
+- **AC-03 — Fallo de verificación informado al agente.** Dado un comando de verificación que falla, cuando termina, entonces passes sigue en falso y el agente recibe el código de salida y la salida recortada.
+- **AC-04 — Estado visible de cada criterio.** Dado el estado de la tarea, cuando el usuario lo consulta, entonces ve cada criterio como cumplido, no cumplido o pendiente de validación humana.
+
+<a id="hu-11-04.2"></a>
+#### HU-11-04.2 — Verificación independiente con el subagente verificador
+
+**Prioridad:** Alta · **PHU:** 1 · **Sprint:** Sprint 3 · **Desarrollador:** C — Control y conexiones  
+**Requisitos:** RF-11.4, RF-9.8 · **Depende de:** [HU-11-04.1](04e-historias-coding-harness.md#hu-11-04.1), [HU-09-06](04d-historias-conexiones.md#hu-09-06)
+
+- **Como:** usuario operador
+- **Quiero:** que un subagente verificador revise los criterios semánticos y aporte evidencia, sin poder marcarlos como cumplidos
+- **Para:** tener una segunda opinión independiente antes de decidir
+- **Descripción:** Un subagente verificador, con contexto limpio y sin permiso de edición, revisa los criterios semánticos y devuelve un informe con evidencia. El informe no cambia passes: el criterio queda pendiente de confirmación humana. Amplía el mecanismo de [HU-11-04.1](04e-historias-coding-harness.md#hu-11-04.1).
+
+**Flujo general**
+
+1. El agente propone terminar y hay criterios semánticos.
+2. El harness lanza al subagente verificador con esos criterios.
+3. El verificador devuelve, por criterio, si se cumple y la evidencia.
+4. El harness registra el informe y deja el criterio pendiente de confirmación humana.
+
+**Reglas de negocio**
+
+1. El verificador no puede editar archivos ni marcar passes.
+2. El informe del verificador es una recomendación, no una aceptación.
+
+**Criterios de aceptación**
+
+- **AC-01 — Informe del verificador registrado sin cambiar passes.** Dado un criterio semántico, cuando el agente propone terminar, entonces el harness lanza al verificador y registra su informe (cumple o no cumple, con evidencia) sin cambiar passes.
+- **AC-02 — Criterio pendiente de confirmación humana.** Dado el informe del verificador, cuando se registra, entonces el criterio queda como «verificado por subagente, pendiente de confirmación humana».
 
 <a id="hu-11-05"></a>
 #### HU-11-05 — Resumen de cambios y aprobación humana del diff
 
 **Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** C — Control y conexiones  
-**Requisitos:** RF-11.5 · **Depende de:** [HU-11-02](04e-historias-coding-harness.md#hu-11-02), [HU-05-03](04c-historias-control.md#hu-05-03)
+**Requisitos:** RF-11.5 · **Depende de:** [HU-11-02](04e-historias-coding-harness.md#hu-11-02), [HU-05-03](04c-historias-control.md#hu-05-03), [HU-11-04.1](04e-historias-coding-harness.md#hu-11-04.1)
 
 - **Como:** usuario operador
 - **Quiero:** ver un resumen de los cambios y el diff, y aprobar antes del commit o del Pull Request
 - **Para:** controlar lo que sale de mi repositorio
-- **Descripción:** Antes de hacer commit o Pull Request, el usuario ve un resumen de los cambios y el diff y decide si aprueba, con la posibilidad de rechazar indicando el motivo.
+- **Descripción:** Antes de hacer commit o Pull Request, el usuario ve un resumen de los cambios y el diff, confirma o rechaza los criterios que esperan validación humana y decide si aprueba, con la posibilidad de rechazar indicando el motivo.
 
 **Flujo general**
 
-1. La tarea cumple sus criterios y el agente pide commit.
+1. La tarea cumple sus criterios objetivos y el agente pide commit.
 2. El sistema genera un resumen y muestra el diff.
-3. El usuario aprueba o rechaza con motivo.
-4. Si aprueba, se hace el commit; si rechaza, el motivo vuelve al agente.
+3. El usuario confirma o rechaza cada criterio pendiente.
+4. El usuario aprueba o rechaza con motivo.
+5. Si aprueba, se hace el commit; si rechaza, el motivo vuelve al agente.
 
 **Reglas de negocio**
 
 1. Nada sale del repositorio sin aprobación.
 2. El resumen se genera a partir del diff real, no de lo que el agente dice haber hecho.
+3. Solo la confirmación humana cambia passes en un criterio semántico.
 
 **Prototipo**
 
@@ -169,18 +214,20 @@ Cambios de TAREA-14 (2 archivos, +18 -3)
   auth.py        validación de email y contraseña
   test_auth.py   2 pruebas nuevas
 Pruebas: 24/24 correctas
-[1] aprobar y hacer commit  [2] ver diff completo  [3] rechazar con motivo
+Criterio 3 (semántico) — informe del verificador: cumple
+[1] aprobar y hacer commit  [2] ver diff  [3] rechazar con motivo  [4] confirmar criterio 3
 ```
 
 **Criterios de aceptación**
 
 - **AC-01 — Diff y resumen antes de decidir.** Dado una tarea terminada, cuando pide commit, entonces la terminal muestra el resumen y el diff y espera mi decisión.
 - **AC-02 — Rechazo con motivo.** Dado un rechazo con motivo, cuando lo registro, entonces no se hace commit y el motivo vuelve al agente.
+- **AC-03 — Confirmación humana de criterios pendientes.** Dado criterios pendientes de confirmación humana, cuando se muestra el resumen, entonces confirmo o rechazo cada uno y solo mi confirmación cambia passes.
 
 <a id="hu-11-06"></a>
 #### HU-11-06 — Pull Request tras la aprobación
 
-**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** A — Núcleo  
+**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** C — Control y conexiones  
 **Requisitos:** RF-11.6 · **Depende de:** [HU-11-05](04e-historias-coding-harness.md#hu-11-05)
 
 - **Como:** usuario operador
@@ -232,16 +279,57 @@ Pruebas: 24/24 correctas
 
 - **AC-01 — Aislamiento entre tareas.** Dado dos tickets abiertos, cuando el agente trabaja en cada uno, entonces cada sesión usa su propio worktree y los cambios no se mezclan.
 
-<a id="hu-11-08"></a>
-#### HU-11-08 — Rutina de arranque de sesión y archivo de progreso del ticket
+<a id="hu-11-08.1"></a>
+#### HU-11-08.1 — Archivo de progreso del ticket con puntos de control
 
-**Prioridad:** Alta · **PHU:** 2 · **Sprint:** Sprint 3 · **Desarrollador:** C — Control y conexiones  
-**Requisitos:** RF-11.8 · **Depende de:** [HU-11-01](04e-historias-coding-harness.md#hu-11-01), [HU-03-04](04b-historias-estado.md#hu-03-04), [HU-11-02](04e-historias-coding-harness.md#hu-11-02)
+**Prioridad:** Alta · **PHU:** 1 · **Sprint:** Sprint 3 · **Desarrollador:** B — Estado  
+**Requisitos:** RF-11.8 · **Depende de:** [HU-11-01](04e-historias-coding-harness.md#hu-11-01), [HU-03-01](04b-historias-estado.md#hu-03-01), [HU-01-01](04a-historias-fundacion.md#hu-01-01)
 
 - **Como:** usuario operador
-- **Quiero:** que cada sesión de un ticket empiece leyendo el progreso anterior y comprobando que el proyecto funciona, y termine dejando el progreso anotado
+- **Quiero:** que el progreso del ticket se anote en un archivo del repositorio al terminar con normalidad y en puntos de control durante el trabajo
+- **Para:** no perder el hilo entre sesiones, ni siquiera si el proceso se termina de golpe
+- **Descripción:** El harness escribe un archivo de progreso en el repositorio del ticket con lo hecho, lo pendiente y el estado de cada criterio: al terminar con normalidad y como punto de control al final de cada turno. Si el proceso se termina de golpe, el último punto de control completo se conserva. La cancelación controlada de una herramienta no forma parte de esta historia ([HU-06-03](04c-historias-control.md#hu-06-03)).
+
+**Flujo general**
+
+1. El agente termina un turno.
+2. El harness recoge lo hecho, lo pendiente y el estado de cada criterio.
+3. Escribe el archivo de progreso de forma atómica (archivo temporal y renombrado).
+4. Si el proceso se termina de golpe, el archivo conserva el último punto de control completo.
+5. Al reanudar la sesión por su identificador, el progreso está disponible.
+
+**Reglas de negocio**
+
+1. El archivo de progreso vive en el repositorio del ticket; SQLite sigue siendo la fuente del historial completo.
+2. El archivo se crea con un formato fijo si no existe.
+3. Tres situaciones distintas: terminar con normalidad (esta historia), terminar el proceso (último punto de control, esta historia) y cancelar una herramienta ([HU-06-03](04c-historias-control.md#hu-06-03)).
+
+**Prototipo**
+
+```
+progreso-TAREA-14.md  (punto de control tras el turno 6)
+- Hecho: validación de email (commit a1b2c3).
+- Pendiente: longitud mínima de contraseña.
+- Criterios: 1 pasa, 2 no, 3 pendiente de validación humana.
+- Nota: auth.py usa un helper nuevo en utils.py.
+```
+
+**Criterios de aceptación**
+
+- **AC-01 — Progreso al terminar con normalidad.** Dado el final normal de una sesión de trabajo, cuando el agente termina, entonces el archivo de progreso queda actualizado con lo hecho, lo pendiente y el estado de cada criterio; si no existe, se crea con el formato definido.
+- **AC-02 — Punto de control atómico por turno.** Dado el trabajo en curso, cuando termina cada turno del agente, entonces se escribe un punto de control completo mediante escritura atómica (archivo temporal y renombrado); la función se valida en el Sprint 3.
+- **AC-03 — Recuperación tras terminar el proceso.** Dado que el proceso se terminó de golpe, cuando el usuario reanuda la sesión por su identificador, entonces el archivo de progreso conserva el último punto de control completo y no queda un archivo a medias.
+
+<a id="hu-11-08.2"></a>
+#### HU-11-08.2 — Rutina de arranque al reanudar un ticket
+
+**Prioridad:** Alta · **PHU:** 1 · **Sprint:** Sprint 3 · **Desarrollador:** C — Control y conexiones  
+**Requisitos:** RF-11.8 · **Depende de:** [HU-11-08.1](04e-historias-coding-harness.md#hu-11-08.1), [HU-03-04](04b-historias-estado.md#hu-03-04), [HU-11-02](04e-historias-coding-harness.md#hu-11-02)
+
+- **Como:** usuario operador
+- **Quiero:** que cada sesión de un ticket empiece leyendo el progreso anterior y comprobando que el proyecto funciona
 - **Para:** retomar un ticket sin perder el hilo ni construir sobre código roto
-- **Descripción:** Cada sesión de un ticket arranca con una rutina fija: leer el archivo de progreso, el log reciente de git y comprobar que el proyecto funciona antes de tocar nada. Al terminar o ser interrumpida, la sesión deja el progreso anotado. Así un contexto nuevo retoma el trabajo sin adivinar ni construir sobre algo roto.
+- **Descripción:** Al reanudar un ticket, la sesión arranca con una rutina fija: leer el archivo de progreso, el log reciente de git y comprobar que el proyecto funciona antes de tocar nada. Así un contexto nuevo retoma el trabajo sin adivinar ni construir sobre algo roto.
 
 **Flujo general**
 
@@ -249,29 +337,16 @@ Pruebas: 24/24 correctas
 2. El harness entrega al agente el archivo de progreso y el log reciente de git.
 3. Ejecuta la prueba básica del proyecto (comando de la tarea).
 4. Si falla, indica reparar eso antes de avanzar; si pasa, el agente elige el criterio pendiente.
-5. Al terminar o interrumpirse, el harness actualiza el archivo de progreso.
 
 **Reglas de negocio**
 
-1. El archivo de progreso vive en el repositorio del ticket; SQLite sigue siendo la fuente del historial completo.
+1. No se avanza con criterios nuevos mientras la prueba básica falle.
 2. Se pide al agente avanzar de a un criterio por vez (instrucción del prompt, no regla dura).
-3. No se avanza con criterios nuevos mientras la prueba básica falle.
-
-**Prototipo**
-
-```
-progreso-TAREA-14.md
-- Hecho: validación de email (commit a1b2c3).
-- Pendiente: longitud mínima de contraseña.
-- Criterios: 1 pasa, 2 no, 3 no.
-- Nota: auth.py usa un helper nuevo en utils.py.
-```
 
 **Criterios de aceptación**
 
 - **AC-01 — Arranque con progreso, log y prueba básica.** Dado un ticket con progreso previo, cuando se reanuda, entonces antes de pedir trabajo nuevo el harness entrega al agente el archivo de progreso, el log reciente de git y el resultado de la prueba básica del proyecto.
 - **AC-02 — Reparar antes de avanzar.** Dado que la prueba básica falla al arrancar, cuando el agente recibe el estado, entonces se le indica reparar eso antes de avanzar con un criterio nuevo.
-- **AC-03 — Progreso actualizado al cerrar.** Dado el final de una sesión de trabajo, cuando el agente termina o se interrumpe, entonces el archivo de progreso queda actualizado con lo hecho, lo pendiente y los criterios que pasan.
 
 ---
 
