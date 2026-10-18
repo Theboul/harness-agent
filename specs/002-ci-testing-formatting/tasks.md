@@ -89,21 +89,23 @@
 
 **Propósito**: Separar rigurosamente la validación automatizada de las acciones que requieren credenciales o acceso administrativo al repositorio remoto de GitHub.
 
-- [x] **T008** [US2] Documentar y verificar la ejecución real del workflow en GitHub Actions para Linux y Windows (AC-02 / Evidencia B)
+- [ ] **T008** [US2] Documentar y verificar la ejecución real del workflow en GitHub Actions para Linux y Windows (AC-02 / Evidencia B)
   - **Archivos**: `docs/PROGRESO.md`
   - **Dependencias**: T003, T004, T005, T006, T007
   - **Criterios relacionados**: AC-02, SC-001, SC-003, Sp1-04
   - **Tarea F5**: Sp1-04
   - **Estimación**: 30 min (15 min impl/inspección + 10 min check + 5 min registro)
   - **Verificación**: Confirmar la ejecución remota de los trabajos de la matriz (`ubuntu-latest` y `windows-latest`) en GitHub Actions reportando enlace/ID de ejecución, o documentar explícitamente en `docs/PROGRESO.md` que la ejecución remota queda lista y pendiente de confirmación tras el push a origin.
+  - **Estado (2026-10-18)**: PENDIENTE de evidencia real. La Run 39087285626 (commit ab13680, matriz original de 4 jobs, Python 3.11 y 3.12) se conserva como evidencia histórica. La matriz vigente (Linux y Windows, solo Python 3.12; 2 jobs) no ha corrido en remoto y nada de la rama `feat/sprint1-contracts-spike-closure` está subido. Se completa con el enlace o ID de la ejecución de la PR con ambos jobs en verde.
 
-- [x] **T009** [US1] Documentar el procedimiento de configuración de Branch Protection Rules en GitHub para el bloqueo efectivo de merge (AC-01 / Evidencia C)
+- [ ] **T009** [US1] Documentar el procedimiento de configuración de Branch Protection Rules en GitHub para el bloqueo efectivo de merge (AC-01 / Evidencia C)
   - **Archivos**: `docs/PROGRESO.md`, `specs/002-ci-testing-formatting/quickstart.md`
   - **Dependencias**: T008
   - **Criterios relacionados**: AC-01, FR-009, SC-006, Principio IX
   - **Tarea F5**: Sp1-04
   - **Estimación**: 25 min (15 min impl + 5 min check + 5 min registro)
   - **Verificación**: Registrar en `quickstart.md` y `docs/PROGRESO.md` los checks obligatorios que el administrador del repositorio debe configurar en GitHub (`Settings -> Branches -> Require status checks to pass before merging`), asegurando la distinción entre el fallo técnico del workflow y la política administrativa de bloqueo de merge.
+  - **Estado (2026-10-18)**: procedimiento documentado en `quickstart.md`; la configuración efectiva de la protección de rama sigue PENDIENTE (acción administrativa en GitHub). Checks obligatorios a configurar: `quality (ubuntu-latest, py3.12)` y `quality (windows-latest, py3.12)`.
 
 - [x] **T010** Actualizar `docs/PROGRESO.md` con el estado técnico, evidencias y registro de la historia HU-00-02
   - **Archivos**: `docs/PROGRESO.md`
