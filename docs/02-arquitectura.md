@@ -102,24 +102,26 @@ Lo que cuesta esta decisión:
 
 ## 4. Contratos entre módulos
 
+> Los nombres de métodos y atributos están en inglés (decisión del 2026-10-17); los nombres de interfaz y los de los eventos del bus se mantienen como están. Los identificadores en español de las historias y de los documentos archivados corresponden a la redacción original.
+
 Se escriben y acuerdan en [HU-00-01](04a-historias-fundacion.md#hu-00-01) para trabajar en paralelo con dobles de prueba. Ningún módulo del núcleo importa un SDK de proveedor.
 
 | Interfaz | Operaciones | Función |
 |---|---|---|
-| Provider | complete(mensajes, herramientas) → respuesta con texto, llamadas y uso | Aísla a LiteLLM; cambiar de proveedor no toca el núcleo. |
-| Tool | nombre, descripción, esquema, riesgo, run(args) → resultado | Todas las herramientas, nativas, MCP o de subagente, se ven igual. |
-| ToolRegistry | register, get, list, validar(args) | Valida contra el esquema antes de ejecutar. |
-| PermissionPolicy | evaluar(llamada) → denegar \| preguntar \| permitir | Falla cerrada; se aplica en el harness, no en el prompt. |
-| Approver | pedir(llamada, detalle) → decisión (aprobar, rechazar con motivo, para la sesión) | Lo implementa la CLI; el núcleo solo espera. |
-| SessionStore | guardar(evento), cargar(sesión), listar() | SQLite; escribe cada evento al ocurrir. |
-| ContextManager | ensamblar(sesión, modelo) → mensajes; compactar() | Controla prefijo, recortes y umbral. |
-| MemoryStore | guardar, consultar(presupuesto), borrar | Separada del historial. |
-| McpClient | conectar, listar_herramientas, llamar | Traduce cada herramienta MCP a Tool. |
-| SubagentRunner | ejecutar(perfil, objetivo, contexto, formato) → resultado | Crea la sesión hija y devuelve el resultado estructurado. |
-| Shell | ejecutar(comando, tiempo_máximo) → código de salida y salida; nombre del intérprete | Una implementación para bash y otra para PowerShell. Es la única puerta a comandos del sistema. |
-| TaskCriteria | cargar(tarea), pendientes(), marcar_pasa(id, evidencia), exportar_copia() | Lee y escribe la tabla criterios de SQLite. Solo el harness llama a marcar_pasa. La copia JSON es de solo lectura y se restaura si cambia. |
-| AreaAutorizada | contiene(ruta) → verdadero o falso sobre la ruta real; raiz | Resuelve «..», enlaces simbólicos, unidades y rutas UNC antes de comparar. La usan las herramientas de archivos y la política de permisos. |
-| EventBus | emitir(evento), suscribir(tipo, función) | Único canal del núcleo hacia las interfaces. |
+| Provider | complete(messages, tools) → respuesta con texto, llamadas y uso | Aísla a LiteLLM; cambiar de proveedor no toca el núcleo. |
+| Tool | name, description, schema, risk, run(args) → resultado | Todas las herramientas, nativas, MCP o de subagente, se ven igual. |
+| ToolRegistry | register, get, list, validate_args(name, args) | Valida contra el esquema antes de ejecutar. |
+| PermissionPolicy | evaluate(call) → deny \| ask \| allow | Falla cerrada; se aplica en el harness, no en el prompt. |
+| Approver | request(call, details) → decisión (approve_once, approve_session, reject con motivo) | Lo implementa la CLI; el núcleo solo espera. |
+| SessionStore | save_event(event), load_session(session_id), list_sessions() | SQLite; escribe cada evento al ocurrir. |
+| ContextManager | assemble(session_id, model_id) → mensajes; compact(session_id) | Controla prefijo, recortes y umbral. |
+| MemoryStore | save(key, content), search(token_budget), delete(key) | Separada del historial. |
+| McpClient | connect, list_tools, call_tool(name, arguments) | Traduce cada herramienta MCP a Tool. |
+| SubagentRunner | execute(profile, objective, context, output_schema) → resultado | Crea la sesión hija y devuelve el resultado estructurado. |
+| Shell | execute(command, timeout_seconds) → código de salida y salida; interpreter_name | Una implementación para bash y otra para PowerShell. Es la única puerta a comandos del sistema. |
+| TaskCriteria | load_criteria(session_id), get_pending(session_id), mark_passes(criteria_id, evidence), export_readonly_copy(session_id, destination) | Lee y escribe la tabla criterios de SQLite. Solo el harness llama a marcar_pasa. La copia JSON es de solo lectura y se restaura si cambia. |
+| AreaAutorizada | contains(path) → verdadero o falso sobre la ruta real; root | Resuelve «..», enlaces simbólicos, unidades y rutas UNC antes de comparar. La usan las herramientas de archivos y la política de permisos. |
+| EventBus | emit(event), subscribe(event_type, handler) | Único canal del núcleo hacia las interfaces. |
 
 ### Formato interno de mensajes
 

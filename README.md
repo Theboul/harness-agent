@@ -88,7 +88,16 @@ Guías para el agente de código, en `.claude/skills/`:
 
 ## Instalación y uso
 
-Pendiente hasta cerrar HU-00-01 (esqueleto del repositorio) y HU-00-04 (configuración). Se documentará aquí junto con `.env.example` y `config.example.toml`.
+Entorno de desarrollo (Python 3.12+):
+
+```bash
+python -m venv .venv
+pip install -e ".[dev]"   # incluye pytest, pytest-asyncio y mypy
+pytest
+mypy src tests
+```
+
+El uso de la CLI, `.env.example` y `config.example.toml` se documentarán al cerrar HU-00-04 (configuración).
 
 ## Documentación
 

@@ -29,8 +29,8 @@ Actualizar esta tabla al cerrar cada historia.
 
 | ID | Historia | Prio. | PHU | Resp. | Estado | Commit/PR | Archivos | Evidencia |
 |---|---|---|---|---|---|---|---|---|
-| [HU-00-01](04a-historias-fundacion.md#hu-00-01) | Esqueleto del repositorio e interfaces acordadas | Alta | 3 | A — Núcleo | Pendiente |  |  |  |
-| [HU-00-02](04a-historias-fundacion.md#hu-00-02) | Integración continua con pruebas, tipado y formato | Alta | 2 | A — Núcleo | Pendiente |  |  |  |
+| [HU-00-01](04a-historias-fundacion.md#hu-00-01) | Esqueleto del repositorio e interfaces acordadas | Alta | 3 | A — Núcleo | Pendiente de aprobación técnica | — | pyproject.toml, src/harness_agent/, tests/, docs/guia-contratos-desarrollo.md | T001-T015 completas; pytest y mypy --strict en verde con `pip install -e ".[dev]"` en Python 3.12; AC-01 y AC-02 verificados; Aprobado por Product Owner (2026-10-17); Sp1-03 pendiente de ratificación técnica (A, B, C) |
+| [HU-00-02](04a-historias-fundacion.md#hu-00-02) | Integración continua con pruebas, tipado y formato | Alta | 2 | A — Núcleo | En revisión | — | .github/workflows/ci.yml, requirements-dev.txt, pyproject.toml | T001-T007 completas (Evidencia A); Ruff format/check 0 errores; Mypy estricto 0 errores (26 archivos); Pytest 9/9 pass (0.29s), 97% cobertura en `src/harness_agent/`; 3 pruebas negativas verificadas con exit code 1 (test fallo, mypy fallo, ruff format fallo); T008 (Evidencia B: ejecución remota en GitHub Actions) y T009 (Evidencia C: Branch Protection Rules) documentadas en quickstart.md y pendientes de push/configuración remota |
 | [HU-00-03](04a-historias-fundacion.md#hu-00-03) | Proveedor simulado para pruebas | Alta | 2 | B — Estado | Pendiente |  |  |  |
 | [HU-00-04](04a-historias-fundacion.md#hu-00-04) | Configuración por archivo y variables de entorno | Alta | 1 | B — Estado | Pendiente |  |  |  |
 | [HU-01-01](04a-historias-fundacion.md#hu-01-01) | Bucle agéntico básico | Alta | 5 | A — Núcleo | Pendiente |  |  |  |
@@ -45,6 +45,20 @@ Actualizar esta tabla al cerrar cada historia.
 | [HU-07-01](04d-historias-conexiones.md#hu-07-01) | Interfaz Provider y formato interno de mensajes | Alta | 3 | A — Núcleo | Pendiente |  |  |  |
 | [HU-07-02](04d-historias-conexiones.md#hu-07-02) | Adaptador LiteLLM para el primer proveedor | Alta | 2 | B — Estado | Pendiente |  |  |  |
 | [SPK-01](04d-historias-conexiones.md#spk-01) | Spike: traducir herramientas entre OpenAI y Anthropic con LiteLLM | Alta | 1 | B — Estado | Pendiente |  |  |  |
+
+### Control de Consenso y Aprobación de Contratos (Sp1-03 / T016)
+
+> Hito de revisión humana obligatoria según el Principio IX de la Constitución. Requiere la validación formal de los tres desarrolladores antes de cambiar HU-00-01 a `Completada` e iniciar las historias dependientes.
+
+| Rol / Integrante | Responsabilidad en Contratos | Estado de Aprobación | Fecha de Aprobación |
+|---|---|---|---|
+| **Product Owner** | Aprobación de negocio y criterios de aceptación (AC-01, AC-02) | `Aprobado` | 2026-10-17 |
+| **Integrante A (Núcleo)** | `Provider`, `ContextManager`, `SubagentRunner`, `EventBus`, `Message`, `Event` | `Pendiente` | — |
+| **Integrante B (Estado)** | `SessionStore`, `MemoryStore`, `Provider` (consumo), dobles en memoria | `Pendiente` | — |
+| **Integrante C (Control)** | `Tool`, `ToolRegistry`, `PermissionPolicy`, `Approver`, `Shell`, `AreaAutorizada` | `Pendiente` | — |
+
+**Observaciones de la revisión**:
+- *2026-10-17: Aprobación expresa registrada por el Product Owner tras verificar AC-01, AC-02, 9 pruebas en verde y Mypy sin errores. HU-00-01 se mantiene en estado `Pendiente de aprobación técnica` a la espera de la ratificación de los integrantes A, B y C (Sp1-03 / T016).*
 
 ## Sprint 2
 
@@ -148,6 +162,17 @@ Reparto de Sprint 4 por ratificar en el Planning (la semana y las 8 PHU de MCP y
 | 2026-10-13 | Original archivado en `docs/archivo/CONTEXTO_HARNESS_v1.md` (solo histórico); se elimina el puntero `docs/CONTEXTO_HARNESS.md` | — | — |
 | 2026-10-15 | Alineado con la actualización del contexto: relevo entre sesiones (§3.5), conjunto mínimo de herramientas (§3.6), HU-11-08 y criterios en JSON | HU-11-xx | — |
 | 2026-10-17 | Alineado con el contexto v2.5 (`docs/archivo/CONTEXTO_HARNESS_v2.5.md`): cuarto sprint, historias divididas (HU-00-05, HU-02-06, HU-11-04, HU-11-08 pasan a `.1` y `.2`), 87 historias, contexto esencial y criterios en SQLite, AreaAutorizada, nueva sección 13 en `06-historial-planificacion.md` | HU-00-05.x, HU-02-06.x, HU-11-04.x, HU-11-08.x, Sprint 4 | — |
+| 2026-10-17 | Constitución ratificada v1.0.0; directrices aplicadas a decisiones abiertas (PD-01..06, IA, herramientas); inicio de especificación para HU-00-01 | HU-00-01, PD-06, D-IA, D-ARCH | A — Núcleo |
+| 2026-10-17 | **T001** (Sp1-01 / HU-00-01): Creado `pyproject.toml` (PEP 518/621, sin dependencias en núcleo, suite dev); `pip install -e .` verificado exitosamente (pass); T001 marcada; siguiente: T002 | HU-00-01, Sp1-01 | A — Núcleo |
+| 2026-10-17 | **T002** (Sp1-01 / HU-00-01): Creado layout modular en `src/harness_agent/` (`core`, `adapters`, `cli`); importación verificada exitosamente (pass); T002 marcada; siguiente: T003 | HU-00-01, Sp1-01 | A — Núcleo |
+| 2026-10-17 | **T003** (Sp1-01 / HU-00-01): Creada estructura modular de pruebas en `tests/` (`contracts`, `doubles`, `architecture`); importación e inspección pytest verificadas (pass); T003 marcada; siguiente: T004 | HU-00-01, Sp1-01 | A — Núcleo |
+| 2026-10-17 | **T004** (Sp1-02 / HU-00-01): Definidas entidades canónicas inmutables en `src/harness_agent/core/entities.py` (`Role`, `ToolCall`, `ToolResult`, `TokenUsage`, `Message`); aserciones y mypy verificados (pass); T004 marcada; siguiente: T005 | HU-00-01, Sp1-02 | A — Núcleo |
+| 2026-10-17 | **T005** (Sp1-02 / HU-00-01): Definido catálogo canónico de 17 eventos de bus (`EventType`, `Event` inmutable) en `src/harness_agent/core/events.py`; validación de 17 tipos y mypy verificados (pass); T005 marcada; siguiente: T006 | HU-00-01, Sp1-02 | A — Núcleo |
+| 2026-10-17 | **T006–T015 completadas** (HU-00-01): Implementadas 14 interfaces abstractas, dobles en memoria (`tests/doubles/`), suite AC-01 de conformidad (`tests/contracts/test_contracts.py`), inspección AST AC-02 (`tests/architecture/test_core_boundaries.py`) y guía técnica (`docs/guia-contratos-desarrollo.md`); pytest 9/9 pass (0.09s), mypy 26 files pass; estado pasa a `En revisión` a la espera de Sp1-03 | HU-00-01, Sp1-01, Sp1-02, Sp1-03 | A — Núcleo |
+| 2026-10-17 | Revisión de HU-00-01: nombres de métodos y atributos de los contratos unificados en inglés (`Tool.name/description/schema/risk`, se elimina el alias `Approver.pedir`); `docs/02` §4 actualizado; Python 3.12 en `pyproject.toml`; spec corregida (SC-005, estado, referencia a eventos). Siguen en español los nombres de interfaz (`AreaAutorizada`) y los valores de `EventType`: pendiente decidir | HU-00-01 | A — Núcleo |
+| 2026-10-17 | Aprobación expresa del Product Owner registrada para HU-00-01 (AC-01 y AC-02 cumplidos, 9 pruebas en verde y Mypy sin errores). El estado se conserva en `Pendiente de aprobación técnica` a la espera de la ratificación de los integrantes A, B y C en Sp1-03 / T016 | HU-00-01, Sp1-03 | Product Owner |
+| 2026-10-17 | **T001–T007 y T010 completadas** (HU-00-02): Implementados `requirements-dev.txt` con versiones fijadas (Sp1-06), `pyproject.toml` con baseline Python 3.11+, Ruff y cobertura pytest-cov (Sp1-05), y `.github/workflows/ci.yml` con matriz Linux/Windows y Py3.11/Py3.12 (Sp1-04/AC-02). Verificada Evidencia A: suite limpia al 100% (Ruff 0 errores, Mypy 0 errores en 26 archivos, Pytest 9/9 pass con 97% cobertura) y 3 pruebas negativas con código de salida 1 (AC-01). T008 (Evidencia B) y T009 (Evidencia C) quedan documentadas en quickstart.md como pendientes de push remoto y configuración de branch protection. Estado pasa a `En revisión` (Pendiente de validación remota) | HU-00-02, Sp1-04, Sp1-05, Sp1-06 | A — Núcleo |
+
 
 ## Decisiones abiertas
 
@@ -155,12 +180,14 @@ Decisiones de planificación (detalle en [06-historial-planificacion.md](06-hist
 
 | ID | Decisión | Decide | Estado |
 |---|---|---|---|
-| PD-01 | Cuarta semana (cierre máximo 14/11/2026). Reparto ampliado del Sprint 4 (11 PHU Alta extra) | Product Owner y equipo | Semana aprobada el 17/10/2026; reparto por ratificar en el Planning |
+| PD-01 | Cuarta semana (cierre máximo 14/11/2026). Reparto ampliado del Sprint 4 (11 PHU Alta extra) | Product Owner y equipo | Semana aprobada el 17/10/2026; reparto provisional pendiente de ratificación en Planning |
 | PD-02 | Plan alterno si se rechaza PD-01; no bajar HU-07-05 mientras HU-00-05.1 dependa de ella | Product Owner | No aplicada |
 | PD-03 | HU-08-04 vuelve a prioridad Alta (RF-8.5 Must) | Product Owner | Confirmada |
-| PD-04 | Recalibrar velocidad y horas con lo terminado en el Sprint 1 | Product Owner y equipo | Obligatoria al cerrar el Sprint 1 (23/10/2026) |
-| PD-05 | Confirmar reasignaciones de responsables de v2.4/v2.5 | Equipo | Provisional; confirmar en el Planning del Sprint 1 |
-| PD-06 | Incluir HU-IN-02 (entorno aislado) para aislar de forma verificable el shell y los criterios | Product Owner | Pendiente; riesgo R-21 aceptado hasta decidir |
+| PD-04 | Recalibrar velocidad y horas con lo terminado en el Sprint 1 | Product Owner y equipo | Obligatoria al cerrar el Sprint 1 (23/10/2026); no modificar estimaciones antes sin evidencia |
+| PD-05 | Confirmar reasignaciones de responsables de v2.4/v2.5 | Equipo | Provisional según v2.5; confirmación definitiva por el equipo en Planning del Sprint 1 |
+| PD-06 | Incluir HU-IN-02 (entorno aislado) para aislar de forma verificable el shell y los criterios | Product Owner | Pendiente decisión PO; R-21 no aceptado ni shell aislado garantizado; revisar antes de S2 |
+| D-IA | Selección formal de proveedores (Claude/OpenAI/Gemini) y presupuesto de API | Product Owner y equipo | Pendiente; usar FakeProvider y contratos desacoplados; no declarar SPK-01 completado sin configuración |
+| D-ARCH | Herramientas de archivos en Sprint 1 (leer, escribir, listar, buscar) | Equipo | Nativas en HU-01-03 para Sprint 1; independientes del shell de Sprint 2 |
 
 Otras preguntas abiertas: ver «Preguntas abiertas» en [01-vision-y-decisiones.md](01-vision-y-decisiones.md). Al cerrar una, anotar aquí la respuesta y la fecha.
 
