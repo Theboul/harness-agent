@@ -18,7 +18,7 @@ Un **harness** es la aplicación que rodea a un modelo de lenguaje (el «cerebro
 | Product Owner | Brad (tiene la rúbrica) |
 | Scrum Master | Rotación: S1=A, S2=B, S3=C; S4=A provisional, por ratificar por el equipo. |
 | Sistemas operativos | Windows y Linux (Arch). Integración continua en ambos |
-| Lenguaje | Python 3.12+. TypeScript solo si se hace la interfaz web |
+| Lenguaje | Python 3.12.x (única versión soportada, PD-07). TypeScript solo si se hace la interfaz web |
 | Interfaz | Terminal (CLI). El núcleo emite eventos por un bus y nunca imprime, para añadir web (FastAPI/WebSocket) sin tocarlo |
 | Proveedores | LiteLLM detrás de una interfaz propia `Provider`. Al menos dos de Claude, OpenAI y Gemini (por decidir; presupuesto de API por definir) |
 | Persistencia | SQLite (sesiones, eventos, memoria, auditoría, trazas) |

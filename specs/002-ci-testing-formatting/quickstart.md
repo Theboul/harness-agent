@@ -1,5 +1,7 @@
 # Quickstart & Verification Guide: HU-00-02 (CI Pipeline)
 
+> Actualizado por PD-07 (2026-10-17, Product Owner): Python 3.12.x es la única versión soportada; la matriz vigente de CI es `ubuntu-latest` y `windows-latest` con Python 3.12 (2 jobs). Los textos sobre Python 3.11 y la matriz de 4 jobs describen el diseño original y quedan como historial; los criterios de aceptación no cambian.
+
 This guide documents how to execute and verify the quality checks locally, test negative failure cases, and validate the three tiers of evidence (Evidence A, B, and C).
 
 ---
@@ -98,8 +100,8 @@ To prove that the pipeline reliably blocks integration when defects are introduc
 ### Evidence B: GitHub Actions Runner Execution
 - [ ] Workflow pushed to remote repository on branch `002-ci-testing-formatting`.
 - [ ] Run triggered automatically on GitHub Actions.
-- [ ] Matrix jobs run concurrently on `ubuntu-latest` and `windows-latest` across Python 3.11 and 3.12.
-- [ ] All 4 matrix combinations pass (`quality (ubuntu-latest, py3.11)`, `quality (ubuntu-latest, py3.12)`, `quality (windows-latest, py3.11)`, `quality (windows-latest, py3.12)`).
+- [ ] Matrix jobs run concurrently on `ubuntu-latest` and `windows-latest` on Python 3.12 (PD-07; originally 3.11 and 3.12).
+- [ ] Both matrix combinations pass after PD-07 (`quality (ubuntu-latest, py3.12)`, `quality (windows-latest, py3.12)`). Historical: Run 39087285626 passed the original 4-job matrix (py3.11 and py3.12); the 2-job matrix has not run remotely yet.
 - [ ] Run URL and commit SHA recorded in `docs/PROGRESO.md`.
 
 ### Evidence C: Branch Protection Rule Verification

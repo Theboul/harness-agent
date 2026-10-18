@@ -28,7 +28,7 @@
 
 ## 4. Multiplatform Parity & AC-02 Verification
 
-- [ ] CHK008 Are execution matrix requirements defined with explicit target OS runners (Linux and Windows) on Python 3.11 baseline and Python 3.12? [Completeness, Spec §FR-007, AC-02, Plan §Technical Context]
+- [ ] CHK008 Are execution matrix requirements defined with explicit target OS runners (Linux and Windows) on Python 3.12 only (PD-07; originally 3.11 baseline and 3.12)? [Completeness, Spec §FR-007, AC-02, Plan §Technical Context]
 - [ ] CHK009 Are platform-specific edge cases (CRLF vs LF line endings and POSIX vs Windows path differences) addressed to prevent false positive CI failures? [Coverage, Spec §Edge Cases]
 
 ## 5. Dependency Reproducibility & Determinism

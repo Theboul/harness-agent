@@ -14,7 +14,7 @@
   - `src/harness_agent/adapters/`: Paquetes preparados para las implementaciones concretas futuras (proveedores, SQLite, shell, MCP).
   - `src/harness_agent/cli/`: Interfaz de usuario de terminal y adaptador de consola.
   - `tests/`: Pruebas de contratos (`tests/contracts/`), dobles de prueba (`tests/doubles/`) y verificación de fronteras (`tests/architecture/`).
-  - `pyproject.toml`: Configuración declarativa estándar (PEP 518/PEP 621) fijando `requires-python = ">=3.11"`.
+  - `pyproject.toml`: Configuración declarativa estándar (PEP 518/PEP 621) fijando `requires-python = ">=3.12,<3.13"` (actualizado por PD-07, 2026-10-17; antes `">=3.11"`).
 - **Razón de ser**: El layout `src/` evita la importación accidental de código fuente no instalado durante la ejecución de pruebas y aísla el entorno de desarrollo tanto en Windows como en Linux.
 - **Alternativas descartadas**:
   - *Layout plano en la raíz (`harness_agent/`)*: Rechazado porque genera ambigüedades de resolución de módulos entre `sys.path` local y el paquete empaquetado.

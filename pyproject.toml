@@ -7,7 +7,7 @@ name = "harness-agent"
 version = "0.1.0"
 description = "HARNESS: Autonomous agent harness with decoupled core, tools, permissions, and session management"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12,<3.13"
 license = "MIT"
 authors = [
     { name = "HARNESS Team" }
@@ -46,7 +46,7 @@ skip_covered = false
 harness_agent = ["py.typed"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 mypy_path = "src"
 strict = true
 warn_return_any = true
@@ -56,7 +56,7 @@ disallow_incomplete_defs = true
 check_untyped_defs = true
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py312"
 line-length = 100
 exclude = [
     ".claude",

@@ -170,7 +170,7 @@ El desglose vigente está en [tasks.md](tasks.md): 16 microtareas (T001 a T016) 
 
 ## Assumptions
 
-- El lenguaje de implementación exclusivo es Python 3.12+ utilizando `typing` moderno y `abc.ABC`.
+- El lenguaje de implementación exclusivo es Python 3.12.x (PD-07) utilizando `typing` moderno y `abc.ABC`.
 - No se requiere configuración de claves de API ni aprovisionamiento de bases de datos para completar y verificar `HU-00-01`.
 - Los adaptadores concretos (LiteLLM, SQLite, Shell, MCP) se desarrollarán en historias posteriores basándose exclusivamente en estos contratos.
 - `SPK-02` (investigación de concurrencia y cancelación) y `Sp1-03` (aprobación formal del equipo) permanecen formalmente pendientes.
