@@ -85,7 +85,7 @@
 
 **Propósito**: Separar rigurosamente la validación automatizada de las acciones que requieren credenciales o acceso administrativo al repositorio remoto de GitHub.
 
-- [ ] **T008** [US2] Documentar y verificar la ejecución real del workflow en GitHub Actions para Linux y Windows (AC-02 / Evidencia B)
+- [x] **T008** [US2] Documentar y verificar la ejecución real del workflow en GitHub Actions para Linux y Windows (AC-02 / Evidencia B)
   - **Archivos**: `docs/PROGRESO.md`
   - **Dependencias**: T003, T004, T005, T006, T007
   - **Criterios relacionados**: AC-02, SC-001, SC-003, Sp1-04
@@ -93,7 +93,7 @@
   - **Estimación**: 30 min (15 min impl/inspección + 10 min check + 5 min registro)
   - **Verificación**: Confirmar la ejecución remota de los trabajos de la matriz (`ubuntu-latest` y `windows-latest`) en GitHub Actions reportando enlace/ID de ejecución, o documentar explícitamente en `docs/PROGRESO.md` que la ejecución remota queda lista y pendiente de confirmación tras el push a origin.
 
-- [ ] **T009** [US1] Documentar el procedimiento de configuración de Branch Protection Rules en GitHub para el bloqueo efectivo de merge (AC-01 / Evidencia C)
+- [x] **T009** [US1] Documentar el procedimiento de configuración de Branch Protection Rules en GitHub para el bloqueo efectivo de merge (AC-01 / Evidencia C)
   - **Archivos**: `docs/PROGRESO.md`, `specs/002-ci-testing-formatting/quickstart.md`
   - **Dependencias**: T008
   - **Criterios relacionados**: AC-01, FR-009, SC-006, Principio IX
