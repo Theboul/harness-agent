@@ -93,7 +93,7 @@ src/
     │       ├── storage.py           # SessionStore, MemoryStore (síncronos)
     │       ├── context.py           # ContextManager (assemble, compact)
     │       ├── connections.py       # McpClient, SubagentRunner (async def) [PROVISIONAL]
-    │       ├── system.py            # Shell, TaskCriteria, AreaAutorizada (síncronos)
+    │       ├── system.py            # Shell, TaskCriteria, AuthorizedArea (síncronos)
     │       └── event_bus.py         # EventBus (emit, subscribe)
     ├── adapters/
     │   └── __init__.py              # Directorio base para adaptadores futuros (A, B, C)

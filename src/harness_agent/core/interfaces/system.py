@@ -73,7 +73,7 @@ class Shell(ABC):
         ...
 
 
-class AreaAutorizada(ABC):
+class AuthorizedArea(ABC):
     """Abstract Base Class for workspace containment and path validation.
 
     Prevents directory escapes, symlink traversal attacks, and UNC path escapes.

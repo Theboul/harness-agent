@@ -257,8 +257,8 @@ Estimación en horas por tarea, hecha tarea por tarea y no derivada de los PHU; 
 | Sp1-16 | [HU-01-02](04a-historias-fundacion.md#hu-01-02) | Implementar el registro y la validación con el esquema | 2,5 | C |
 | Sp1-17 | [HU-01-02](04a-historias-fundacion.md#hu-01-02) | Pruebas con argumentos mal formados | 2 | C |
 | Sp1-18 | [HU-01-03](04a-historias-fundacion.md#hu-01-03) | Implementar leer, listar y buscar con error claro de ruta inexistente | 2,5 | C |
-| Sp1-19 | [HU-01-03](04a-historias-fundacion.md#hu-01-03) | Componente AreaAutorizada: configuración del área y comprobación de contención sobre la ruta real | 2,5 | C |
-| Sp1-20 | [HU-01-03](04a-historias-fundacion.md#hu-01-03) | Implementar escribir usando AreaAutorizada (normalización, enlaces simbólicos, unidades y rutas UNC) | 3,5 | C |
+| Sp1-19 | [HU-01-03](04a-historias-fundacion.md#hu-01-03) | Componente AuthorizedArea: configuración del área y comprobación de contención sobre la ruta real | 2,5 | C |
+| Sp1-20 | [HU-01-03](04a-historias-fundacion.md#hu-01-03) | Implementar escribir usando AuthorizedArea (normalización, enlaces simbólicos, unidades y rutas UNC) | 3,5 | C |
 | Sp1-21 | [HU-01-03](04a-historias-fundacion.md#hu-01-03) | Declarar para cada herramienta su nivel de riesgo | 1 | C |
 | Sp1-22 | [HU-01-03](04a-historias-fundacion.md#hu-01-03) | Pruebas de escape: «..», ruta absoluta, enlace simbólico y casos de Windows | 3,5 | C |
 | Sp1-23 | [HU-01-05](04a-historias-fundacion.md#hu-01-05) | Definir los tipos de evento | 1 | B |
@@ -272,7 +272,7 @@ Estimación en horas por tarea, hecha tarea por tarea y no derivada de los PHU; 
 | Sp1-31 | [HU-03-02](04b-historias-estado.md#hu-03-02) | Prueba de interrupción forzada | 2,5 | B |
 | Sp1-32 | [HU-05-01](04c-historias-control.md#hu-05-01) | Implementar PermissionPolicy con orden denegar, preguntar, permitir | 3,5 | C |
 | Sp1-33 | [HU-05-01](04c-historias-control.md#hu-05-01) | Clasificar las herramientas por riesgo | 1 | C |
-| Sp1-34 | [HU-05-01](04c-historias-control.md#hu-05-01) | Regla explícita «escribir solo dentro del área autorizada» usando AreaAutorizada | 2 | C |
+| Sp1-34 | [HU-05-01](04c-historias-control.md#hu-05-01) | Regla explícita «escribir solo dentro del área autorizada» usando AuthorizedArea | 2 | C |
 | Sp1-35 | [HU-05-01](04c-historias-control.md#hu-05-01) | Resolución provisional de «preguntar» como denegación con motivo y registro de la decisión | 1,5 | C |
 | Sp1-36 | [HU-05-01](04c-historias-control.md#hu-05-01) | Pruebas de reglas en conflicto, de lo no previsto y de rutas fuera del área | 3 | C |
 | Sp1-37 | [HU-06-01](04c-historias-control.md#hu-06-01) | Suscribir la CLI al bus de eventos | 1,5 | C |

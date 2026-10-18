@@ -42,7 +42,7 @@
   - `SubagentRunner.execute(...) -> SubagentResult`
   - `McpClient.connect()`, `McpClient.call_tool(...)`
   Mantener como síncronas (`def`) las interfaces locales y de almacenamiento transaccional:
-  - `SessionStore`, `MemoryStore`, `AreaAutorizada`, `TaskCriteria`, `PermissionPolicy`, `EventBus`.
+  - `SessionStore`, `MemoryStore`, `AuthorizedArea`, `TaskCriteria`, `PermissionPolicy`, `EventBus`.
 - **Estado de provisionalidad**:
   > **[PROVISIONAL - SPK-02]**: Este modelo de asincronía es provisional. No se implementa lógica de concurrencia avanzada, tareas paralelas ni manejo de cancelación hasta que el spike `SPK-02` (Sprint 1) determine formalmente las garantías de `asyncio` y cancelación de herramientas.
 - **Razón de ser**: Permite a B y C escribir adaptadores y dobles de prueba sin bloquearse, satisfaciendo V-01 (aprobación asíncrona bidireccional) sin sobre-complejizar los almacenes de datos.

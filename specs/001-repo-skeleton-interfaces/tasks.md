@@ -123,11 +123,11 @@ flowchart TD
   - **Verificación**: Firmas asíncronas provisionales para conexión/llamada MCP y ejecución de subagente con retorno estructurado.
   - **Estimación**: 25 min
 
-- [x] **T010** [P] [US1] Definir interfaces abstractas de soporte del sistema y bus (`Shell`, `TaskCriteria`, `AreaAutorizada`, `EventBus`) en `src/harness_agent/core/interfaces/system.py` y `src/harness_agent/core/interfaces/event_bus.py`
+- [x] **T010** [P] [US1] Definir interfaces abstractas de soporte del sistema y bus (`Shell`, `TaskCriteria`, `AuthorizedArea`, `EventBus`) en `src/harness_agent/core/interfaces/system.py` y `src/harness_agent/core/interfaces/event_bus.py`
   - **Archivos**: `src/harness_agent/core/interfaces/system.py`, `src/harness_agent/core/interfaces/event_bus.py`
   - **Dependencias**: T004, T005
   - **Criterios relacionados**: AC-01, FR-010, FR-011, V-08, V-15, V-17
-  - **Verificación**: Firmas síncronas para `Shell.execute`, `TaskCriteria`, `AreaAutorizada.contains` y `EventBus`.
+  - **Verificación**: Firmas síncronas para `Shell.execute`, `TaskCriteria`, `AuthorizedArea.contains` y `EventBus`.
   - **Estimación**: 30 min
 
 - [x] **T011** [US1] Exportar e integrar contratos e interfaces en `src/harness_agent/core/interfaces/__init__.py` y `src/harness_agent/core/__init__.py`
@@ -184,6 +184,7 @@ flowchart TD
   - **Verificación**: Aprobación explícita del Pull Request por los integrantes del equipo (A, B, C / humano) previa al inicio de `HU-00-02` y siguientes.
   - **Estimación**: 30 min (revisión humana)
   - **⚠️ REVISIÓN HUMANA OBLIGATORIA — NO MARCAR AUTOMÁTICAMENTE COMO COMPLETADO**
+  - **Nota (2026-10-18)**: el equipo comunicó, a través del Product Owner, la decisión de cerrar las historias pendientes y de usar nomenclatura en inglés (`AuthorizedArea`, 17 eventos). Es una decisión colectiva relayada, sin aprobaciones individuales de A, B y C documentadas; T016 sigue pendiente hasta que cada integrante registre su aprobación (p. ej. en el Pull Request) o se registre una excepción formal a la Definition of Done con responsable y deuda listada.
 
 ---
 

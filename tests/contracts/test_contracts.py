@@ -14,7 +14,7 @@ from harness_agent.core import (
     ApprovalAction,
     ApprovalResult,
     Approver,
-    AreaAutorizada,
+    AuthorizedArea,
     ContextManager,
     Event,
     EventBus,
@@ -61,7 +61,7 @@ def test_core_exports_completeness() -> None:
         McpClient,
         SubagentRunner,
         Shell,
-        AreaAutorizada,
+        AuthorizedArea,
         TaskCriteria,
         EventBus,
     ]
@@ -118,13 +118,13 @@ def test_session_store_contract_with_dummy() -> None:
     store: SessionStore = InMemorySessionStore()
     assert isinstance(store, SessionStore)
 
-    event = Event.create(session_id="sess_alpha", type=EventType.SESION_ARRANCADA)
+    event = Event.create(session_id="sess_alpha", type=EventType.SESSION_STARTED)
     store.save_event(event)
 
     loaded = store.load_session("sess_alpha")
     assert len(loaded) == 1
     assert loaded[0].id == event.id
-    assert loaded[0].type == EventType.SESION_ARRANCADA
+    assert loaded[0].type == EventType.SESSION_STARTED
 
     sessions = store.list_sessions()
     assert len(sessions) == 1
@@ -157,12 +157,10 @@ def test_event_bus_contract_with_dummy() -> None:
     def handler(evt: Event) -> None:
         received_events.append(evt)
 
-    bus.subscribe(EventType.MENSAJE_USUARIO, handler)
+    bus.subscribe(EventType.USER_MESSAGE, handler)
 
-    event1 = Event.create(
-        session_id="s1", type=EventType.MENSAJE_USUARIO, payload={"text": "hello"}
-    )
-    event2 = Event.create(session_id="s1", type=EventType.HERRAMIENTA_SOLICITADA)
+    event1 = Event.create(session_id="s1", type=EventType.USER_MESSAGE, payload={"text": "hello"})
+    event2 = Event.create(session_id="s1", type=EventType.TOOL_REQUESTED)
 
     bus.emit(event1)
     bus.emit(event2)

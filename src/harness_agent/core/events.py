@@ -19,42 +19,42 @@ class EventType(str, Enum):
     """The 17 canonical event types for the HARNESS event bus.
 
     Lifecycle events defined in docs/02-arquitectura.md §3.7:
-    - MENSAJE_USUARIO: New message received from the user.
-    - MENSAJE_ASISTENTE: Textual response emitted by the assistant/model.
-    - HERRAMIENTA_SOLICITADA: Model requests execution of a tool.
-    - HERRAMIENTA_TERMINADA: Tool execution finished with result or error.
-    - APROBACION_PEDIDA: Permission policy requests user approval.
-    - APROBACION_RESUELTA: User resolved approval request (approved/rejected).
-    - CONTEXTO_COMPACTADO: History compacted after exceeding token threshold.
-    - PERMISO_DECIDIDO: Policy decision evaluated (deny, ask, allow).
-    - CRITERIOS_ALTERADOS: Attempted modification or tampering in task criteria.
-    - LIMITE_ALCANZADO: Turn, time, or cost budget exceeded.
-    - ERROR_PROVEEDOR: Provider API error or timeout encountered.
-    - PROVEEDOR_CONMUTADO: Fallback provider switched after primary failure.
-    - SUBAGENTE_INICIADO: Subagent child session spawned.
-    - SUBAGENTE_TERMINADO: Subagent completed execution with result.
-    - INTERRUMPIDO: Clean cancellation on user interrupt signal (Ctrl+C).
-    - SESION_ARRANCADA: Session started or resumed with startup routine.
-    - CRITERIO_VERIFICADO: Verification result for a task acceptance criterion.
+    - USER_MESSAGE: New message received from the user.
+    - ASSISTANT_MESSAGE: Textual response emitted by the assistant/model.
+    - TOOL_REQUESTED: Model requests execution of a tool.
+    - TOOL_FINISHED: Tool execution finished with result or error.
+    - APPROVAL_REQUESTED: Permission policy requests user approval.
+    - APPROVAL_RESOLVED: User resolved approval request (approved/rejected).
+    - CONTEXT_COMPACTED: History compacted after exceeding token threshold.
+    - PERMISSION_DECIDED: Policy decision evaluated (deny, ask, allow).
+    - CRITERIA_TAMPERED: Attempted modification or tampering in task criteria.
+    - LIMIT_REACHED: Turn, time, or cost budget exceeded.
+    - PROVIDER_ERROR: Provider API error or timeout encountered.
+    - PROVIDER_SWITCHED: Fallback provider switched after primary failure.
+    - SUBAGENT_STARTED: Subagent child session spawned.
+    - SUBAGENT_FINISHED: Subagent completed execution with result.
+    - INTERRUPTED: Clean cancellation on user interrupt signal (Ctrl+C).
+    - SESSION_STARTED: Session started or resumed with startup routine.
+    - CRITERION_VERIFIED: Verification result for a task acceptance criterion.
     """
 
-    MENSAJE_USUARIO = "mensaje_usuario"
-    MENSAJE_ASISTENTE = "mensaje_asistente"
-    HERRAMIENTA_SOLICITADA = "herramienta_solicitada"
-    HERRAMIENTA_TERMINADA = "herramienta_terminada"
-    APROBACION_PEDIDA = "aprobacion_pedida"
-    APROBACION_RESUELTA = "aprobacion_resuelta"
-    CONTEXTO_COMPACTADO = "contexto_compactado"
-    PERMISO_DECIDIDO = "permiso_decidido"
-    CRITERIOS_ALTERADOS = "criterios_alterados"
-    LIMITE_ALCANZADO = "limite_alcanzado"
-    ERROR_PROVEEDOR = "error_proveedor"
-    PROVEEDOR_CONMUTADO = "proveedor_conmutado"
-    SUBAGENTE_INICIADO = "subagente_iniciado"
-    SUBAGENTE_TERMINADO = "subagente_terminado"
-    INTERRUMPIDO = "interrumpido"
-    SESION_ARRANCADA = "sesion_arrancada"
-    CRITERIO_VERIFICADO = "criterio_verificado"
+    USER_MESSAGE = "user_message"
+    ASSISTANT_MESSAGE = "assistant_message"
+    TOOL_REQUESTED = "tool_requested"
+    TOOL_FINISHED = "tool_finished"
+    APPROVAL_REQUESTED = "approval_requested"
+    APPROVAL_RESOLVED = "approval_resolved"
+    CONTEXT_COMPACTED = "context_compacted"
+    PERMISSION_DECIDED = "permission_decided"
+    CRITERIA_TAMPERED = "criteria_tampered"
+    LIMIT_REACHED = "limit_reached"
+    PROVIDER_ERROR = "provider_error"
+    PROVIDER_SWITCHED = "provider_switched"
+    SUBAGENT_STARTED = "subagent_started"
+    SUBAGENT_FINISHED = "subagent_finished"
+    INTERRUPTED = "interrupted"
+    SESSION_STARTED = "session_started"
+    CRITERION_VERIFIED = "criterion_verified"
 
 
 @dataclass(frozen=True)

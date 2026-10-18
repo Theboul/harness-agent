@@ -24,7 +24,7 @@ harness-agent/
 │   │   ├── events.py       # tipos de evento y EventBus
 │   │   ├── limits.py       # turnos, tiempo y consumo
 │   │   ├── errors.py       # errores de dominio
-│   │   ├── ports.py        # Provider, SessionStore, MemoryStore, McpClient, Approver, TaskCriteria, AreaAutorizada
+│   │   ├── ports.py        # Provider, SessionStore, MemoryStore, McpClient, Approver, TaskCriteria, AuthorizedArea
 │   │   ├── context/        # ContextManager, estimación, compactación, recorte
 │   │   ├── permissions/    # política, lista base de denegados
 │   │   ├── tools/          # Tool, ToolRegistry, validación de esquema

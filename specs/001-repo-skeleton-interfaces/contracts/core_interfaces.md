@@ -84,7 +84,7 @@ Todas las interfaces del núcleo se definen como Clases Base Abstractas (`abc.AB
 - **Atributos**: `interpreter_name: str` (`powershell` en Windows, `bash` en Linux).
 - **`def execute(self, command: str, timeout_seconds: float) -> ShellResult`**: Ejecuta el comando en un subproceso con tiempo límite y retorna `exit_code`, `output` y bandera `timed_out`.
 
-### `AreaAutorizada` (Interfaz Abstracta)
+### `AuthorizedArea` (Interfaz Abstracta)
 *Control de contención de rutas sobre ruta real para evitar escapes de directorio (V-17, A-01, A-02).*
 - **Atributos**: `root: Path`: Ruta raíz real normalizada del espacio de trabajo.
 - **`def contains(self, path: Path | str) -> bool`**: Resuelve la ruta real (normalizando enlaces simbólicos, `..`, unidades de disco y rutas UNC) y confirma si el destino queda estrictamente dentro de `root`.

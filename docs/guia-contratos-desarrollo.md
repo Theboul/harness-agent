@@ -31,7 +31,7 @@ from harness_agent.core import (
     MemoryStore,
     ContextManager,
     Shell,
-    AreaAutorizada,
+    AuthorizedArea,
     TaskCriteria,
     EventBus,
 )
@@ -73,7 +73,7 @@ memory_store = InMemoryMemoryStore()
 provider = DummyProvider()
 
 # Guardar evento en memoria
-event = Event.create(session_id="sesion-test", type=EventType.MENSAJE_USUARIO, payload={"text": "test"})
+event = Event.create(session_id="sesion-test", type=EventType.USER_MESSAGE, payload={"text": "test"})
 session_store.save_event(event)
 assert len(session_store.load_session("sesion-test")) == 1
 ```
