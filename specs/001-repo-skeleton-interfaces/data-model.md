@@ -47,23 +47,23 @@ Unidad atómica de comunicación en la ventana de contexto y persistencia:
 
 ### EventType (Enumerado Canónico - 17 Eventos)
 Eventos oficiales de ciclo de vida definidos en `docs/02-arquitectura.md, sección 4 («Eventos del bus»)`:
-1. `MENSAJE_USUARIO`: Nuevo mensaje recibido del usuario.
-2. `MENSAJE_ASISTENTE`: Respuesta textual emitida por el modelo.
-3. `HERRAMIENTA_SOLICITADA`: El modelo solicita invocar una herramienta.
-4. `HERRAMIENTA_TERMINADA`: Ejecución de herramienta completada con resultado.
-5. `APROBACION_PEDIDA`: La política de permisos solicita autorización humana.
-6. `APROBACION_RESUELTA`: El usuario resolvió la solicitud de aprobación.
-7. `CONTEXTO_COMPACTADO`: Historial compactado por superación de umbral.
-8. `PERMISO_DECIDIDO`: Evaluación de política resuelta (denegar/preguntar/permitir).
-9. `CRITERIOS_ALTERADOS`: Intento de modificación o detección de cambio en criterios.
-10. `LIMITE_ALCANZADO`: Límite de turnos, tiempo o costo por sesión superado.
-11. `ERROR_PROVEEDOR`: Error devuelto por el proveedor de modelo.
-12. `PROVEEDOR_CONMUTADO`: Conmutación por fallo al proveedor de respaldo.
-13. `SUBAGENTE_INICIADO`: Lanzamiento de una sesión hija de subagente.
-14. `SUBAGENTE_TERMINADO`: Finalización de subagente con entrega de resultado.
-15. `INTERRUMPIDO`: Ejecución cancelada limpiamente por señal de usuario (Ctrl+C).
-16. `SESION_ARRANCADA`: Reanudación o inicio de sesión con rutina de arranque.
-17. `CRITERIO_VERIFICADO`: Resultado de comprobación de un criterio de aceptación.
+1. `USER_MESSAGE`: Nuevo mensaje recibido del usuario.
+2. `ASSISTANT_MESSAGE`: Respuesta textual emitida por el modelo.
+3. `TOOL_REQUESTED`: El modelo solicita invocar una herramienta.
+4. `TOOL_FINISHED`: Ejecución de herramienta completada con resultado.
+5. `APPROVAL_REQUESTED`: La política de permisos solicita autorización humana.
+6. `APPROVAL_RESOLVED`: El usuario resolvió la solicitud de aprobación.
+7. `CONTEXT_COMPACTED`: Historial compactado por superación de umbral.
+8. `PERMISSION_DECIDED`: Evaluación de política resuelta (denegar/preguntar/permitir).
+9. `CRITERIA_TAMPERED`: Intento de modificación o detección de cambio en criterios.
+10. `LIMIT_REACHED`: Límite de turnos, tiempo o costo por sesión superado.
+11. `PROVIDER_ERROR`: Error devuelto por el proveedor de modelo.
+12. `PROVIDER_SWITCHED`: Conmutación por fallo al proveedor de respaldo.
+13. `SUBAGENT_STARTED`: Lanzamiento de una sesión hija de subagente.
+14. `SUBAGENT_FINISHED`: Finalización de subagente con entrega de resultado.
+15. `INTERRUPTED`: Ejecución cancelada limpiamente por señal de usuario (Ctrl+C).
+16. `SESSION_STARTED`: Reanudación o inicio de sesión con rutina de arranque.
+17. `CRITERION_VERIFIED`: Resultado de comprobación de un criterio de aceptación.
 
 ### Event (Dataclass Inmutable)
 Carga útil publicada en el bus de eventos:

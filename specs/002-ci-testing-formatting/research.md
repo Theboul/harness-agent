@@ -1,5 +1,7 @@
 # Technical Research & Decisions: HU-00-02 (CI Pipeline)
 
+> Actualizado por PD-07 (2026-10-17, Product Owner): Python 3.12.x es la única versión soportada; la matriz vigente de CI es `ubuntu-latest` y `windows-latest` con Python 3.12 (2 jobs). Los textos sobre Python 3.11 y la matriz de 4 jobs describen el diseño original y quedan como historial; los criterios de aceptación no cambian.
+
 ## Decision 1: CI Platform and Workflow Engine
 
 - **Decision**: GitHub Actions (`.github/workflows/ci.yml`).
@@ -10,14 +12,14 @@
 
 ## Decision 2: Multiplatform Matrix and Python Version Support
 
-- **Decision**: Matrix strategy with `os: [ubuntu-latest, windows-latest]` and `python-version: ["3.11", "3.12"]`.
+- **Decision**: Matrix strategy with `os: [ubuntu-latest, windows-latest]` and `python-version: ["3.12"]` (PD-07; originally `["3.11", "3.12"]`).
 - **Rationale**:
   - Satisfies **AC-02** ("Dado el pipeline, cuando corre, entonces ejecuta en Linux y Windows").
-  - Adheres to the user's requirement to establish Python 3.11 as the baseline compatibility target while preserving compatibility with Python 3.12 (the team's primary active development version).
+  - Originally established Python 3.11 as the baseline target while keeping 3.12; superseded by PD-07 (Python 3.12.x only).
   - Ensures path handling (POSIX vs Windows backslashes), process execution, and line ending differences (`LF` vs `CRLF`) are detected automatically on both operating systems.
 - **Alternatives considered**:
   - *Single OS (Ubuntu only)*: Rejected because AC-02 explicitly demands both Linux and Windows, and team members work in Windows and Linux environments.
-  - *Python 3.14 alpha/beta*: Rejected as unstable; 3.11 and 3.12 provide stable production and development environments.
+  - *Python 3.14 alpha/beta*: Rejected as unstable; 3.12 is the single supported, stable environment (PD-07).
 
 ## Decision 3: Pinned Dependencies and Reproducibility Strategy (Sp1-06)
 

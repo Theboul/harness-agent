@@ -14,7 +14,7 @@
 
 ### Session 2026-10-17
 - **Q**: ¿Cómo deben tiparse provisionalmente las firmas de los contratos del núcleo (`Provider`, `Tool`, `Approver`) en HU-00-01 mientras se espera el veredicto de concurrencia de SPK-02?
-- **A**: Opción A — Adoptar firmas asíncronas provisionales (`async def`) para `Provider.complete`, `Tool.run` y `Approver.request`. Mantener síncronos (`def`) los contratos de almacenamiento y operaciones locales (`SessionStore`, `MemoryStore`, `AreaAutorizada`, `TaskCriteria`).
+- **A**: Opción A — Adoptar firmas asíncronas provisionales (`async def`) para `Provider.complete`, `Tool.run` y `Approver.request`. Mantener síncronos (`def`) los contratos de almacenamiento y operaciones locales (`SessionStore`, `MemoryStore`, `AuthorizedArea`, `TaskCriteria`).
   *Condiciones acordadas*:
   1. Decisión provisional hasta completar la investigación de `SPK-02` (modelo asíncrono y cancelación).
   2. No implementar todavía lógica de concurrencia avanzada ni ejecución paralela en `HU-00-01`.
@@ -66,7 +66,7 @@ Como desarrollador que integra la interfaz de usuario, el bucle agéntico o el a
 **Acceptance Scenarios**:
 
 1. **Given** una respuesta de modelo con llamadas a herramientas y consumo de tokens, **When** se transforma al formato canónico `Message`, **Then** conserva identificadores únicos de llamada, nombre de herramienta, argumentos serializados y marcas de origen externo sin pérdida de información.
-2. **Given** un evento de ciclo de vida publicado en el `EventBus`, **When** los suscriptores registrados reciben el evento, **Then** la carga útil respeta estrictamente el tipo de evento correspondiente (`aprobacion_pedida`, `herramienta_terminada`, etc.).
+2. **Given** un evento de ciclo de vida publicado en el `EventBus`, **When** los suscriptores registrados reciben el evento, **Then** la carga útil respeta estrictamente el tipo de evento correspondiente (`approval_requested`, `tool_finished`, etc.).
 
 ---
 
@@ -94,7 +94,7 @@ Como desarrollador que integra la interfaz de usuario, el bucle agéntico o el a
    - `SubagentRunner`: Firma asíncrona provisional `async def execute(profile, objective, context, output_schema) -> SubagentResult`.
    - `Shell`: Firma síncrona `execute(command, timeout_seconds) -> ShellResult`.
    - `TaskCriteria`: Firmas síncronas de `load_criteria`, `get_pending`, `mark_passes`, `export_readonly_copy`.
-   - `AreaAutorizada`: Firma síncrona `contains(path) -> bool` sobre ruta real normalizada y propiedad `root`.
+   - `AuthorizedArea`: Firma síncrona `contains(path) -> bool` sobre ruta real normalizada y propiedad `root`.
    - `EventBus`: Firmas de `emit(event)` y `subscribe(event_type, handler)`.
 3. **Modelos canónicos de datos de mensajes y eventos**: Tipado de roles (`sistema`, `usuario`, `asistente`, `herramienta`), bloques de contenido, llamadas a herramientas, resultados de herramientas, desglose de tokens y catálogo de 17 eventos de bus.
 4. **Dobles de prueba canónicos y validación estática**: Implementación de mocks en memoria (`DummyTool`, `FakeProvider`, `InMemorySessionStore`) con firmas asíncronas para contratos asíncronos (`async def`) y suite de pruebas que certifique conformidad de contratos y 0 importaciones de proveedores externos en `core/`.
@@ -121,8 +121,8 @@ Como desarrollador que integra la interfaz de usuario, el bucle agéntico o el a
 - `HU-00-03` (Proveedor simulado): Implementa la interfaz `Provider`.
 - `HU-01-01` (Bucle agéntico básico): Consume `Provider`, `ToolRegistry`, `EventBus` y `PermissionPolicy`.
 - `HU-01-02` (Registro de herramientas): Implementa `Tool` y `ToolRegistry`.
-- `HU-01-03` (Herramientas de archivos): Implementa `Tool` y consume `AreaAutorizada`.
-- `HU-05-01` (Política de permisos): Implementa `PermissionPolicy` y consume `AreaAutorizada` y `Approver`.
+- `HU-01-03` (Herramientas de archivos): Implementa `Tool` y consume `AuthorizedArea`.
+- `HU-05-01` (Política de permisos): Implementa `PermissionPolicy` y consume `AuthorizedArea` y `Approver`.
 - `HU-07-01` (Interfaz Provider): Extiende y formaliza el formato interno de mensajes para adaptadores.
 
 ### Trazabilidad con Requisitos
@@ -142,10 +142,10 @@ Como desarrollador que integra la interfaz de usuario, el bucle agéntico o el a
 - **FR-007**: El sistema DEBE definir el contrato síncrono `ContextManager` con operaciones para ensamblar la ventana de contexto respetando el prefijo estable y disparar la compactación automática por umbral.
 - **FR-008**: El sistema DEBE definir el contrato `McpClient` con operaciones asíncronas provisionales para conectar con servidores de herramientas externas, descubrir herramientas disponibles y traducirlas a la interfaz estándar `Tool`.
 - **FR-009**: El sistema DEBE definir el contrato `SubagentRunner` con la operación asíncrona provisional `async def execute(profile: str, objective: str, context: list[Message], output_schema: dict) -> SubagentResult`, garantizando aislamiento de ventana y retorno estructurado.
-- **FR-010**: El sistema DEBE definir los contratos de soporte operativo síncronos: `Shell` (ejecución acotada con código de salida y tiempo límite), `TaskCriteria` (gestión de criterios en SQLite y verificación) y `AreaAutorizada` (contención sobre ruta real normalizada).
+- **FR-010**: El sistema DEBE definir los contratos de soporte operativo síncronos: `Shell` (ejecución acotada con código de salida y tiempo límite), `TaskCriteria` (gestión de criterios en SQLite y verificación) y `AuthorizedArea` (contención sobre ruta real normalizada).
 - **FR-011**: El sistema DEBE definir el contrato `EventBus` con operaciones para emitir eventos fuertemente tipados y suscribir manejadores por tipo de evento.
 - **FR-012**: El sistema DEBE definir los modelos inmutables o fuertemente tipados para el formato interno de mensajes: roles (`sistema`, `usuario`, `asistente`, `herramienta`), bloques de contenido, llamadas a herramientas, resultados de herramientas, desglose de uso de tokens y bandera de origen externo.
-- **FR-013**: El sistema DEBE definir el catálogo formal de eventos del bus: `mensaje_usuario`, `mensaje_asistente`, `herramienta_solicitada`, `herramienta_terminada`, `aprobacion_pedida`, `aprobacion_resuelta`, `contexto_compactado`, `permiso_decidido`, `criterios_alterados`, `limite_alcanzado`, `error_proveedor`, `proveedor_conmutado`, `subagente_iniciado`, `subagente_terminado`, `interrumpido`, `sesion_arrancada` y `criterio_verificado`.
+- **FR-013**: El sistema DEBE definir el catálogo formal de eventos del bus: `user_message`, `assistant_message`, `tool_requested`, `tool_finished`, `approval_requested`, `approval_resolved`, `context_compacted`, `permission_decided`, `criteria_tampered`, `limit_reached`, `provider_error`, `provider_switched`, `subagent_started`, `subagent_finished`, `interrupted`, `session_started` y `criterion_verified`.
 
 ### Key Entities
 
@@ -170,7 +170,7 @@ El desglose vigente está en [tasks.md](tasks.md): 16 microtareas (T001 a T016) 
 
 ## Assumptions
 
-- El lenguaje de implementación exclusivo es Python 3.12+ utilizando `typing` moderno y `abc.ABC`.
+- El lenguaje de implementación exclusivo es Python 3.12.x (PD-07) utilizando `typing` moderno y `abc.ABC`.
 - No se requiere configuración de claves de API ni aprovisionamiento de bases de datos para completar y verificar `HU-00-01`.
 - Los adaptadores concretos (LiteLLM, SQLite, Shell, MCP) se desarrollarán en historias posteriores basándose exclusivamente en estos contratos.
 - `SPK-02` (investigación de concurrencia y cancelación) y `Sp1-03` (aprobación formal del equipo) permanecen formalmente pendientes.

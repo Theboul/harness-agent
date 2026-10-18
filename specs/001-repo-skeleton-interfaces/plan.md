@@ -14,7 +14,7 @@ Establecer la estructura modular de paquetes (`src/harness_agent/` con separaci�
 
 ## Technical Context
 
-**Language/Version**: Python 3.11+ (estándar de compatibilidad fijado en `pyproject.toml`), ejecutándose en Python 3.12+.
+**Language/Version**: Python 3.12.x (única versión soportada; `requires-python = ">=3.12,<3.13"` en `pyproject.toml`). Actualizado por PD-07 (2026-10-17): antes decía «3.11+ ... ejecutándose en 3.12+».
 
 **Primary Dependencies**: Biblioteca estándar de Python (`abc`, `dataclasses`, `enum`, `typing`, `pathlib`, `ast`). Sin dependencias externas de ejecución en el núcleo (`core/`). Dependencias de desarrollo y prueba: `pytest`, `pytest-asyncio`, `mypy`.
 
@@ -46,7 +46,7 @@ Establecer la estructura modular de paquetes (`src/harness_agent/` con separaci�
 |---|---|---|---|
 | **Principio I** | Una historia de usuario por especificación | **PASS** | Exclusivamente enfocado en `HU-00-01` (Fundaciones y contratos). |
 | **Principio II** | Microtareas acotadas de 15–40 min (máx. 60 min) | **PASS** | 6 microtareas atómicas estimadas en 30–40 minutos cada una. |
-| **Principio III** | Código Python 3.12+ modular, tipado y desacoplado | **PASS** | Arquitectura hexagonal con `src/`, Clases Base Abstractas (`abc.ABC`) y type hints estrictos. |
+| **Principio III** | Código Python 3.12.x modular, tipado y desacoplado | **PASS** | Arquitectura hexagonal con `src/`, Clases Base Abstractas (`abc.ABC`) y type hints estrictos. |
 | **Principio IV** | Pruebas automatizadas y CI en Windows y Linux | **PASS** | Pruebas unitarias de contratos y de fronteras AST ejecutables sin red en ambos SO. |
 | **Principio V** | Inmutabilidad de criterios de aceptación y prioridades | **PASS** | AC-01 y AC-02 se preservan intactos sin relajación de requisitos. |
 | **Principio VI** | Disciplina de sprint (no desarrollar sprints futuros) | **PASS** | Alcance limitado al esqueleto de S1; herramientas reales, SQLite y bucle quedan fuera. |
@@ -93,7 +93,7 @@ src/
     │       ├── storage.py           # SessionStore, MemoryStore (síncronos)
     │       ├── context.py           # ContextManager (assemble, compact)
     │       ├── connections.py       # McpClient, SubagentRunner (async def) [PROVISIONAL]
-    │       ├── system.py            # Shell, TaskCriteria, AreaAutorizada (síncronos)
+    │       ├── system.py            # Shell, TaskCriteria, AuthorizedArea (síncronos)
     │       └── event_bus.py         # EventBus (emit, subscribe)
     ├── adapters/
     │   └── __init__.py              # Directorio base para adaptadores futuros (A, B, C)

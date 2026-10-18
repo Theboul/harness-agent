@@ -32,7 +32,7 @@
 - [x] Scope is clearly bounded
   - *Status*: Conforme. Acotado exclusivamente al pipeline de CI, matriz Linux/Windows, verificación de calidad y dependencias fijadas de HU-00-02 (2 PHU).
 - [x] Dependencies and assumptions identified
-  - *Status*: Conforme. Se documenta la necesidad de Python 3.12+, ejecutores estándar y el rol administrativo de la protección de ramas en GitHub.
+  - *Status*: Conforme. Se documenta la necesidad de Python 3.12.x (PD-07), ejecutores estándar y el rol administrativo de la protección de ramas en GitHub.
 
 ## Feature Readiness
 

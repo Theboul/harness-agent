@@ -31,7 +31,7 @@ from harness_agent.core import (
     MemoryStore,
     ContextManager,
     Shell,
-    AreaAutorizada,
+    AuthorizedArea,
     TaskCriteria,
     EventBus,
 )
@@ -73,7 +73,7 @@ memory_store = InMemoryMemoryStore()
 provider = DummyProvider()
 
 # Guardar evento en memoria
-event = Event.create(session_id="sesion-test", type=EventType.MENSAJE_USUARIO, payload={"text": "test"})
+event = Event.create(session_id="sesion-test", type=EventType.USER_MESSAGE, payload={"text": "test"})
 session_store.save_event(event)
 assert len(session_store.load_session("sesion-test")) == 1
 ```
@@ -137,7 +137,7 @@ async def test_politica_con_dobles():
 
 ## 4. Reglas Obligatorias de Diseño y Pureza
 
-1. **Firmas Asíncronas**: `Provider.complete`, `Tool.run` y `Approver.request` son corutinas (`async def`). Todas las demás interfaces son síncronas (`def`).
+1. **Firmas asíncronas (propuesta SPK-02 / D-01, pendiente de aprobación)**: `Provider.complete`, `Tool.run` y `Approver.request` son corutinas (`async def`) y siguen siendo provisionales hasta que A, B y C aprueben D-01 y HU-00-01 (T016). El spike midió en Windows una cancelación con retorno de control de 1.0 a 2.4 ms (límite de AC-01: 500 ms); la evidencia en Linux está pendiente. Todas las demás interfaces (`SessionStore`, `MemoryStore`, `ContextManager`, `AuthorizedArea`) son síncronas (`def`).
 2. **Pureza del Núcleo (AC-02)**: Ningún módulo bajo `src/harness_agent/core/` puede importar SDKs de proveedores (`openai`, `anthropic`, `litellm`, `google-genai`). Las implementaciones concretas residen en `src/harness_agent/adapters/`.
 3. **Inmutabilidad**: `Message`, `ToolCall`, `ToolResult`, `TokenUsage` y `Event` son `@dataclass(frozen=True)`. No intentar mutar sus atributos en tiempo de ejecución.
 4. **Verificación Continua**: Antes de abrir un PR, ejecutar:

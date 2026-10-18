@@ -2,7 +2,7 @@
 
 Provides unified imports for core interfaces: Provider, Tool, ToolRegistry,
 PermissionPolicy, Approver, SessionStore, MemoryStore, ContextManager,
-McpClient, SubagentRunner, Shell, AreaAutorizada, TaskCriteria, and EventBus.
+McpClient, SubagentRunner, Shell, AuthorizedArea, TaskCriteria, and EventBus.
 """
 
 from harness_agent.core.interfaces.connections import (
@@ -37,7 +37,7 @@ from harness_agent.core.interfaces.storage import (
     SessionSummary,
 )
 from harness_agent.core.interfaces.system import (
-    AreaAutorizada,
+    AuthorizedArea,
     Shell,
     ShellResult,
     TaskCriteria,
@@ -77,7 +77,7 @@ __all__ = [
     "SubagentResult",
     # 6. System
     "Shell",
-    "AreaAutorizada",
+    "AuthorizedArea",
     "TaskCriteria",
     "ShellResult",
     "TaskCriteriaItem",

@@ -1,5 +1,7 @@
 # Implementation Tasks: HU-00-02 — Integración continua con pruebas, tipado y formato
 
+> Actualizado por PD-07 (2026-10-17, Product Owner): Python 3.12.x es la única versión soportada; la matriz vigente de CI es `ubuntu-latest` y `windows-latest` con Python 3.12 (2 jobs). Los textos sobre Python 3.11 y la matriz de 4 jobs describen el diseño original y quedan como historial; los criterios de aceptación no cambian.
+
 **Feature**: `specs/002-ci-testing-formatting/spec.md`  
 **Plan**: `specs/002-ci-testing-formatting/plan.md`  
 **Responsable**: A — Núcleo  
@@ -25,6 +27,7 @@
   - **Criterios relacionados**: FR-004, FR-005, SC-005, Sp1-05, Principio III
   - **Tarea F5**: Sp1-05
   - **Estimación**: 30 min (20 min impl + 5 min check + 5 min registro)
+  - **Actualizado por PD-07 (2026-10-17)**: `requires-python = ">=3.12,<3.13"`, mypy `3.12` y ruff `py312`. La verificación original queda como historial.
   - **Verificación**: `pyproject.toml` define `requires-python = ">=3.11"`, bloque `[tool.ruff]` con inspección de formato (line-length 100, target-version py311) y linter básico, y opciones de cobertura para `pytest-cov` sobre `src/harness_agent/`.
 
 ---
@@ -39,6 +42,7 @@
   - **Criterios relacionados**: AC-02, FR-001, FR-007, FR-008, SC-001, Sp1-04, Principio IV
   - **Tarea F5**: Sp1-04
   - **Estimación**: 35 min (20 min impl + 10 min check + 5 min registro)
+  - **Actualizado por PD-07 (2026-10-17)**: la matriz vigente es `os: [ubuntu-latest, windows-latest]` y `python-version: ["3.12"]` (2 jobs en vez de 4). La Run 39087285626 de GitHub Actions (4 jobs, commit ab13680) es evidencia histórica de la matriz original; la ejecución remota de la matriz nueva está pendiente.
   - **Verificación**: Archivo `.github/workflows/ci.yml` con sintaxis YAML válida; disparadores en `pull_request` y `push` hacia `main`; permisos restringidos a `permissions: contents: read`; matriz configurada con `os: [ubuntu-latest, windows-latest]` y `python-version: ["3.11", "3.12"]`; pasos ordenados: checkout, setup-python, install (con `requirements-dev.txt`), ruff format check, ruff check, mypy strict y pytest con cobertura.
 
 ---
@@ -92,6 +96,7 @@
   - **Tarea F5**: Sp1-04
   - **Estimación**: 30 min (15 min impl/inspección + 10 min check + 5 min registro)
   - **Verificación**: Confirmar la ejecución remota de los trabajos de la matriz (`ubuntu-latest` y `windows-latest`) en GitHub Actions reportando enlace/ID de ejecución, o documentar explícitamente en `docs/PROGRESO.md` que la ejecución remota queda lista y pendiente de confirmación tras el push a origin.
+  - **Estado (2026-10-18)**: PENDIENTE de evidencia real. La Run 39087285626 (commit ab13680, matriz original de 4 jobs, Python 3.11 y 3.12) se conserva como evidencia histórica. La matriz vigente (Linux y Windows, solo Python 3.12; 2 jobs) no ha corrido en remoto y nada de la rama `feat/sprint1-contracts-spike-closure` está subido. Se completa con el enlace o ID de la ejecución de la PR con ambos jobs en verde.
 
 - [ ] **T009** [US1] Documentar el procedimiento de configuración de Branch Protection Rules en GitHub para el bloqueo efectivo de merge (AC-01 / Evidencia C)
   - **Archivos**: `docs/PROGRESO.md`, `specs/002-ci-testing-formatting/quickstart.md`
@@ -100,6 +105,7 @@
   - **Tarea F5**: Sp1-04
   - **Estimación**: 25 min (15 min impl + 5 min check + 5 min registro)
   - **Verificación**: Registrar en `quickstart.md` y `docs/PROGRESO.md` los checks obligatorios que el administrador del repositorio debe configurar en GitHub (`Settings -> Branches -> Require status checks to pass before merging`), asegurando la distinción entre el fallo técnico del workflow y la política administrativa de bloqueo de merge.
+  - **Estado (2026-10-18)**: procedimiento documentado en `quickstart.md`; la configuración efectiva de la protección de rama sigue PENDIENTE (acción administrativa en GitHub). Checks obligatorios a configurar: `quality (ubuntu-latest, py3.12)` y `quality (windows-latest, py3.12)`.
 
 - [x] **T010** Actualizar `docs/PROGRESO.md` con el estado técnico, evidencias y registro de la historia HU-00-02
   - **Archivos**: `docs/PROGRESO.md`

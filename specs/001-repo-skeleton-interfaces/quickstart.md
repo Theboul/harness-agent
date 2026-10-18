@@ -9,7 +9,7 @@ Esta guía describe los escenarios ejecutables para comprobar que los contratos 
 
 ## 1. Prerrequisitos y Configuración de Entorno
 
-- **Python**: 3.11 o superior (3.12+ recomendado).
+- **Python**: 3.12.x (única versión soportada; actualizado por PD-07, 2026-10-17).
 - **Sistemas Operativos**: Windows (PowerShell) o Linux (Bash).
 - **Herramientas de desarrollo**: `pytest` y `mypy` (o `pyright`).
 

@@ -102,7 +102,7 @@ Lo que cuesta esta decisión:
 
 ## 4. Contratos entre módulos
 
-> Los nombres de métodos y atributos están en inglés (decisión del 2026-10-17); los nombres de interfaz y los de los eventos del bus se mantienen como están. Los identificadores en español de las historias y de los documentos archivados corresponden a la redacción original.
+> Los nombres de métodos y atributos están en inglés (decisión del 2026-10-17); los nombres de interfaz y los 17 eventos del bus también están en inglés (decisión comunicada por el equipo el 2026-10-18: `AreaAutorizada` pasó a `AuthorizedArea` y los valores de `EventType` pasaron a inglés, por ejemplo `mensaje_usuario` → `user_message`). Los identificadores en español de las historias y de los documentos archivados corresponden a la redacción original.
 
 Se escriben y acuerdan en [HU-00-01](04a-historias-fundacion.md#hu-00-01) para trabajar en paralelo con dobles de prueba. Ningún módulo del núcleo importa un SDK de proveedor.
 
@@ -120,7 +120,7 @@ Se escriben y acuerdan en [HU-00-01](04a-historias-fundacion.md#hu-00-01) para t
 | SubagentRunner | execute(profile, objective, context, output_schema) → resultado | Crea la sesión hija y devuelve el resultado estructurado. |
 | Shell | execute(command, timeout_seconds) → código de salida y salida; interpreter_name | Una implementación para bash y otra para PowerShell. Es la única puerta a comandos del sistema. |
 | TaskCriteria | load_criteria(session_id), get_pending(session_id), mark_passes(criteria_id, evidence), export_readonly_copy(session_id, destination) | Lee y escribe la tabla criterios de SQLite. Solo el harness llama a marcar_pasa. La copia JSON es de solo lectura y se restaura si cambia. |
-| AreaAutorizada | contains(path) → verdadero o falso sobre la ruta real; root | Resuelve «..», enlaces simbólicos, unidades y rutas UNC antes de comparar. La usan las herramientas de archivos y la política de permisos. |
+| AuthorizedArea | contains(path) → verdadero o falso sobre la ruta real; root | Resuelve «..», enlaces simbólicos, unidades y rutas UNC antes de comparar. La usan las herramientas de archivos y la política de permisos. |
 | EventBus | emit(event), subscribe(event_type, handler) | Único canal del núcleo hacia las interfaces. |
 
 ### Formato interno de mensajes
@@ -136,7 +136,7 @@ Se escriben y acuerdan en [HU-00-01](04a-historias-fundacion.md#hu-00-01) para t
 
 ### Eventos del bus
 
-`mensaje_usuario`, `mensaje_asistente`, `herramienta_solicitada`, `herramienta_terminada`, `aprobacion_pedida`, `aprobacion_resuelta`, `contexto_compactado`, `permiso_decidido`, `criterios_alterados`, `limite_alcanzado`, `error_proveedor`, `proveedor_conmutado`, `subagente_iniciado`, `subagente_terminado`, `interrumpido`, `sesion_arrancada`, `criterio_verificado`.
+`user_message`, `assistant_message`, `tool_requested`, `tool_finished`, `approval_requested`, `approval_resolved`, `context_compacted`, `permission_decided`, `criteria_tampered`, `limit_reached`, `provider_error`, `provider_switched`, `subagent_started`, `subagent_finished`, `interrupted`, `session_started`, `criterion_verified`.
 
 ### Modelo de datos (SQLite)
 

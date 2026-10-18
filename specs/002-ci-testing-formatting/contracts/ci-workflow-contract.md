@@ -1,5 +1,7 @@
 # Contracts & Interface Specifications: HU-00-02 (CI Pipeline)
 
+> Actualizado por PD-07 (2026-10-17, Product Owner): Python 3.12.x es la única versión soportada; la matriz vigente de CI es `ubuntu-latest` y `windows-latest` con Python 3.12 (2 jobs). Los textos sobre Python 3.11 y la matriz de 4 jobs describen el diseño original y quedan como historial; los criterios de aceptación no cambian.
+
 ## 1. GitHub Actions Workflow Contract: `.github/workflows/ci.yml`
 
 The CI workflow must adhere to the following declarative schema and step contract:
@@ -24,7 +26,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.12"]
 
     steps:
       - name: Checkout repository
@@ -69,7 +71,7 @@ The pinned dependencies file must contain exact version specifiers (`==`) for al
 
 ```text
 # Pinned development dependencies for HARNESS v2.5 CI and local quality gates
-# Generated for reproducible builds on Windows and Linux (Python 3.11+)
+# Generated for reproducible builds on Windows and Linux (Python 3.12.x only, PD-07)
 
 pytest==8.3.4
 pytest-asyncio==0.25.3

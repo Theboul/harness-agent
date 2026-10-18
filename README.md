@@ -20,7 +20,7 @@
 | Tema | Decisión |
 |---|---|
 | Enfoque | Coding Harness basado en tickets: ticket → agente → cambios → pruebas → verificación → aprobación → Pull Request |
-| Lenguaje | Python 3.12+ |
+| Lenguaje | Python 3.12.x (única versión soportada, PD-07) |
 | Interfaz | Terminal (CLI). El núcleo emite eventos por un bus y nunca imprime |
 | Proveedores | LiteLLM detrás de una interfaz propia `Provider`; al menos dos con conmutación por fallo |
 | Persistencia | SQLite (sesiones, eventos, memoria, auditoría, trazas) |
@@ -88,7 +88,7 @@ Guías para el agente de código, en `.claude/skills/`:
 
 ## Instalación y uso
 
-Entorno de desarrollo (Python 3.12+):
+Entorno de desarrollo (Python 3.12.x):
 
 ```bash
 python -m venv .venv

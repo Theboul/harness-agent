@@ -1,16 +1,18 @@
 # Implementation Plan: HU-00-02 — Integración continua con pruebas, tipado y formato
 
+> Actualizado por PD-07 (2026-10-17, Product Owner): Python 3.12.x es la única versión soportada; la matriz vigente de CI es `ubuntu-latest` y `windows-latest` con Python 3.12 (2 jobs). Los textos sobre Python 3.11 y la matriz de 4 jobs describen el diseño original y quedan como historial; los criterios de aceptación no cambian.
+
 **Branch**: `002-ci-testing-formatting` | **Date**: 2026-10-17 | **Spec**: [spec.md](spec.md)
 
 **Input**: Feature specification from `specs/002-ci-testing-formatting/spec.md`
 
 ## Summary
 
-Implement a minimal, reproducible, and secure Continuous Integration (CI) pipeline using GitHub Actions that enforces quality gates across both Linux (`ubuntu-latest`) and Windows (`windows-latest`) on Python 3.11 (baseline) and Python 3.12 (development). The pipeline executes automated tests (`pytest` + `pytest-asyncio`), code coverage reporting (`pytest-cov`), strict static type checking (`mypy --strict`), and non-modifying code formatting & linting (`ruff format --check` and `ruff check`). Deterministic builds are guaranteed through pinned dependency specifications in `requirements-dev.txt`, while preserving `pyproject.toml` abstract dependencies.
+Implement a minimal, reproducible, and secure Continuous Integration (CI) pipeline using GitHub Actions that enforces quality gates across both Linux (`ubuntu-latest`) and Windows (`windows-latest`) on Python 3.12 (the only supported version, PD-07). The pipeline executes automated tests (`pytest` + `pytest-asyncio`), code coverage reporting (`pytest-cov`), strict static type checking (`mypy --strict`), and non-modifying code formatting & linting (`ruff format --check` and `ruff check`). Deterministic builds are guaranteed through pinned dependency specifications in `requirements-dev.txt`, while preserving `pyproject.toml` abstract dependencies.
 
 ## Technical Context
 
-**Language/Version**: Python 3.11 (baseline compatibility target) and Python 3.12 (active development runtime).
+**Language/Version**: Python 3.12.x only (PD-07, 2026-10-17; originally 3.11 baseline plus 3.12).
 
 **Primary Dependencies**:
 - Core: None (`dependencies = []` in `pyproject.toml`).
@@ -43,7 +45,7 @@ Implement a minimal, reproducible, and secure Continuous Integration (CI) pipeli
 |---|---|---|
 | **Principio I: Una HU por especificación** | Aborda exclusivamente HU-00-02 (Integración continua con pruebas, tipado y formato). | **PASS** |
 | **Principio II: Microtareas acotadas (<60 min)** | Tareas diseñadas para completarse en 15–40 minutos cada una (Sp1-04, Sp1-05, Sp1-06). | **PASS** |
-| **Principio III: Python 3.11+, modular y desacoplado** | Python 3.11 como baseline y 3.12 como dev; cero dependencias de producción en el núcleo. | **PASS** |
+| **Principio III: Python 3.12.x, modular y desacoplado** | Python 3.12.x como única versión (PD-07; antes 3.11 baseline y 3.12 dev); cero dependencias de producción en el núcleo. | **PASS** |
 | **Principio IV: Pruebas, calidad y CI multiplataforma** | Pipeline obligatorio en Windows y Linux con `pytest`, `mypy` estricto y `ruff`. | **PASS** |
 | **Principio V: Inmutabilidad de AC y prioridades** | AC-01 y AC-02 se preservan literalmente; prioridad Alta no alterada. | **PASS** |
 | **Principio VI: Disciplina de sprints** | Alcance restringido al Sprint 1 (Fundaciones); sin adelantar historias futuras. | **PASS** |
@@ -105,8 +107,8 @@ tests/
 ## Implementation Roadmap (Tasks Preview)
 
 The work will be decomposed into small, dependency-ordered microtasks (< 60 min each):
-1. **T001 (Sp1-06)**: Generate `requirements-dev.txt` with pinned versions (`pytest`, `pytest-asyncio`, `pytest-cov`, `mypy`, `ruff`) and update `pyproject.toml` compatibility baseline (`>=3.11`).
-2. **T002 (Sp1-05)**: Configure `ruff` in `pyproject.toml` (target Python 3.11, line length, format and lint rules) and add coverage settings for `pytest-cov`.
-3. **T003 (Sp1-04)**: Create declarative GitHub Actions workflow `.github/workflows/ci.yml` with matrix (`ubuntu-latest`, `windows-latest`, Python 3.11/3.12) and least privilege permissions.
+1. **T001 (Sp1-06)**: Generate `requirements-dev.txt` with pinned versions (`pytest`, `pytest-asyncio`, `pytest-cov`, `mypy`, `ruff`) and update `pyproject.toml` compatibility baseline (`>=3.12,<3.13` after PD-07; originally `>=3.11`).
+2. **T002 (Sp1-05)**: Configure `ruff` in `pyproject.toml` (target Python 3.12 after PD-07, originally 3.11; line length, format and lint rules) and add coverage settings for `pytest-cov`.
+3. **T003 (Sp1-04)**: Create declarative GitHub Actions workflow `.github/workflows/ci.yml` with matrix (`ubuntu-latest`, `windows-latest`, Python 3.12 after PD-07, originally 3.11/3.12) and least privilege permissions.
 4. **T004 (AC-01/Evidence A)**: Execute local verification suite (Ruff format, Ruff check, Mypy strict, Pytest with coverage) and execute negative failure tests (simulated test failure, typing error, formatting violation).
 5. **T005 (AC-02/Evidence B & C)**: Validate remote GitHub Actions execution on Windows and Linux, document branch protection configuration requirements, and synchronize `docs/PROGRESO.md`.

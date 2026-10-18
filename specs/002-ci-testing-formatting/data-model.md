@@ -1,5 +1,7 @@
 # Data Model & System Architecture: HU-00-02 (CI Pipeline)
 
+> Actualizado por PD-07 (2026-10-17, Product Owner): Python 3.12.x es la única versión soportada; la matriz vigente de CI es `ubuntu-latest` y `windows-latest` con Python 3.12 (2 jobs). Los textos sobre Python 3.11 y la matriz de 4 jobs describen el diseño original y quedan como historial; los criterios de aceptación no cambian.
+
 ## 1. CI Subsystem Entities
 
 ```mermaid
@@ -31,7 +33,7 @@ Defines the events and branch filters that trigger workflow execution.
 #### `MatrixSpec`
 Defines the execution dimensions for multiplatform testing.
 - **`os_matrix`**: `List[string]` (`["ubuntu-latest", "windows-latest"]`)
-- **`python_matrix`**: `List[string]` (`["3.11", "3.12"]`)
+- **`python_matrix`**: `List[string]` (`["3.12"]` after PD-07; originally `["3.11", "3.12"]`)
 - **`fail_fast`**: `boolean` (`false`, ensuring all combinations run even if one fails)
 
 #### `JobExecution`
@@ -69,7 +71,7 @@ The concrete dependency lock ensuring deterministic package resolution.
 stateDiagram-v2
     [*] --> Triggered: PR or Push to main
     Triggered --> SetupEnvironment: Allocate Matrix Runner (Ubuntu / Windows)
-    SetupEnvironment --> InstallDependencies: Check out code & Install Python 3.11/3.12
+    SetupEnvironment --> InstallDependencies: Check out code & Install Python 3.12
     InstallDependencies --> FormatCheck: pip install -r requirements-dev.txt
     
     FormatCheck --> TypeCheck: ruff format --check & ruff check PASSED

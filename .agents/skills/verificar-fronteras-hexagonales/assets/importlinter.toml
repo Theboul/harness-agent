@@ -1,0 +1,21 @@
+[tool.importlinter]
+root_package = "harness_agent"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "El núcleo no depende de adaptadores, CLI ni observabilidad"
+type = "forbidden"
+source_modules = ["harness_agent.core"]
+forbidden_modules = ["harness_agent.adapters", "harness_agent.cli", "harness_agent.observability", "harness_agent.bootstrap"]
+
+[[tool.importlinter.contracts]]
+name = "El núcleo no importa SDKs externos"
+type = "forbidden"
+source_modules = ["harness_agent.core"]
+forbidden_modules = ["litellm", "openai", "anthropic", "google", "mcp", "typer", "click", "rich"]
+
+[[tool.importlinter.contracts]]
+name = "Los adaptadores no dependen de la CLI"
+type = "forbidden"
+source_modules = ["harness_agent.adapters"]
+forbidden_modules = ["harness_agent.cli"]

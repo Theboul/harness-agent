@@ -14,7 +14,7 @@
   - `src/harness_agent/adapters/`: Paquetes preparados para las implementaciones concretas futuras (proveedores, SQLite, shell, MCP).
   - `src/harness_agent/cli/`: Interfaz de usuario de terminal y adaptador de consola.
   - `tests/`: Pruebas de contratos (`tests/contracts/`), dobles de prueba (`tests/doubles/`) y verificación de fronteras (`tests/architecture/`).
-  - `pyproject.toml`: Configuración declarativa estándar (PEP 518/PEP 621) fijando `requires-python = ">=3.11"`.
+  - `pyproject.toml`: Configuración declarativa estándar (PEP 518/PEP 621) fijando `requires-python = ">=3.12,<3.13"` (actualizado por PD-07, 2026-10-17; antes `">=3.11"`).
 - **Razón de ser**: El layout `src/` evita la importación accidental de código fuente no instalado durante la ejecución de pruebas y aísla el entorno de desarrollo tanto en Windows como en Linux.
 - **Alternativas descartadas**:
   - *Layout plano en la raíz (`harness_agent/`)*: Rechazado porque genera ambigüedades de resolución de módulos entre `sys.path` local y el paquete empaquetado.
@@ -42,7 +42,7 @@
   - `SubagentRunner.execute(...) -> SubagentResult`
   - `McpClient.connect()`, `McpClient.call_tool(...)`
   Mantener como síncronas (`def`) las interfaces locales y de almacenamiento transaccional:
-  - `SessionStore`, `MemoryStore`, `AreaAutorizada`, `TaskCriteria`, `PermissionPolicy`, `EventBus`.
+  - `SessionStore`, `MemoryStore`, `AuthorizedArea`, `TaskCriteria`, `PermissionPolicy`, `EventBus`.
 - **Estado de provisionalidad**:
   > **[PROVISIONAL - SPK-02]**: Este modelo de asincronía es provisional. No se implementa lógica de concurrencia avanzada, tareas paralelas ni manejo de cancelación hasta que el spike `SPK-02` (Sprint 1) determine formalmente las garantías de `asyncio` y cancelación de herramientas.
 - **Razón de ser**: Permite a B y C escribir adaptadores y dobles de prueba sin bloquearse, satisfaciendo V-01 (aprobación asíncrona bidireccional) sin sobre-complejizar los almacenes de datos.
