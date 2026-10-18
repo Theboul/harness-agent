@@ -1,0 +1,8 @@
+# Pinned development dependencies for HARNESS v2.5 CI and local quality gates
+# Generated for reproducible builds on Windows and Linux (Python 3.11+)
+
+pytest==8.3.4
+pytest-asyncio==0.25.3
+pytest-cov==6.0.0
+mypy==1.14.1
+ruff==0.9.6
