@@ -4,7 +4,7 @@
 
 **Input**: Especificación aclarada de `specs/005-basic-agent-loop/spec.md` (sesión de `/speckit-clarify` del 2026-10-18; Q4 aprobada por el Product Owner).
 
-**Estado**: Plan generado y actualizado con las decisiones R-07 y R-08 (2026-10-18); `tasks.md` generado por `/speckit-tasks`; sin código y sin commits. La historia sigue en `Pendiente` en `docs/PROGRESO.md`. Responsable: A — Núcleo. Sprint 1, 5 PHU.
+**Estado**: Implementado con dobles, en revisión (2026-10-19; ver `tasks.md`). Historial previo: Plan generado y actualizado con las decisiones R-07 y R-08 (2026-10-18); `tasks.md` generado por `/speckit-tasks`; sin código y sin commits. La historia sigue en `Pendiente` en `docs/PROGRESO.md`. Responsable: A — Núcleo. Sprint 1, 5 PHU.
 
 ## Summary
 
@@ -132,7 +132,7 @@ tests/
 
 1. **Recibir la tarea**: `task` + `session_id`.
 2. **Construir o recibir el historial canónico**: `history` del llamador; `_check_history` (R-04); se añade `USER(task)` y se publica `USER_MESSAGE`.
-3. **Invocar** `provider.complete(list(history), tools)` con `tools = [ToolDefinition(t.name, t.description, t.schema) for t in registry.list()]` recalculadas en cada consulta.
+3. **Invocar** `provider.complete(copy.deepcopy(history), tools)` con `tools = [ToolDefinition(t.name, t.description, t.schema) for t in registry.list()]` recalculadas en cada consulta y construidas **antes** del `try` del proveedor (T033: su fallo es estructural, se propaga y no es `PROVIDER_ERROR`). Copia profunda del historial (T034) y de las `ToolCall` de la respuesta antes de registrarlas.
 4. **Interpretar** `ProviderResponse`: tipo correcto e ids de llamada no vacíos y únicos entre sí y respecto del historial (regla canónica de HU-07-01, D-02 §4.7; si no: `INVALID_PROVIDER_RESPONSE`).
 5. **Registrar la respuesta del asistente**: `Message(ASSISTANT, content, tuple(tool_calls), usage)`; `ASSISTANT_MESSAGE` si hay texto.
 6. **Identificar todas las `ToolCall`** de la respuesta; sin ninguna ⇒ ir al paso 15.

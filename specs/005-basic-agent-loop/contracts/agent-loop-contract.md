@@ -58,7 +58,7 @@ class AgentLoop:
 ## 2. Garantías de orden y secuencia
 
 1. Un turno ejecuta, en este orden: precondiciones → añadir `USER` → `USER_MESSAGE` → bucle de consultas.
-2. Cada consulta pasa a `Provider.complete` una **copia** del historial y la lista de `ToolDefinition` recalculada desde `registry.list()` (`ToolDefinition(name=t.name, description=t.description, parameters=t.schema)`).
+2. Cada consulta pasa a `Provider.complete` una **copia profunda** del historial (T034: los `dict` de `ToolCall.arguments` no se comparten con el proveedor) y la lista de `ToolDefinition` recalculada desde `registry.list()` (`ToolDefinition(name=t.name, description=t.description, parameters=t.schema)`). La lista se construye **antes** de consultar al proveedor y fuera de su manejo de errores (T033): un fallo de `registry.list()` o de la declaración de una herramienta es un fallo estructural que se propaga (sin `PROVIDER_ERROR`, sin consultar al proveedor). Las `ToolCall` de la respuesta del proveedor se copian en profundidad antes de registrarse en el historial, de modo que el proveedor no conserva referencias vivas a lo registrado.
 3. Con llamadas en la respuesta: se añade el `ASSISTANT` (texto + `tuple(tool_calls)` + `usage`) y luego **cada llamada se procesa completa y en secuencia** en el orden recibido; su `TOOL` se añade en cuanto termina, antes de procesar la siguiente. Solo tras la última se consulta de nuevo (FR-003, FR-015).
 4. La presencia de `tool_calls` prevalece sobre el texto (FR-004): texto + llamadas no es respuesta final.
 5. Sin llamadas: se añade el `ASSISTANT` final y el turno termina con `COMPLETED`, sin consulta adicional.
@@ -91,6 +91,7 @@ class AgentLoop:
 | `Tool.run` devuelve `is_error=True` | herramienta | ejecutada | continúa; contenido íntegro del `ToolResult`, `call_id` forzado | `TOOL_FINISHED(tool_error)` | no |
 | `Tool.run` lanza `Exception` | herramienta | ejecutada (efecto parcial posible) | continúa; `[tool_exception]` con nombre de clase y mensaje, sin traza | `TOOL_FINISHED(tool_exception)` | no |
 | `Tool.run` devuelve algo que no es `ToolResult` con `content: str` | herramienta | ejecutada | continúa; `[tool_exception] …returned an invalid result` | `TOOL_FINISHED(invalid_tool_result)` | no |
+| `registry.list()` o la lectura de `Tool.name/description/schema` lanza (T033) | registro / herramienta (estructural) | — | **se propaga la excepción**; el proveedor no se consulta y no se devuelve `TurnResult`; el historial conserva el mensaje `USER` ya añadido (válido para el siguiente turno) | `USER_MESSAGE` ya publicado; **no** `PROVIDER_ERROR` | no |
 | `Provider.complete` lanza `Exception` | proveedor | — | `TurnResult(PROVIDER_FAILED, error=…)`; historial hasta ese punto | `PROVIDER_ERROR(reason=provider_exception)` | **no** (sin reintento ni fallback) |
 | Respuesta inválida (ids vacíos/repetidos, tipo incorrecto) | proveedor | ninguna llamada se ejecuta | `TurnResult(INVALID_PROVIDER_RESPONSE)`; la respuesta no se añade | `PROVIDER_ERROR(reason=invalid_response)` | no |
 | `bus.emit(...)` lanza | bus (HU-01-05) | según §2 (nunca se ejecuta lo que aún no se había ejecutado) | **se propaga la excepción**; no se devuelve `TurnResult` | — | no |
@@ -122,7 +123,7 @@ Texto orientado al modelo (artefacto de código; en inglés). `{reason}` y los m
 | Pregunta | Respuesta |
 |---|---|
 | ¿Quién es propietario? | El **llamador**. El bucle no conserva referencias entre turnos. |
-| ¿Copia u original? | El bucle **añade en el sitio** a la lista recibida (nunca modifica, reordena ni elimina lo existente). A `Provider.complete` le entrega siempre una **copia** (FR-002). |
+| ¿Copia u original? | El bucle **añade en el sitio** a la lista recibida (nunca modifica, reordena ni elimina lo existente). A `Provider.complete` le entrega siempre una **copia profunda** (FR-002, T034; costo O(tamaño del historial) por consulta, aceptado en Sprint 1 porque el historial vive en memoria y la compactación es de otra historia). |
 | ¿Qué devuelve? | `TurnResult.history`: instantánea `tuple` del estado final (útil para pruebas y para el siguiente turno). |
 | ¿Qué pasa ante una excepción? | La lista del llamador conserva todo lo añadido hasta ese punto. Puede terminar en un `ASSISTANT` con llamadas sin resultado. |
 | ¿Y ante una cancelación? | Igual: el llamador lee su lista (FR-026, US6-4). No se fabrican resultados «interrumpido» (V-11 → HU-06-03). |

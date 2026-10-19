@@ -50,11 +50,19 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
 
 ---
 
+## Evidencia de implementación (2026-10-19)
+
+T001–T030 completadas con dobles; T031 y T032 siguen **sin marcar** (bloqueadas por B y C). La evidencia está ahora **por tarea**: cada T001–T030 lleva su línea «Evidencia obtenida» (archivos, pruebas, comando, resultado, criterio y relación con AC/FR), re-ejecutada el 2026-10-19. Esta sección conserva solo el resumen.
+
+- ROJO observado antes de implementar (registrado en la implementación original; no re-observable sin deshacerla): T007 29 fallos (`NotImplementedError`), T013 4 de 8, T015 5, T017 10, T020 8, T023 10; todos pasaron a VERDE tras sus tareas de implementación. Para T033 y T034 el ROJO se observó en esta ejecución (T033: 4 fallos; T034: 3 fallos con la copia superficial restaurada temporalmente).
+- T029 (re-ejecutada tras T033–T035): `pytest` 524 passed, 5 skipped (línea base previa 385 + 5 skipped; 513 antes de la convergencia; sin regresión); `mypy` estricto 66 archivos sin errores; `ruff check` y `ruff format --check` limpios; cobertura de `core/loop.py` 100 % (200 sentencias, 60 ramas); `git diff` de contratos compartidos vacío. WSL2 y CI remota: no ejecutados.
+- AC-01 y AC-02 cubiertos por `tests/core/test_loop_happy_path.py` y `tests/core/test_loop_tool_errors.py`; R-07 por `test_loop_permissions.py`; Q4 por `test_loop_events.py`; R-08 por `test_loop_failures.py` (se verifica `__notes__`, no `__context__`).
+
 ## Phase 1: Setup
 
 **Propósito**: fijar por prueba las firmas reales que el bucle consume y crear el paquete de pruebas nuevo.
 
-- [ ] T001 Crear `tests/core/` y la prueba de firmas de los contratos consumidos en `tests/core/test_loop_contract_signatures.py`
+- [x] T001 Crear `tests/core/` y la prueba de firmas de los contratos consumidos en `tests/core/test_loop_contract_signatures.py`
   - **Objetivo**: crear `tests/core/__init__.py` y una prueba que, con `inspect`, afirme las firmas reales que usa el bucle: `Provider.complete` y `Tool.run` son `async def`; `ToolRegistry.get/list/validate_args`, `PermissionPolicy.evaluate` y `EventBus.emit` son síncronas; `validate_args(name, args) -> dict`; `evaluate(call) -> PermissionDecision`; los 17 miembros de `EventType` incluyen los siete que usa el bucle (`USER_MESSAGE`, `ASSISTANT_MESSAGE`, `TOOL_REQUESTED`, `PERMISSION_DECIDED`, `TOOL_FINISHED`, `PROVIDER_ERROR`, `INTERRUPTED`); `ToolCall` es `frozen` con `arguments: dict`; `Event.create(session_id, type, payload)` existe.
   - **Archivos**: `tests/core/__init__.py`, `tests/core/test_loop_contract_signatures.py`
   - **Estimación**: 25 min
@@ -63,6 +71,7 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: FR-027, FR-033, plan «Interfaces reutilizadas» (verificado con `archivo:línea`)
   - **Evidencia requerida**: salida de `pytest tests/core/test_loop_contract_signatures.py` en verde y `mypy` estricto sobre el archivo
   - **Completada cuando**: la prueba pasa sin modificar ningún archivo bajo `src/harness_agent/core/` (`git diff --stat -- src/harness_agent/core` vacío) y si una firma real difiere de la esperada se registra en `docs/PROGRESO.md` antes de continuar.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `tests/core/__init__.py`, `tests/core/test_loop_contract_signatures.py`; pruebas: test_provider_complete_is_async_with_messages_and_tools, test_registry_methods_are_synchronous_with_expected_parameters, test_policy_evaluate_is_synchronous_and_returns_decision, test_event_catalog_has_17_members_including_those_used_by_the_loop; comando: `pytest tests/core/test_loop_contract_signatures.py --no-cov`; resultado: **8 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: base de AC-01 y AC-02.
 
 ---
 
@@ -70,7 +79,7 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
 
 **Propósito**: dobles de prueba (Sp1-14), tipos del resultado y constructor, y el publicador de eventos. Los dobles **no implementan** HU-00-03, HU-01-02, HU-01-05 ni HU-05-01: son dobles de prueba con nombres que lo dejan claro.
 
-- [ ] T002 [P] Crear el doble `ScriptedProvider` y el ayudante `run_bounded` en `tests/doubles/scripted_provider.py` y `tests/doubles/bounded.py`
+- [x] T002 [P] Crear el doble `ScriptedProvider` y el ayudante `run_bounded` en `tests/doubles/scripted_provider.py` y `tests/doubles/bounded.py`
   - **Objetivo**: `ScriptedProvider(Provider)` con guion finito de `ProviderResponse` (incluye respuestas con varias `tool_calls`), registro de las listas recibidas en cada consulta (copias, para comprobar FR-002), contador de consultas, valida al construirse que los ids de llamada del guion sean no vacíos y únicos en toda la sesión (salvo `allow_invalid_ids=True`, para las pruebas negativas de FR-024), y al agotarse el guion lanza `ScriptExhausted` y marca `exhausted=True`; también puede lanzar una excepción configurada en la consulta N y esperar (para cancelación). `run_bounded(coro, timeout=…)` envuelve `asyncio.timeout` y, tras terminar, falla si `provider.exhausted` es verdadero (agotar el guion es un fallo de prueba explícito, condición 2 de Q1).
   - **Archivos**: `tests/doubles/scripted_provider.py`, `tests/doubles/bounded.py`
   - **Estimación**: 20 min
@@ -79,8 +88,9 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: FR-028 (condiciones del PO: guiones finitos, agotamiento ⇒ fallo, *timeouts*), FR-034, SC-010
   - **Evidencia requerida**: `mypy` estricto sobre ambos archivos y una prueba mínima (en `tests/core/test_loop_contract_signatures.py` o `tests/doubles/`) que cumpla `Provider` real y compruebe el agotamiento
   - **Completada cuando**: el doble pasa `isinstance(…, Provider)`, agotar el guion lanza `ScriptExhausted` y `run_bounded` falla con él; sin dependencias nuevas.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `tests/doubles/scripted_provider.py`, `tests/doubles/bounded.py`; pruebas: test_scripted_provider_replays_then_fails_explicitly_when_exhausted, test_run_bounded_times_out_on_an_endless_await, test_scripted_provider_rejects_invalid_ids_unless_explicitly_allowed; comando: `pytest tests/core/test_loop_doubles.py -k "scripted_provider or run_bounded or satisfy" --no-cov`; resultado: **5 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: FR-028 (guion finito, agotamiento = fallo, timeout).
 
-- [ ] T003 [P] Crear los dobles `InMemoryToolRegistry` y `ScriptedPolicy` en `tests/doubles/in_memory_registry.py` y `tests/doubles/scripted_policy.py`
+- [x] T003 [P] Crear los dobles `InMemoryToolRegistry` y `ScriptedPolicy` en `tests/doubles/in_memory_registry.py` y `tests/doubles/scripted_policy.py`
   - **Objetivo**: registro mínimo de pruebas que implementa `ToolRegistry` (`register/get/list/validate_args`): `validate_args` valida contra un validador inyectable, puede **normalizar** (devolver un `dict` nuevo con argumentos efectivos distintos de la entrada), registrar la entrada recibida y comprobar que no se muta; modos configurables (lanza `ValueError`, lanza otra `Exception`, devuelve un valor que no es `dict`). `ScriptedPolicy(PermissionPolicy)` mapea nombre de herramienta → `PermissionDecision`/excepción/valor inesperado, **lo no mapeado ⇒ `DENY`**, y registra cada `ToolCall` recibida (para R-07). No es la HU-01-02 ni la HU-05-01.
   - **Archivos**: `tests/doubles/in_memory_registry.py`, `tests/doubles/scripted_policy.py`
   - **Estimación**: 20 min
@@ -89,8 +99,9 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: FR-008, FR-009, FR-014, FR-034, R-07
   - **Evidencia requerida**: `mypy` estricto; ambos pasan `isinstance` contra las ABC reales
   - **Completada cuando**: los dobles cumplen las ABC, registran lo que reciben y ninguno aplica un permiso por defecto distinto de `DENY`.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `tests/doubles/in_memory_registry.py`, `tests/doubles/scripted_policy.py`; pruebas: test_scripted_policy_defaults_to_deny_and_records_calls, test_in_memory_registry_does_not_mutate_input_and_can_normalize, test_doubles_satisfy_the_real_abstract_contracts; comando: `pytest tests/core/test_loop_doubles.py -k "policy or registry or satisfy" --no-cov`; resultado: **3 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: R-07 (dobles de registro y política).
 
-- [ ] T004 Crear los dobles de herramientas y el bus que falla en `tests/doubles/scripted_tools.py` y `tests/doubles/failing_bus.py` y reexportar los dobles nuevos en `tests/doubles/__init__.py`
+- [x] T004 Crear los dobles de herramientas y el bus que falla en `tests/doubles/scripted_tools.py` y `tests/doubles/failing_bus.py` y reexportar los dobles nuevos en `tests/doubles/__init__.py`
   - **Objetivo**: `RecordingTool` (cuenta ejecuciones, registra los `args` recibidos exactos, devuelve un `ToolResult` configurable con `call_id` configurable para probar la corrección del id), `FailingTool` (devuelve `is_error=True`), `RaisingTool` (lanza una excepción), `BlockingTool` (espera un `asyncio.Event` para probar cancelación), y un `ToolResult` inválido (no `ToolResult`) configurable. `FailingEventBus(RecordingEventBus)` lanza una excepción configurada al recibir tipos concretos de `EventType` (cuenta los intentos). Reexportar en `tests/doubles/__init__.py`, en esta única tarea y después de T002 y T003, los dobles nuevos de T002, T003 y T004 sin quitar nada de lo existente (archivo compartido: por eso T004 no lleva `[P]`).
   - **Archivos**: `tests/doubles/scripted_tools.py`, `tests/doubles/failing_bus.py`, `tests/doubles/__init__.py`
   - **Estimación**: 20 min
@@ -99,8 +110,9 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: FR-016, FR-018, FR-031, FR-034
   - **Evidencia requerida**: `mypy` estricto; `pytest tests/contracts` sigue en verde (los dobles existentes no cambian)
   - **Completada cuando**: los dobles cumplen `Tool` y `EventBus`, los existentes (`DummyProvider`, `DummyTool`, `RecordingEventBus`, `DummyApprover`) siguen intactos y sus pruebas pasan.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `tests/doubles/scripted_tools.py`, `tests/doubles/failing_bus.py`, `tests/doubles/__init__.py`; pruebas: test_failing_bus_raises_only_for_configured_types_and_counts_attempts, test_doubles_satisfy_the_real_abstract_contracts; `tests/contracts` sin cambios; comando: `pytest tests/core/test_loop_doubles.py -k "failing_bus or satisfy" tests/contracts --no-cov`; resultado: **2 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: Q4 (bus que falla). `tests/contracts` ejecutado aparte: 32 passed.
 
-- [ ] T005 [P] Definir `TurnStatus`, `TurnResult`, `MissingDependencyError`, `InvalidHistoryError` y el constructor de `AgentLoop` en `src/harness_agent/core/loop.py`
+- [x] T005 [P] Definir `TurnStatus`, `TurnResult`, `MissingDependencyError`, `InvalidHistoryError` y el constructor de `AgentLoop` en `src/harness_agent/core/loop.py`
   - **Objetivo**: crear el módulo con solo biblioteca estándar y contratos de `core/`: `TurnStatus(str, Enum)` (`COMPLETED`, `PROVIDER_FAILED`, `INVALID_PROVIDER_RESPONSE`), `TurnResult` (`@dataclass(frozen=True)` con `status`, `final_response`, `history: tuple[Message, …]`, `error`), los dos errores (`ValueError`), `AgentLoop.__init__(provider, registry, policy, bus)` que lanza `MissingDependencyError` nombrando al colaborador ausente (`provider`, `registry`, `policy`, `bus`) y la firma `async run_turn(*, session_id, task, history) -> TurnResult` (cuerpo inicial: `raise NotImplementedError`). No exportar desde `core/__init__.py`. Comentario de módulo que documenta la correspondencia con «`core/agent`».
   - **Archivos**: `src/harness_agent/core/loop.py`
   - **Estimación**: 40 min
@@ -109,8 +121,9 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: FR-006, FR-025, FR-032, FR-033, D-PLAN-01, D-PLAN-02, D-PLAN-13
   - **Evidencia requerida**: `mypy --strict` sobre `src/harness_agent/core/loop.py`; `pytest tests/architecture/test_core_boundaries.py` sigue en verde
   - **Completada cuando**: `AgentLoop(None, …)` lanza `MissingDependencyError` con el nombre del ausente para cada uno de los cuatro colaboradores, `run_turn` existe con la firma del contrato y ningún archivo compartido fue modificado.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `src/harness_agent/core/loop.py`; pruebas: test_a_missing_collaborator_is_named_and_nothing_runs, test_there_is_no_default_permission_policy, test_loop_module_only_imports_stdlib_and_core; comando: `pytest tests/core/test_loop_construction.py tests/architecture/test_core_boundaries.py tests/architecture/test_loop_boundaries.py -k "missing or default or core or imports" --no-cov`; resultado: **10 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: FR-027, FR-032.
 
-- [ ] T006 Implementar los constructores de carga y el publicador de eventos en `src/harness_agent/core/loop.py`
+- [x] T006 Implementar los constructores de carga y el publicador de eventos en `src/harness_agent/core/loop.py`
   - **Objetivo**: auxiliares privados: `_emit(type, payload)` que construye `Event.create(session_id, type, payload)` y llama a `bus.emit` **sin capturar nada** (Q4), y los constructores de carga de los siete eventos según `contracts/agent-loop-contract.md` §5 (`USER_MESSAGE`, `ASSISTANT_MESSAGE`, `TOOL_REQUESTED`, `PERMISSION_DECIDED`, `TOOL_FINISHED`, `PROVIDER_ERROR`, `INTERRUPTED`), sin argumentos de herramientas ni contenido de archivos; mensajes acotados a 500 caracteres.
   - **Archivos**: `src/harness_agent/core/loop.py`
   - **Estimación**: 30 min
@@ -119,6 +132,7 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: FR-029, FR-031, D-PLAN-11
   - **Evidencia requerida**: `mypy --strict`; comprobación puntual en sesión (sin archivo permanente) de que las cargas no contienen argumentos de herramientas; la prueba permanente de las cargas pertenece a la fase US4 y no es prerrequisito de esta tarea
   - **Completada cuando**: existe un único punto de emisión sin `try/except` y las cargas no contienen argumentos de herramientas.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `src/harness_agent/core/loop.py`; pruebas: test_payloads_follow_the_contract_and_carry_no_tool_arguments; comando: `pytest tests/core/test_loop_events.py -k payloads --no-cov`; resultado: **1 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: FR-029. Nota: La comprobación «puntual en sesión» que pedía la tarea quedó sustituida por esta prueba permanente (la prueba completa de las cargas pertenece a la fase US4); verificada de nuevo ahora.
 
 **Checkpoint**: dobles listos, tipos y publicador definidos; las historias pueden comenzar.
 
@@ -129,7 +143,7 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
 **Meta**: el bucle ejecuta tres herramientas en orden y termina cuando el modelo no pide más (AC-01 literal en `spec.md`).
 **Prueba independiente**: guion de cuatro respuestas (tres con una herramienta cada una, una final) con `ScriptedProvider`, `InMemoryToolRegistry`, `ScriptedPolicy(ALLOW)` y `RecordingTool`.
 
-- [ ] T007 [US1] Escribir en ROJO las pruebas de AC-01 en `tests/core/test_loop_happy_path.py`
+- [x] T007 [US1] Escribir en ROJO las pruebas de AC-01 en `tests/core/test_loop_happy_path.py`
   - **Objetivo**: AC-01 y SC-001: tres herramientas ejecutadas en orden y una vez cada una, cuatro consultas, respuesta final, 20 repeticiones idénticas; texto + `tool_calls` no es respuesta final (FR-004); una respuesta con varias `tool_calls` se procesa en orden, un `ToolResult`/`TOOL` por llamada y las llamadas continúan tras una fallida (Q2); cada consulta recibe una copia del historial y las `ToolDefinition` salen de `Tool.name/description/schema` (FR-002); un doble que cumple `Provider` real (`DummyProvider`) funciona sin adaptaciones; pruebas mínimas de rechazo previo (herramienta desconocida y argumentos inválidos: ni política ni ejecución, con su resultado de error) y de R-07 (la política recibe una `ToolCall` con el mismo `id`/`name` y los argumentos efectivos que devuelve `validate_args`), que dan a T010 y T011 evidencia propia en VERDE. Los ids de llamada de los guiones son no vacíos y únicos en toda la sesión. Todas bajo `run_bounded`.
   - **Archivos**: `tests/core/test_loop_happy_path.py`
   - **Estimación**: 25 min
@@ -138,8 +152,9 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: **AC-01**, FR-002, FR-003, FR-004, FR-015, SC-001
   - **Evidencia requerida**: salida de `pytest tests/core/test_loop_happy_path.py` mostrando las pruebas **fallando** (ROJO) por `NotImplementedError`
   - **Completada cuando**: las pruebas existen, están tipadas (`mypy` estricto) y fallan únicamente porque `run_turn` aún no está implementado; el texto de AC-01 usado en el docstring es literal.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `tests/core/test_loop_happy_path.py`; pruebas: test_ac01_three_tools_run_in_order_and_loop_stops_when_model_asks_no_more (20 repeticiones), test_several_calls_in_one_response_run_in_order_one_result_each, test_text_together_with_tool_calls_is_not_a_final_answer; comando: `pytest tests/core/test_loop_happy_path.py -k "not t034" --no-cov`; resultado: **29 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: AC-01. Nota: ROJO registrado en la implementación original: 29 fallos por `NotImplementedError` (no re-observable sin deshacer la implementación).
 
-- [ ] T008 [US1] Implementar la consulta al proveedor con copia del historial, `ToolDefinition` y validación de la respuesta en `src/harness_agent/core/loop.py`
+- [x] T008 [US1] Implementar la consulta al proveedor con copia del historial, `ToolDefinition` y validación de la respuesta en `src/harness_agent/core/loop.py`
   - **Objetivo**: en `run_turn`, cada consulta llama a `provider.complete(list(history), tools)` con `tools = [ToolDefinition(name=t.name, description=t.description, parameters=t.schema) for t in registry.list()]` recalculadas cada vez; valida la `ProviderResponse` (tipo correcto; ids de llamada no vacíos y únicos entre sí y respecto de las llamadas previas del historial: la unicidad en todo el historial proviene de la validación canónica de HU-07-01, D-02 §4.7, no del contrato `Provider`); si no, devuelve el resultado `INVALID_PROVIDER_RESPONSE` (el detalle de eventos y del fallo del proveedor se completa en T024).
   - **Archivos**: `src/harness_agent/core/loop.py`
   - **Estimación**: 35 min
@@ -148,8 +163,9 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: FR-002, FR-024, R-04 del plan, D-PLAN-03
   - **Evidencia requerida**: las pruebas de copia del historial y de `ToolDefinition` de T007 pasan a VERDE
   - **Completada cuando**: el proveedor nunca recibe la lista mutable del bucle y las definiciones reflejan el registro actual.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `src/harness_agent/core/loop.py`; pruebas: test_each_query_receives_a_copy_of_the_history_not_the_loop_list, test_tool_definitions_come_from_the_registered_tools, test_a_plain_real_contract_provider_works_without_adaptation; comando: `pytest tests/core/test_loop_happy_path.py -k "copy or definitions or plain_real or mutates_its_messages" --no-cov`; resultado: **5 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: AC-01, FR-002. Nota: Endurecida después por T034 (copia profunda).
 
-- [ ] T009 [US1] Implementar la tarea del usuario, el mensaje del asistente y la condición de parada en `src/harness_agent/core/loop.py`
+- [x] T009 [US1] Implementar la tarea del usuario, el mensaje del asistente y la condición de parada en `src/harness_agent/core/loop.py`
   - **Objetivo**: añadir `Message(USER, task)` al historial del llamador (tras la precondición, T021), construir `Message(ASSISTANT, content, tuple(tool_calls), usage)` conservando `Message.content`, `ToolCall` y `TokenUsage`; la presencia de `tool_calls` prevalece sobre el texto; una respuesta sin `tool_calls` añade el `ASSISTANT` final y devuelve `TurnResult(COMPLETED, final_response, history)` sin consulta adicional; sin límite de iteraciones ni parámetro de turnos (FR-028).
   - **Archivos**: `src/harness_agent/core/loop.py`
   - **Estimación**: 30 min
@@ -158,8 +174,9 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: **AC-01**, FR-001, FR-003, FR-004, FR-007, FR-028
   - **Evidencia requerida**: la prueba de respuesta final y de texto + llamadas de T007 en VERDE
   - **Completada cuando**: una respuesta sin llamadas termina el turno con `COMPLETED`, sin añadir parámetros de límite ni emitir `LIMIT_REACHED`.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `src/harness_agent/core/loop.py`; pruebas: test_text_together_with_tool_calls_is_not_a_final_answer, test_ac01_three_tools_run_in_order_and_loop_stops_when_model_asks_no_more; comando: `pytest tests/core/test_loop_happy_path.py -k "text_together or ac01" --no-cov`; resultado: **21 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: AC-01 (condición de parada).
 
-- [ ] T010 [US1] Implementar el procesamiento secuencial por llamada: herramienta desconocida, validación y argumentos efectivos (R-07, parte 1) en `src/harness_agent/core/loop.py`
+- [x] T010 [US1] Implementar el procesamiento secuencial por llamada: herramienta desconocida, validación y argumentos efectivos (R-07, parte 1) en `src/harness_agent/core/loop.py`
   - **Objetivo**: recorrer `tool_calls` **en orden y una a una**; por llamada: `registry.get(name)` (ausente o excepción ⇒ resultado `unknown_tool`, sin política ni ejecución); `registry.validate_args(name, call.arguments)` pasando una copia profunda de los argumentos (para que el registro no pueda mutar `call.arguments`); cualquier `Exception` o retorno que no sea `dict` ⇒ resultado `invalid_arguments` con el motivo (≤500 caracteres) sin consultar la política; si el retorno es un `dict`, tomar una **copia profunda** como **argumentos efectivos**, conservando los argumentos originales solo para diagnóstico. Los rechazos se convierten en `ToolResult(call_id=call.id, is_error=True)` con texto estructurado `[unknown_tool]`/`[invalid_arguments]` y se añade su `Message(TOOL)` al historial inmediatamente; continuar con la siguiente llamada.
   - **Archivos**: `src/harness_agent/core/loop.py`
   - **Estimación**: 35 min
@@ -168,8 +185,9 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: FR-008(a)(b), FR-010, FR-011, FR-015, FR-019, R-07
   - **Evidencia requerida**: las pruebas de T007 de múltiples llamadas en orden y de rechazo previo (herramienta desconocida y argumentos inválidos) pasan a VERDE (evidencia propia: no depende de pruebas de tareas posteriores)
   - **Completada cuando**: una llamada desconocida o con argumentos rechazados no consulta la política ni ejecuta nada, y los argumentos efectivos son una copia independiente del `dict` de `validate_args` y de `call.arguments`.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `src/harness_agent/core/loop.py`; pruebas: test_several_calls_in_one_response_run_in_order_one_result_each, test_unknown_tool_is_a_structured_error_and_never_reaches_policy_or_execution, test_rejected_arguments_are_a_structured_error_and_skip_policy_and_execution; comando: `pytest tests/core/test_loop_happy_path.py -k "several_calls or unknown_tool or rejected_arguments" --no-cov`; resultado: **3 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: AC-01, AC-02, FR-008 a FR-011.
 
-- [ ] T011 [US1] Implementar la evaluación de la política sobre una `ToolCall` con los argumentos efectivos (R-07, parte 2) y la compuerta `ALLOW` en `src/harness_agent/core/loop.py`
+- [x] T011 [US1] Implementar la evaluación de la política sobre una `ToolCall` con los argumentos efectivos (R-07, parte 2) y la compuerta `ALLOW` en `src/harness_agent/core/loop.py`
   - **Objetivo**: construir la `ToolCall` de evaluación con `id` y `name` del original y **otra copia profunda** de los argumentos efectivos (`dataclasses.replace(call, arguments=…)`), invocar `policy.evaluate(eval_call)`; solo si el valor es exactamente `PermissionDecision.ALLOW` se prosigue a ejecutar con los argumentos autorizados (una copia propia, distinta de la que vio la política); toda otra salida (otro valor, excepción) se trata como no ejecutable (el mapeo detallado y los textos de `DENY`/`ASK`/fallo es T016). La `ToolCall` original no se pasa a la política.
   - **Archivos**: `src/harness_agent/core/loop.py`
   - **Estimación**: 35 min
@@ -178,8 +196,9 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: FR-008(c), FR-009, FR-014, R-07
   - **Evidencia requerida**: la prueba mínima de R-07 de T007 (la política recibe los argumentos efectivos con el mismo `id`/`name`) pasa a VERDE; las pruebas completas de permisos de la fase US3 (incluida la inmutabilidad posterior a la autorización) se ejecutan cuando esa fase se complete y no son prerrequisito de esta tarea
   - **Completada cuando**: la herramienta no se ejecuta salvo con `ALLOW` exacto y los argumentos que se ejecutan son los mismos valores que se autorizaron.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `src/harness_agent/core/loop.py`; pruebas: test_policy_sees_the_effective_arguments_with_the_same_id_and_name, test_r07_policy_receives_effective_arguments_and_tool_runs_the_authorized_ones; comando: `pytest tests/core/test_loop_happy_path.py tests/core/test_loop_permissions.py -k "policy_sees_the_effective or r07_policy_receives" --no-cov`; resultado: **2 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: R-07.
 
-- [ ] T012 [US1] Implementar la ejecución, la normalización del resultado, la conservación de `call_id` y el mensaje `TOOL` en `src/harness_agent/core/loop.py`
+- [x] T012 [US1] Implementar la ejecución, la normalización del resultado, la conservación de `call_id` y el mensaje `TOOL` en `src/harness_agent/core/loop.py`
   - **Objetivo**: `await tool.run(authorized_args)` solo con `ALLOW`; el `ToolResult` entregado lleva siempre `call_id = call.id` (`dataclasses.replace` si la herramienta informó otro); `Message(role=TOOL, content=tool_result.content, tool_result=…, is_external=True)` añadido al historial **inmediatamente** al terminar cada llamada y antes de procesar la siguiente; solo tras la última llamada se vuelve a consultar al proveedor. Con esto AC-01 queda en VERDE.
   - **Archivos**: `src/harness_agent/core/loop.py`
   - **Estimación**: 30 min
@@ -188,6 +207,7 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: **AC-01**, FR-003, FR-015, FR-016, FR-021, FR-022, SC-001
   - **Evidencia requerida**: `pytest tests/core/test_loop_happy_path.py` completo en VERDE bajo `run_bounded`; `mypy --strict` y `ruff` sobre `loop.py`
   - **Completada cuando**: el guion de tres pasos termina con la respuesta final, las tres herramientas se ejecutaron una vez y en orden, y cada `TOOL` tiene `content == tool_result.content` y `call_id` igual al `id` de la llamada.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `src/harness_agent/core/loop.py`; pruebas: archivo completo de AC-01 bajo `run_bounded`; comando: `pytest tests/core/test_loop_happy_path.py -k "not t034" --no-cov`; resultado: **29 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: AC-01. Nota: mypy estricto y ruff sobre `loop.py`: limpios (ver T029).
 
 **Checkpoint US1**: AC-01 verificable de forma independiente con dobles (MVP junto con US2).
 
@@ -198,7 +218,7 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
 **Meta**: una herramienta que falla se devuelve al modelo como resultado estructurado y el bucle continúa (AC-02 literal en `spec.md`).
 **Prueba independiente**: `FailingTool`/`RaisingTool` en el segundo paso de un guion de tres; el modelo recibe el error y el guion llega a su respuesta final.
 
-- [ ] T013 [US2] Escribir en ROJO las pruebas de AC-02 y de errores de herramienta en `tests/core/test_loop_tool_errors.py`
+- [x] T013 [US2] Escribir en ROJO las pruebas de AC-02 y de errores de herramienta en `tests/core/test_loop_tool_errors.py`
   - **Objetivo**: AC-02 y SC-003: `is_error=True` devuelto íntegro con el `id` de la llamada y el bucle continúa; excepción de la herramienta ⇒ resultado de error con nombre de clase y mensaje, sin traza; retorno que no es `ToolResult` ⇒ error `invalid_tool_result`; `call_id` ajeno informado por la herramienta ⇒ se fuerza el `id` de la llamada; herramienta desconocida ⇒ error que nombra la herramienta; varias llamadas con una fallida: las demás se procesan y cada una tiene su resultado; el contenido de los resultados de herramientas no se recorta; `is_external` verdadero para resultados de la herramienta y falso para rechazos del bucle. Las excepciones de `Exception` no escapan; `CancelledError` no se trata aquí (T023).
   - **Archivos**: `tests/core/test_loop_tool_errors.py`
   - **Estimación**: 25 min
@@ -207,8 +227,9 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: **AC-02**, FR-010, FR-016–FR-019, FR-022, SC-003
   - **Evidencia requerida**: salida de `pytest tests/core/test_loop_tool_errors.py` en ROJO
   - **Completada cuando**: las pruebas existen, están tipadas y fallan solo por comportamiento aún no implementado; el texto de AC-02 en el docstring es literal.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `tests/core/test_loop_tool_errors.py`; pruebas: test_ac02_failing_tool_error_reaches_the_model_and_the_loop_continues, test_tool_exception_becomes_a_structured_error_without_traceback, test_the_call_id_of_the_request_is_forced_on_the_result; comando: `pytest tests/core/test_loop_tool_errors.py --no-cov`; resultado: **11 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: AC-02. Nota: ROJO registrado en la implementación original: 4 de 8 pruebas fallaban (no re-observable sin deshacer la implementación).
 
-- [ ] T014 [US2] Implementar las categorías de fallo de herramienta y los textos estructurados en `src/harness_agent/core/loop.py`
+- [x] T014 [US2] Implementar las categorías de fallo de herramienta y los textos estructurados en `src/harness_agent/core/loop.py`
   - **Objetivo**: `Tool.run` que lanza `Exception` ⇒ `[tool_exception] Tool '{name}' raised {ExceptionType}: {message}` (mensaje acotado a 500 caracteres, sin traza); retorno que no sea `ToolResult` con `content: str` ⇒ `[tool_exception] …returned an invalid result ({type})`; `ToolResult(is_error=True)` de la herramienta pasa íntegro con `call_id` forzado; `CancelledError` (es `BaseException`) **nunca** se captura; `is_external=True` para `ok`, `tool_error`, `tool_exception` e `invalid_tool_result`, `False` para los rechazos previos a la ejecución; el bucle continúa tras cada fallo. Categorías: `ok`, `tool_error`, `tool_exception`, `invalid_tool_result`, `unknown_tool`, `invalid_arguments`, `permission_denied`, `approval_required_unavailable`.
   - **Archivos**: `src/harness_agent/core/loop.py`
   - **Estimación**: 30 min
@@ -217,6 +238,7 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: **AC-02**, FR-017, FR-018, FR-019, FR-022, SC-003
   - **Evidencia requerida**: `pytest tests/core/test_loop_tool_errors.py` completo en VERDE
   - **Completada cuando**: el 100 % de los fallos de herramienta llega al modelo como `ToolResult(is_error=True)` con el `id` de la llamada y el bucle sigue hasta la respuesta final; ninguna excepción de herramienta escapa y `CancelledError` no se absorbe.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `src/harness_agent/core/loop.py`; pruebas: archivo completo de AC-02; comando: `pytest tests/core/test_loop_tool_errors.py --no-cov`; resultado: **11 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: AC-02.
 
 **Checkpoint US1+US2**: MVP (AC-01 + AC-02) completo y probado con dobles.
 
@@ -227,7 +249,7 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
 **Meta**: ninguna herramienta se ejecuta sin validación y decisión `ALLOW`; la política evalúa los argumentos efectivos y se ejecuta exactamente lo autorizado.
 **Prueba independiente**: contador de ejecuciones por escenario con `ScriptedPolicy` y registro doble que rechaza o normaliza argumentos.
 
-- [ ] T015 [US3] Escribir en ROJO las pruebas de permisos y de R-07 en `tests/core/test_loop_permissions.py`
+- [x] T015 [US3] Escribir en ROJO las pruebas de permisos y de R-07 en `tests/core/test_loop_permissions.py`
   - **Objetivo**: SC-002 (contador de ejecuciones solo avanza con válido + `ALLOW`): argumentos inválidos (la política no se consulta), `DENY`, `ASK` (resuelto como denegación con mensaje de aprobación no disponible; sin eventos `APPROVAL_*`), política que lanza, política que devuelve un valor que no es `PermissionDecision`, política sin mapeo ⇒ `DENY`; **R-07**: la política recibe una `ToolCall` con el mismo `id` y `name` y los **argumentos efectivos** del registro que normaliza (no los crudos); `Tool.run` recibe exactamente los argumentos autorizados; mutar `call.arguments` original, el `dict` devuelto por `validate_args` o lo recibido por la política después de autorizar **no altera** lo ejecutado; el registro no puede mutar `call.arguments`; los argumentos originales permanecen en el mensaje `ASSISTANT` del historial; sin cambios de firma. Todo ejecutado bajo `run_bounded`.
   - **Archivos**: `tests/core/test_loop_permissions.py`
   - **Estimación**: 35 min
@@ -236,8 +258,9 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: FR-008, FR-009, FR-011–FR-014, SC-002, R-07
   - **Evidencia requerida**: salida de `pytest tests/core/test_loop_permissions.py` en ROJO (las de R-07 y las de `ALLOW` avanzan con T010–T012)
   - **Completada cuando**: las pruebas existen, están tipadas y cubren cada fila de la matriz de errores de permisos del contrato §3 y los cuatro puntos de R-07 (política ve efectivos, herramienta recibe autorizados, mutaciones posteriores no alteran, `id`/`name` conservados).
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `tests/core/test_loop_permissions.py`; pruebas: test_r07_policy_receives_effective_arguments_and_tool_runs_the_authorized_ones, test_r07_a_policy_that_mutates_what_it_receives_cannot_change_the_execution, test_r07_mutating_the_validated_dict_or_the_original_call_after_it_changes_nothing, test_anything_other_than_an_explicit_allow_never_executes; comando: `pytest tests/core/test_loop_permissions.py --no-cov`; resultado: **15 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: R-07, FR-012 a FR-014. Nota: ROJO registrado en la implementación original: 5 pruebas fallaban.
 
-- [ ] T016 [US3] Implementar el mapeo `DENY`/`ASK`/fallo de política con falla cerrada en `src/harness_agent/core/loop.py`
+- [x] T016 [US3] Implementar el mapeo `DENY`/`ASK`/fallo de política con falla cerrada en `src/harness_agent/core/loop.py`
   - **Objetivo**: `DENY` ⇒ `[permission_denied] Tool '{name}' was denied by the permission policy.`; `ASK` (Sprint 1) ⇒ `[approval_required_unavailable] …resolved as denied.`; excepción o valor inesperado de `evaluate` ⇒ tratado como `DENY` con `…could not be evaluated and was denied (fail closed).`; `Approver` no se usa; el bucle trata como no ejecutable todo valor distinto de `ALLOW` y es la última barrera sin duplicar la política provisional de C (Sp1-35); no se amplían permisos desde el núcleo. Todos con `is_error=True`, `is_external=False`.
   - **Archivos**: `src/harness_agent/core/loop.py`
   - **Estimación**: 25 min
@@ -246,6 +269,7 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: FR-009, FR-012, FR-013, FR-014, FR-019, SC-002, Q5
   - **Evidencia requerida**: `pytest tests/core/test_loop_permissions.py` completo en VERDE
   - **Completada cuando**: en todos los escenarios de la matriz de permisos el número de ejecuciones de herramientas coincide con las llamadas válidas permitidas y ninguna ruta ejecuta con `DENY`, `ASK` o un valor inesperado.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `src/harness_agent/core/loop.py`; pruebas: archivo completo de permisos (ALLOW, DENY, ASK, excepción y valor inesperado de la política); comando: `pytest tests/core/test_loop_permissions.py --no-cov`; resultado: **15 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: R-07, Q5.
 
 ---
 
@@ -254,7 +278,7 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
 **Meta**: los hechos relevantes salen por `EventBus.emit` en el orden definido y el bucle propaga cualquier excepción de `emit`.
 **Prueba independiente**: `RecordingEventBus` registra la secuencia exacta; `FailingEventBus` falla en cada tipo de evento.
 
-- [ ] T017 [US4] Escribir en ROJO las pruebas de eventos y de Q4 en `tests/core/test_loop_events.py`
+- [x] T017 [US4] Escribir en ROJO las pruebas de eventos y de Q4 en `tests/core/test_loop_events.py`
   - **Objetivo**: secuencia exacta de eventos en el guion de tres pasos (`USER_MESSAGE`, `ASSISTANT_MESSAGE`, por llamada `TOOL_REQUESTED` < `PERMISSION_DECIDED` < `TOOL_FINISHED`, respuesta final) con las cargas del contrato §5; sin suscriptores el resultado es idéntico; ni `LIMIT_REACHED` ni `APPROVAL_REQUESTED`/`APPROVAL_RESOLVED` en ningún escenario; salida estándar y de error capturadas vacías (`capsys`/`capfd`); **Q4**: `FailingEventBus` que lanza en cada tipo (`USER_MESSAGE`, `ASSISTANT_MESSAGE`, `TOOL_REQUESTED`, `PERMISSION_DECIDED`, `TOOL_FINISHED`): la excepción original se propaga (no un `ToolResult`, no un `TurnResult`), sin reintentos (un solo intento de `emit` fallido), la herramienta de esa llamada **no** se ejecuta si el fallo ocurre en `TOOL_REQUESTED`/`PERMISSION_DECIDED`, y con `TOOL_FINISHED` fallido la herramienta **ya** se ejecutó una sola vez, su `TOOL` ya está en el historial y no se repite ni se ejecutan las llamadas siguientes.
   - **Archivos**: `tests/core/test_loop_events.py`
   - **Estimación**: 25 min
@@ -263,8 +287,9 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: FR-029, FR-030, FR-031, FR-028, SC-004, SC-006, Q3, Q4
   - **Evidencia requerida**: salida de `pytest tests/core/test_loop_events.py` en ROJO
   - **Completada cuando**: las pruebas existen, están tipadas y distinguen explícitamente suscriptor aislado (fuera del bucle), fallo real de `emit`, fallo de herramienta, fallo del proveedor y cancelación.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `tests/core/test_loop_events.py`; pruebas: test_event_sequence_of_a_three_step_turn, test_q4_emit_failure_before_execution_propagates_and_runs_no_tool, test_q4_emit_failure_after_execution_does_not_repeat_or_continue; comando: `pytest tests/core/test_loop_events.py --no-cov`; resultado: **12 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: Q4, FR-029 a FR-031. Nota: ROJO registrado en la implementación original: 10 pruebas fallaban.
 
-- [ ] T018 [US4] Implementar los puntos de publicación y el orden de eventos en `src/harness_agent/core/loop.py`
+- [x] T018 [US4] Implementar los puntos de publicación y el orden de eventos en `src/harness_agent/core/loop.py`
   - **Objetivo**: publicar con `_emit` (T006) en los puntos del contrato §5: `USER_MESSAGE` tras añadir el `USER`; `ASSISTANT_MESSAGE` tras añadir el `ASSISTANT` si hay texto (con `tool_call_count` y `final`); por llamada `TOOL_REQUESTED` antes de procesarla (por llamada, no por lote), `PERMISSION_DECIDED` solo para llamadas que llegan a la política (con `decision`, `resolved_as`, `reason`), `TOOL_FINISHED` tras añadir el `TOOL` (con `category`); orden relativo garantizado; sin `print`.
   - **Archivos**: `src/harness_agent/core/loop.py`
   - **Estimación**: 30 min
@@ -273,8 +298,9 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: FR-029, FR-030, SC-006
   - **Evidencia requerida**: las pruebas de secuencia y cargas de `tests/core/test_loop_events.py` en VERDE
   - **Completada cuando**: la secuencia observada en el bus coincide exactamente con la tabla de eventos del contrato en el 100 % de los escenarios de éxito, error y denegación.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `src/harness_agent/core/loop.py`; pruebas: test_event_sequence_of_a_three_step_turn, test_assistant_text_is_published_before_the_requests_of_its_calls, test_rejections_publish_the_right_decision_and_category; comando: `pytest tests/core/test_loop_events.py -k "sequence or assistant_text or payloads or rejections" --no-cov`; resultado: **4 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: FR-029, FR-030.
 
-- [ ] T019 [US4] Implementar y verificar la semántica de fallo de `emit` (Q4) en `src/harness_agent/core/loop.py`
+- [x] T019 [US4] Implementar y verificar la semántica de fallo de `emit` (Q4) en `src/harness_agent/core/loop.py`
   - **Objetivo**: confirmar que ningún punto de publicación captura excepciones del bus; ordenar las operaciones para que el estado sea seguro: `TOOL_REQUESTED` y `PERMISSION_DECIDED` se publican **antes** de ejecutar; el mensaje `TOOL` se añade al historial **antes** de publicar `TOOL_FINISHED`; ante un fallo de `emit` el bucle no ejecuta herramientas posteriores, no reintenta y no convierte la excepción en `ToolResult`; no se asume rollback tras una operación con efectos.
   - **Archivos**: `src/harness_agent/core/loop.py`
   - **Estimación**: 35 min
@@ -283,6 +309,7 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: FR-031, Q4 (reglas 1–7), D-PLAN-06, D-PLAN-09
   - **Evidencia requerida**: todas las pruebas de Q4 de `tests/core/test_loop_events.py` en VERDE; revisión del diff sin `except` alrededor de `bus.emit`
   - **Completada cuando**: `rg "except" src/harness_agent/core/loop.py` no muestra ningún `except` que envuelva una llamada a `_emit`/`bus.emit` salvo el caso acotado de R-08 (T026), y las pruebas Q4 pasan.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `src/harness_agent/core/loop.py`; pruebas: test_q4_emit_failure_before_execution_propagates_and_runs_no_tool, test_q4_emit_failure_after_execution_does_not_repeat_or_continue, test_only_the_r08_interruption_publisher_guards_a_bus_emit_with_a_try; comando: `pytest tests/core/test_loop_events.py tests/architecture/test_loop_boundaries.py -k "q4 or without_subscribers or guards_a_bus_emit or swallowed_emit" --no-cov`; resultado: **8 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: Q4. Nota: La «revisión del diff sin `except` alrededor de `bus.emit`» era manual; se creó la guarda AST permanente `test_only_the_r08_interruption_publisher_guards_a_bus_emit_with_a_try` (solo `_publish_interruption`, R-08, envuelve un `emit` con `try`).
 
 ---
 
@@ -291,7 +318,7 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
 **Meta**: el historial solo crece por añadido y es canónicamente válido entre turnos; un historial inválido o una dependencia ausente fallan antes de cualquier efecto.
 **Prueba independiente**: dos turnos consecutivos sobre la misma lista; historiales inválidos; constructor con cada colaborador ausente.
 
-- [ ] T020 [US5] Escribir en ROJO las pruebas de historial, varios turnos y colaboradores ausentes en `tests/core/test_loop_history.py` y `tests/core/test_loop_construction.py`
+- [x] T020 [US5] Escribir en ROJO las pruebas de historial, varios turnos y colaboradores ausentes en `tests/core/test_loop_history.py` y `tests/core/test_loop_construction.py`
   - **Objetivo**: solo se añade (nada se modifica, reordena ni elimina; `TOOL.content == tool_result.content`); un segundo turno sobre el historial del primero conserva el orden y la correlación de ids; en cada consulta el historial pasa la validación canónica existente (oráculo de HU-07-01 usado **solo en la prueba**: `validate_canonical_messages` y conversión con los dos convertidores, SC-005); `InvalidHistoryError` para SYSTEM intercalado (fuera del prefijo contiguo), llamadas pendientes de un turno cancelado/interrumpido e ids repetidos, sin añadir ni publicar nada; los guiones del segundo turno usan ids distintos de los del primero (una respuesta que repite un id ya presente en el historial es `INVALID_PROVIDER_RESPONSE`, T023); el contexto no se asume «solo SYSTEM»; `AgentLoop` con cada uno de los cuatro colaboradores `None` ⇒ `MissingDependencyError` que lo nombra, 0 consultas y 0 ejecuciones (SC-008).
   - **Archivos**: `tests/core/test_loop_history.py`, `tests/core/test_loop_construction.py`
   - **Estimación**: 25 min
@@ -300,8 +327,9 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: FR-001, FR-020, FR-021, FR-025, SC-005, SC-008
   - **Evidencia requerida**: salida de `pytest tests/core/test_loop_history.py tests/core/test_loop_construction.py` en ROJO (construcción ya en VERDE por T005)
   - **Completada cuando**: las pruebas existen, están tipadas, y la validación canónica se obtiene de `adapters/converters/` solo desde el código de prueba.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `tests/core/test_loop_history.py`, `tests/core/test_loop_construction.py`; pruebas: test_an_invalid_initial_history_fails_before_any_effect, test_a_multi_turn_history_is_not_assumed_to_contain_only_system_messages, test_two_turns_over_the_same_list_keep_order_and_id_correlation; comando: `pytest tests/core/test_loop_history.py tests/core/test_loop_construction.py --no-cov`; resultado: **22 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: FR-001, FR-020, SC-005. Nota: ROJO registrado en la implementación original: 8 pruebas fallaban.
 
-- [ ] T021 [US5] Implementar `_check_history` y `InvalidHistoryError` en `src/harness_agent/core/loop.py`
+- [x] T021 [US5] Implementar `_check_history` y `InvalidHistoryError` en `src/harness_agent/core/loop.py`
   - **Objetivo**: comprobación estructural mínima y privada del historial inicial sin importar `adapters/`: mensajes `SYSTEM` solo como prefijo contiguo (regla de HU-07-01), ids de llamada únicos, y cada `ASSISTANT` con llamadas seguido de su `TOOL` por cada id en orden (un historial que termina en llamadas sin resultado se rechaza); se ejecuta antes de añadir cualquier mensaje o publicar cualquier evento; lanza `InvalidHistoryError` con el motivo. No se asume que el historial contenga solo `SYSTEM`.
   - **Archivos**: `src/harness_agent/core/loop.py`
   - **Estimación**: 35 min
@@ -310,8 +338,9 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: FR-001, FR-020, FR-021, FR-026, D-PLAN-05
   - **Evidencia requerida**: pruebas de historial inválido de T020 en VERDE; `pytest tests/architecture/test_core_boundaries.py` sigue en verde
   - **Completada cuando**: los historiales inválidos fallan antes de cualquier efecto y un historial válido de varios turnos se acepta.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `src/harness_agent/core/loop.py`; pruebas: test_an_invalid_initial_history_fails_before_any_effect, test_results_in_any_order_within_a_call_group_are_accepted_like_the_canonical_rules; comando: `pytest tests/core/test_loop_history.py -k "invalid_initial or multi_turn or results_in_any_order" --no-cov`; resultado: **12 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: FR-020, D-PLAN-05.
 
-- [ ] T022 [US5] Implementar la instantánea del historial en `TurnResult` y la reutilización entre turnos en `src/harness_agent/core/loop.py`
+- [x] T022 [US5] Implementar la instantánea del historial en `TurnResult` y la reutilización entre turnos en `src/harness_agent/core/loop.py`
   - **Objetivo**: `TurnResult.history` es una instantánea `tuple` del estado final; el bucle añade en el sitio a la lista del llamador (propiedad del llamador, sin referencias entre turnos), de modo que el siguiente turno reutiliza la misma lista; sin persistencia ni reanudación por identificador y sin `ContextManager`; tras `COMPLETED`, `PROVIDER_FAILED` o `INVALID_PROVIDER_RESPONSE` el historial es reutilizable; `AgentLoop` queda sin estado por turno.
   - **Archivos**: `src/harness_agent/core/loop.py`
   - **Estimación**: 20 min
@@ -320,6 +349,7 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: FR-006, FR-007, FR-020, SC-005
   - **Evidencia requerida**: `pytest tests/core/test_loop_history.py tests/core/test_loop_construction.py` en VERDE y `tests/contracts/test_loop_canonical_oracle.py` (si se crea ahí el oráculo) en VERDE
   - **Completada cuando**: dos turnos consecutivos sobre la misma lista conservan el orden y los ids, y la instantánea devuelta no es mutable.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `src/harness_agent/core/loop.py`; pruebas: test_history_is_append_only_and_tool_content_matches_the_result, test_a_response_repeating_an_id_already_in_the_history_is_invalid; oráculo `validate_canonical_messages` usado en `tests/core/test_loop_history.py`; comando: `pytest tests/core/test_loop_history.py tests/core/test_loop_construction.py tests/architecture/test_core_boundaries.py --no-cov`; resultado: **24 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: FR-020, FR-024, SC-005. Nota: El oráculo canónico vive en `tests/core/test_loop_history.py`; no se creó `tests/contracts/test_loop_canonical_oracle.py` (la condición lo admitía «si se crea ahí»).
 
 ---
 
@@ -328,7 +358,7 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
 **Meta**: un fallo del proveedor o una cancelación terminan de forma explícita, con un solo evento, sin reintentos ni historial corrupto; la cancelación prevalece sobre un fallo de `emit(INTERRUPTED)`.
 **Prueba independiente**: proveedor que falla; herramienta bloqueante cancelada; bus que falla al recibir `INTERRUPTED`.
 
-- [ ] T023 [US6] Escribir en ROJO las pruebas de fallos, cancelación y R-08 en `tests/core/test_loop_failures.py`
+- [x] T023 [US6] Escribir en ROJO las pruebas de fallos, cancelación y R-08 en `tests/core/test_loop_failures.py`
   - **Objetivo**: SC-009: fallo del proveedor ⇒ `TurnResult(PROVIDER_FAILED)`, un solo `PROVIDER_ERROR`, 0 reintentos, 0 conmutaciones; respuesta inválida (ids vacíos o repetidos, dentro de la respuesta o respecto del historial) ⇒ `INVALID_PROVIDER_RESPONSE`, ninguna llamada ejecutada y la respuesta no se añade; cancelación durante `Provider.complete` y durante una herramienta (`BlockingTool`) ⇒ `CancelledError` llega al llamador, exactamente un `INTERRUPTED` con `phase`, ninguna consulta ni herramienta posterior, ningún `ToolResult` fabricado, historial parcial del llamador sin duplicados; el historial interrumpido a mitad de llamadas se rechaza en el turno siguiente con `InvalidHistoryError`; **R-08**: con `FailingEventBus` que lanza en `INTERRUPTED` durante una cancelación, la excepción propagada **es la `CancelledError` original** (no el error del bus), con el diagnóstico del fallo adjunto como nota (`__notes__` contiene el tipo y el mensaje del error del bus; la prueba NO exige `__context__`, que no queda con el error del bus), un solo intento de `emit`, sin más herramientas ni reintentos ni `ToolResult`; **contraste**: un fallo de `emit` fuera de una cancelación se propaga como el error del bus (Q4); si falla `PROVIDER_ERROR` se propaga el error del bus encadenado al del proveedor; salida estándar vacía.
   - **Archivos**: `tests/core/test_loop_failures.py`
   - **Estimación**: 30 min
@@ -337,8 +367,9 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: FR-005, FR-023, FR-024, FR-026, SC-009, R-08, Q4
   - **Evidencia requerida**: salida de `pytest tests/core/test_loop_failures.py` en ROJO
   - **Completada cuando**: las pruebas existen, están tipadas, distinguen cancelación de errores ordinarios del bus y ninguna usa red.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `tests/core/test_loop_failures.py`; pruebas: test_r08_cancellation_prevails_over_a_failing_interrupted_event, test_r08_contrast_an_ordinary_emit_failure_propagates_as_the_bus_error, test_cancellation_is_never_swallowed_into_a_tool_result, test_provider_failure_ends_the_turn_explicitly_without_retries; comando: `pytest tests/core/test_loop_failures.py -k "not t033" --no-cov`; resultado: **15 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: R-08, FR-023 a FR-026. Nota: ROJO registrado en la implementación original: 10 pruebas fallaban.
 
-- [ ] T024 [US6] Implementar el fallo del proveedor y la respuesta inválida como `TurnResult` explícito en `src/harness_agent/core/loop.py`
+- [x] T024 [US6] Implementar el fallo del proveedor y la respuesta inválida como `TurnResult` explícito en `src/harness_agent/core/loop.py`
   - **Objetivo**: `Provider.complete` que lanza `Exception` (no `BaseException`) ⇒ publicar `PROVIDER_ERROR(reason=provider_exception, error_type, message≤500)` y devolver `TurnResult(PROVIDER_FAILED, error=…)` con el historial hasta ese punto, sin reintento ni fallback; respuesta inválida ⇒ `PROVIDER_ERROR(reason=invalid_response)` y `TurnResult(INVALID_PROVIDER_RESPONSE)` sin ejecutar nada y sin añadir la respuesta; si `emit(PROVIDER_ERROR)` falla se propaga el error del bus encadenado al del proveedor.
   - **Archivos**: `src/harness_agent/core/loop.py`
   - **Estimación**: 30 min
@@ -347,8 +378,9 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: FR-005, FR-023, FR-024, SC-009
   - **Evidencia requerida**: pruebas de proveedor e inválida de T023 en VERDE
   - **Completada cuando**: ningún camino reintenta ni cambia de proveedor y el resultado y el evento son los de la tabla del contrato §3.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `src/harness_agent/core/loop.py`; pruebas: test_provider_failure_ends_the_turn_explicitly_without_retries, test_an_invalid_provider_response_runs_nothing_and_is_not_recorded; comando: `pytest tests/core/test_loop_failures.py -k "provider or invalid or wrong_type" --no-cov`; resultado: **11 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: FR-023, FR-024.
 
-- [ ] T025 [US6] Implementar la cancelación (`INTERRUPTED` una sola vez y re-lanzar) en `src/harness_agent/core/loop.py`
+- [x] T025 [US6] Implementar la cancelación (`INTERRUPTED` una sola vez y re-lanzar) en `src/harness_agent/core/loop.py`
   - **Objetivo**: un `try` externo alrededor del turno captura `asyncio.CancelledError`, determina la fase (`provider_call` o `tool_execution`, y `call_id`), publica `INTERRUPTED` **una sola vez** con `_emit`, y vuelve a lanzar la cancelación original; sin `asyncio.shield`, sin limpieza propia ni fabricación de resultados «interrumpido» (V-11 → HU-06-03); los `except Exception` de herramienta y proveedor nunca interceptan `CancelledError`; el historial del llamador queda sin duplicados ni orden alterado.
   - **Archivos**: `src/harness_agent/core/loop.py`
   - **Estimación**: 30 min
@@ -357,8 +389,9 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: FR-026, FR-027, SC-009, D-PLAN-10, D-01 §6 (pendiente de aprobación)
   - **Evidencia requerida**: pruebas de cancelación de T023 en VERDE
   - **Completada cuando**: la cancelación llega al llamador como `CancelledError` con un solo `INTERRUPTED`, sin consultas ni herramientas posteriores.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `src/harness_agent/core/loop.py`; pruebas: test_cancellation_during_the_provider_call_propagates_with_one_interrupted, test_cancellation_during_a_tool_leaves_calls_without_fabricated_results, test_the_history_left_by_a_cancelled_turn_is_rejected_by_the_next_turn; comando: `pytest tests/core/test_loop_failures.py -k cancellation --no-cov`; resultado: **6 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: FR-026, D-01 (pendiente de ratificación).
 
-- [ ] T026 [US6] Implementar la precedencia de la cancelación sobre un fallo de `emit(INTERRUPTED)` (R-08) en `src/harness_agent/core/loop.py`
+- [x] T026 [US6] Implementar la precedencia de la cancelación sobre un fallo de `emit(INTERRUPTED)` (R-08) en `src/harness_agent/core/loop.py`
   - **Objetivo**: al publicar `INTERRUPTED` dentro del manejo de la cancelación, si `bus.emit` lanza, capturar **únicamente ese** fallo, adjuntar a la `CancelledError` original una nota con el tipo y el mensaje del fallo (`add_note`; mecanismo explícito: no se confía en `__context__`, que no queda con el error del bus) y re-lanzar la **`CancelledError` original** (no un error del bus); no reintentar, no ejecutar más herramientas, no convertirla en `ToolResult`. Ningún otro punto de publicación captura excepciones (Q4 intacta).
   - **Archivos**: `src/harness_agent/core/loop.py`
   - **Estimación**: 20 min
@@ -367,8 +400,9 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: FR-026, FR-031, R-08, Q4
   - **Evidencia requerida**: pruebas R-08 de T023 en VERDE, junto con las pruebas Q4 de T017 aún en VERDE
   - **Completada cuando**: con un bus que falla al recibir `INTERRUPTED` la excepción propagada es la `CancelledError` original con el diagnóstico en `__notes__`, y un fallo de `emit` fuera de una cancelación sigue propagando el error del bus.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `src/harness_agent/core/loop.py`; pruebas: test_r08_cancellation_prevails_over_a_failing_interrupted_event (aserción sobre `__notes__`), test_q4_emit_failure_before_execution_propagates_and_runs_no_tool; comando: `pytest tests/core/test_loop_failures.py tests/core/test_loop_events.py -k "r08 or q4" --no-cov`; resultado: **8 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: R-08, Q4. Nota: Se verifica `__notes__`; `__context__` no se exige.
 
-- [ ] T027 [US6] Verificar y cerrar la publicación de `PROVIDER_ERROR` e `INTERRUPTED` y su comportamiento ante fallo en `src/harness_agent/core/loop.py`
+- [x] T027 [US6] Verificar y cerrar la publicación de `PROVIDER_ERROR` e `INTERRUPTED` y su comportamiento ante fallo en `src/harness_agent/core/loop.py`
   - **Objetivo**: revisar que las cargas (`reason`, `error_type`, `message` ≤500 caracteres; `phase`, `call_id`) coinciden con el contrato §5, que `INTERRUPTED` se publica una vez por cancelación y `PROVIDER_ERROR` una vez por fallo, que el orden relativo con el resto de eventos es el definido y que no existe ningún otro `except` que capture excepciones del bus; ajustar el código o el contrato (solo si hay discrepancia) y registrar el resultado.
   - **Archivos**: `src/harness_agent/core/loop.py`, `specs/005-basic-agent-loop/contracts/agent-loop-contract.md` (solo si hay discrepancia verificada)
   - **Estimación**: 20 min
@@ -377,12 +411,13 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: FR-029, FR-031, SC-006, SC-009
   - **Evidencia requerida**: `pytest tests/core/test_loop_events.py tests/core/test_loop_failures.py` en VERDE
   - **Completada cuando**: la secuencia y las cargas de eventos de fallo coinciden con el contrato y no quedan discrepancias abiertas.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `src/harness_agent/core/loop.py`, `specs/005-basic-agent-loop/contracts/agent-loop-contract.md` (solo si hay discrepancia verificada); pruebas: archivos de eventos y de fallos completos; comando: `pytest tests/core/test_loop_events.py tests/core/test_loop_failures.py -k "not t033" --no-cov`; resultado: **27 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: FR-026, FR-029 a FR-031. Nota: No hubo discrepancia verificada en esta tarea; `contracts/agent-loop-contract.md` no se modificó por T027 (sí se actualizó después por T033 y T034).
 
 ---
 
 ## Phase 9: Pulido y cierre
 
-- [ ] T028 [P] Escribir las guardas de arquitectura (AST) en `tests/architecture/test_loop_boundaries.py`
+- [x] T028 [P] Escribir las guardas de arquitectura (AST) en `tests/architecture/test_loop_boundaries.py`
   - **Objetivo**: con `ast`, comprobar que `src/harness_agent/core/loop.py` no usa `print`, `input`, `sys.stdout` ni `sys.stderr` (FR-030); solo importa biblioteca estándar y `harness_agent.core` (sin `adapters`, `cli`, `observability` ni SDKs comerciales: reutilizando `FORBIDDEN_PACKAGES` de `tests/architecture/test_core_boundaries.py`); no emite `EventType.LIMIT_REACHED` ni `APPROVAL_*`; no define un parámetro de límite de turnos en `run_turn`/`AgentLoop`; ningún archivo compartido de `core/` fue modificado por la historia; la prueba de fronteras existente sigue en verde.
   - **Archivos**: `tests/architecture/test_loop_boundaries.py`
   - **Estimación**: 15 min
@@ -391,8 +426,9 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: FR-028, FR-030, FR-032, FR-033, SC-004, SC-007
   - **Evidencia requerida**: `pytest tests/architecture` en verde
   - **Completada cuando**: las guardas pasan sobre el `loop.py` final y fallan si se introduce un `print` o un import prohibido (comprobado con una prueba negativa sobre código de ejemplo en memoria).
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `tests/architecture/test_loop_boundaries.py`; pruebas: test_loop_module_never_writes_to_the_console, test_loop_module_only_imports_stdlib_and_core, test_loop_module_never_publishes_limit_or_approval_events, test_loop_has_no_turn_or_iteration_limit_parameter, test_no_other_core_module_imports_the_loop_so_there_is_no_cycle; comando: `pytest tests/architecture/test_loop_boundaries.py --no-cov`; resultado: **10 passed, 0 failed**; criterio de cierre satisfecho (prueba(s) citadas en verde y `git diff` de los contratos compartidos vacío); relación: FR-027, FR-028, FR-032, FR-033. Nota: Las guardas se contrastan con muestras en memoria para demostrar que fallarían.
 
-- [ ] T029 Ejecutar la puerta de calidad completa y corregir hallazgos en `src/harness_agent/core/loop.py` y `tests/`
+- [x] T029 Ejecutar la puerta de calidad completa y corregir hallazgos en `src/harness_agent/core/loop.py` y `tests/`
   - **Objetivo**: `pytest` completo, `mypy` estricto sobre `src` y `tests`, `ruff check` y `ruff format --check` con el entorno 3.12; corregir lo que falle dentro del alcance de la historia; medir que la suite de la historia corre en menos de 5 s en memoria (SC-010); comprobar que la línea base previa (385 passed, 5 skipped) no se degrada.
   - **Archivos**: `src/harness_agent/core/loop.py`, `tests/core/*`, `tests/doubles/*`, `tests/architecture/test_loop_boundaries.py`
   - **Estimación**: 20 min
@@ -401,8 +437,9 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: SC-010, Principio IV, Definition of Done (calidad)
   - **Evidencia requerida**: los cuatro comandos con su salida y resultado, que se registran en `docs/PROGRESO.md` al completar el registro documental; en WSL2 si hay entorno disponible
   - **Completada cuando**: los cuatro comandos terminan en verde, sin `# type: ignore` ni `noqa` nuevos injustificados y sin tests omitidos por esta historia.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `src/harness_agent/core/loop.py`, `tests/core/*`, `tests/doubles/*`, `tests/architecture/test_loop_boundaries.py`; comandos y resultados: `pytest` (suite completa) **524 passed, 5 skipped**; `mypy src tests` «Success: no issues found in 66 source files»; `ruff check .` «All checks passed!»; `ruff format --check .` «66 files already formatted»; cobertura de `core/loop.py`: 200 sentencias, 60 ramas, 0 sin cubrir, **100 %**; suite de la historia (`tests/core` + `tests/architecture/test_loop_boundaries.py`): 139 passed; Python 3.12.10 (Windows). `git diff` de los contratos compartidos: vacío. WSL2 y CI remota: **no ejecutados**.
 
-- [ ] T030 Actualizar la documentación y el seguimiento sin declarar completada la historia en `docs/PROGRESO.md` y `specs/005-basic-agent-loop/tasks.md`
+- [x] T030 Actualizar la documentación y el seguimiento sin declarar completada la historia en `docs/PROGRESO.md` y `specs/005-basic-agent-loop/tasks.md`
   - **Objetivo**: marcar las tareas completadas con su evidencia en este archivo; añadir en `docs/PROGRESO.md` una fila de registro por la implementación con comandos y resultados reales (ROJO observado de las pruebas, VERDE final, `mypy`, `ruff`) y los archivos tocados; pasar HU-01-01 a «En revisión» **solo** si T029 está en verde, nunca a «Hecha»; dejar listados como pendientes: revisión por otra área, CI remota de la matriz 3.12 (T008 de la spec 002), demostración del sprint, las integraciones T031/T032, ratificación formal de R-07/R-08/Q4 si corresponde, D-01 y las aprobaciones de HU-00-01/HU-07-01; actualizar el estado de `spec.md` y `plan.md` a «implementado, en revisión» sin tocar AC-01 ni AC-02.
   - **Archivos**: `docs/PROGRESO.md`, `specs/005-basic-agent-loop/tasks.md`, `specs/005-basic-agent-loop/spec.md`, `specs/005-basic-agent-loop/plan.md`
   - **Estimación**: 15 min
@@ -411,6 +448,7 @@ Verificado con `docs/03-plan-sprints.md:253-255`: Sp1-12 = 7 h, Sp1-13 = 2,5 h, 
   - **Criterios relacionados**: Principio VIII (registro en `PROGRESO.md`), Principio IX (Definition of Done)
   - **Evidencia requerida**: diff documental revisado; `rg "Hecha" docs/PROGRESO.md` no muestra HU-01-01 como hecha
   - **Completada cuando**: el registro refleja la evidencia real, HU-01-01 no figura como `Hecha` y los pendientes externos están enumerados.
+  - **Evidencia obtenida** (re-ejecutada el 2026-10-19): archivos: `docs/PROGRESO.md`, `specs/005-basic-agent-loop/tasks.md`, `spec.md`, `plan.md`; comprobación: filas de `docs/PROGRESO.md` que contienen HU-01-01 y «Hecha»: **0** (la historia figura «En revisión»); `git diff` del mensaje de estado sin cambiar criterios AC-01/AC-02. Relación: trazabilidad (Principio VIII), sin cierre de la historia.
 
 ---
 
@@ -558,3 +596,40 @@ A no implementa ninguna de estas historias y no duplica la política provisional
 | Q4 (`emit` propaga) | T017 | T019 |
 
 **Riesgos residuales** (detalle en `plan.md`): D-01 y las aprobaciones de HU-00-01/HU-07-01 pendientes; sin tope de iteraciones (ejecución desatendida con proveedores reales no segura, R-04); la semántica de `validate_args` y la lectura de la demo bajo `ASK` dependen de C (R-05/R-07); el aislamiento de suscriptores depende de B (R-03); CI remota de la matriz 3.12 (T008 de la spec 002) pendiente; ratificación formal de R-07/R-08 pendiente si quien las comunicó no actúa como PO.
+
+## Phase 11: Convergence
+
+Hallazgos de `/speckit-converge` (2026-10-19). Ninguno invalida AC-01 ni AC-02; son endurecimientos menores de T008, T022 y T030. No sustituyen a T031 y T032 (siguen bloqueadas por B y C). Fuera del presupuesto de 810 min.
+
+- [x] T033 [US6] Clasificar como fallo estructural (no del proveedor) una excepción de `ToolRegistry.list()` al construir las `ToolDefinition` en `src/harness_agent/core/loop.py` per FR-002 (partial)
+  - **Objetivo**: hoy `self._tool_definitions()` se evalúa dentro del `try` de `Provider.complete` (`loop.py:181`), así que un fallo del registro termina como `PROVIDER_FAILED` y publica `PROVIDER_ERROR`. Construir las definiciones antes de ese `try`; una excepción del registro se propaga (falla cerrada, sin `PROVIDER_ERROR`, sin consultar al proveedor).
+  - **Archivos**: `src/harness_agent/core/loop.py`, `tests/core/test_loop_failures.py`
+  - **Estimación**: 25 min
+  - **Dependencias**: T027
+  - **Historia / actividad**: US6 / Sp1-12
+  - **Criterios relacionados**: FR-002, FR-023, FR-024, Principio de falla cerrada
+  - **Evidencia requerida**: prueba de regresión en ROJO y luego VERDE: un registro cuyo `list()` lanza no produce `TurnResult(PROVIDER_FAILED)` ni `PROVIDER_ERROR`; el proveedor no es consultado
+  - **Completada cuando**: la prueba pasa, `pytest tests/core`, `mypy` estricto y `ruff` limpios y la cobertura de `loop.py` sigue en 100 %.
+  - **Evidencia obtenida** (2026-10-19): archivos: `src/harness_agent/core/loop.py` (la lista de `ToolDefinition` se construye antes del `try` del proveedor), `tests/core/test_loop_failures.py`; pruebas: `test_t033_a_registry_failure_is_structural_not_a_provider_failure`, `test_t033_the_failed_turn_keeps_the_user_message_and_the_next_turn_can_run`, `test_t033_a_tool_whose_declaration_cannot_be_read_is_also_structural`, `test_t033_a_registry_failure_in_a_later_iteration_stops_before_the_next_query`, `test_t033_a_genuine_provider_failure_keeps_its_classification`; ROJO observado: 4 fallos (la quinta, de no regresión, pasaba) antes de la corrección; VERDE: `pytest tests/core/test_loop_failures.py -k t033` 5 passed. Un fallo del registro o de la declaración de una herramienta se propaga sin `PROVIDER_ERROR` y sin consultar al proveedor; el historial conserva el mensaje `USER` y el turno siguiente se acepta. Cobertura de `core/loop.py` 100 %.
+
+- [x] T034 [US5] Entregar al proveedor una copia profunda del historial para que no pueda alterar los `ToolCall.arguments` del historial del llamador en `src/harness_agent/core/loop.py` per FR-002 (partial)
+  - **Objetivo**: `list(history)` copia solo la lista; los `Message`/`ToolCall` y el `dict` `arguments` se comparten. Un proveedor que muta `messages[i].tool_calls[j].arguments` altera el historial del llamador (comprobado con una sonda). Entregar `copy.deepcopy(history)` (o una copia equivalente) y documentar el costo en el plan.
+  - **Archivos**: `src/harness_agent/core/loop.py`, `tests/core/test_loop_happy_path.py`
+  - **Estimación**: 25 min
+  - **Dependencias**: T022
+  - **Historia / actividad**: US5 / Sp1-12
+  - **Criterios relacionados**: FR-002, FR-020, SC-005
+  - **Evidencia requerida**: prueba de regresión en ROJO y luego VERDE: tras una consulta con un proveedor que muta los argumentos de una llamada previa, el historial del llamador conserva los argumentos originales
+  - **Completada cuando**: la prueba pasa, no hay regresiones en `tests/core` ni en `tests/contracts`, `mypy` estricto y `ruff` limpios.
+  - **Evidencia obtenida** (2026-10-19): archivos: `src/harness_agent/core/loop.py` (`copy.deepcopy(history)` a `Provider.complete` y copia profunda de las `ToolCall` de la respuesta antes de registrarlas), `tests/core/test_loop_happy_path.py`; pruebas: `test_t034_a_provider_that_mutates_its_input_cannot_alter_the_callers_history`, `test_t034_the_provider_receives_equal_values_with_canonical_types_preserved`, `test_t034_every_query_gets_a_fresh_copy_so_tampering_does_not_leak_forward`, `test_t034_a_provider_keeping_a_reference_to_its_response_cannot_rewrite_the_history`; ROJO observado con la copia superficial restaurada temporalmente: 3 fallos (la de valores iguales pasaba); VERDE: `pytest tests/core/test_loop_happy_path.py -k t034` 4 passed. Cubre `usage`, `tool_result`, `is_external`, argumentos anidados y tipos canónicos; AC-01/AC-02, R-07 y R-08 sin regresiones (suite completa 524 passed, 5 skipped). Costo documentado en el contrato: O(tamaño del historial) por consulta.
+
+- [x] T035 Registrar la evidencia por tarea de T001–T030 en `specs/005-basic-agent-loop/tasks.md` per Constitución IX / trazabilidad (partial)
+  - **Objetivo**: hoy la evidencia está agregada en la sección «Evidencia de implementación»; añadir a cada tarea marcada una línea `Evidencia obtenida` con la prueba o el comando y su resultado real (nombre de prueba, ROJO/VERDE observado), sin cambiar casillas ni estimaciones.
+  - **Archivos**: `specs/005-basic-agent-loop/tasks.md`
+  - **Estimación**: 30 min
+  - **Dependencias**: T033, T034
+  - **Historia / actividad**: transversal / Sp1-13
+  - **Criterios relacionados**: Principio VIII, Definition of Done (documentación y trazabilidad)
+  - **Evidencia requerida**: cada línea cita una prueba o un comando que se re-ejecuta y da el resultado indicado
+  - **Completada cuando**: las 30 tareas tienen su línea de evidencia verificable y `git diff` solo toca ese archivo.
+  - **Evidencia obtenida** (2026-10-19): archivo: este `tasks.md`; cada T001–T030 contiene su línea «Evidencia obtenida» (verificado con un script: 30 de 30), generada tras re-ejecutar el comando de cada una (resultados reales, sin tiempos ni revisiones inventadas); donde la evidencia pedida era manual se generó la verificación faltante (T019: guarda AST `test_only_the_r08_interruption_publisher_guards_a_bus_emit_with_a_try`; T006: la prueba permanente de cargas sustituye la comprobación puntual; T022: el oráculo canónico vive en `tests/core/test_loop_history.py`). Los 810 min de T001–T030 y los 60 min de T031–T032 no cambian.
