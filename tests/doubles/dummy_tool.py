@@ -17,11 +17,13 @@ class DummyTool(Tool):
         description: str = "Dummy tool for contract verification",
         risk: RiskLevel = RiskLevel.LOW,
         canned_result: ToolResult | None = None,
+        schema: dict[str, Any] | None = None,
     ) -> None:
         self._name = name
         self._description = description
         self._risk = risk
         self._canned_result = canned_result
+        self._schema = schema
         self.recorded_executions: list[dict[str, Any]] = []
 
     @property
@@ -34,6 +36,9 @@ class DummyTool(Tool):
 
     @property
     def schema(self) -> dict[str, Any]:
+        """Return the given schema object itself (uncopied), or a fresh default schema."""
+        if self._schema is not None:
+            return self._schema
         return {
             "type": "object",
             "properties": {
