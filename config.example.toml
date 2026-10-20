@@ -1,0 +1,27 @@
+# Plantilla de configuración de HARNESS.
+#
+# Copie este archivo a "config.toml" (que Git ignora) y ajuste los valores. HARNESS lo busca en el
+# directorio de trabajo; otra ubicación se indica con la variable de entorno HARNESS_CONFIG.
+#
+# Este archivo NO lleva claves de API: las claves se definen solo en variables de entorno
+# (vea .env.example). Un campo con aspecto de clave o de secreto se rechaza al arrancar.
+
+# Modelo en uso, con la forma <proveedor>/<modelo>. Proveedores admitidos: anthropic, fake y openai.
+# "fake/test" es el proveedor simulado: no necesita clave ni red.
+model = "fake/test"
+
+[limits]
+# Máximo de turnos del bucle del agente por ejecución (entero mayor que 0).
+max_turns = 30
+# Máximo de segundos de una ejecución (entero mayor que 0).
+max_seconds = 600
+# Máximo de tokens de una ejecución (entero mayor que 0).
+max_tokens = 200000
+
+[paths]
+# Ruta de la base de datos de sesiones. Una ruta relativa se interpreta respecto a la carpeta de
+# este archivo, no respecto al directorio de trabajo.
+sessions_db = ".harness/sessions.db"
+# Raíz del área de trabajo autorizada (misma regla para rutas relativas). Si no se define, no hay
+# área autorizada y las escrituras se deniegan: descomente y ajuste la línea para autorizar una.
+# workspace_root = "."

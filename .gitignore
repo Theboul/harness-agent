@@ -29,3 +29,10 @@ htmlcov/
 *.tmp
 .DS_Store
 Thumbs.db
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+config.toml
+.harness/

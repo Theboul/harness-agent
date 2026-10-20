@@ -248,7 +248,7 @@ La clase base `Tool` y la interfaz `ToolRegistry` ya existen desde HU-00-01. En 
   - **Estimación**: 20 min (10 min impl + 5 min check + 5 min registro)
   - **Verificación**: La fila de `HU-01-02` en la tabla de Sprint 1 pasa a `En revisión` (no a `Hecha` hasta la revisión cruzada y la CI en Windows y Linux), con las rutas bajo `src/harness_agent/` y `tests/`, y la evidencia verificable (comandos de T019 y T020 con su resultado). Se añade una entrada en *Registro de cambios* con enlace a HU-01-02 y a las decisiones de la historia (tope de 20 violaciones, rechazo de palabras clave no soportadas, `integer` que admite `3.0`). La tabla *Resumen* no cambia hasta que la historia quede `Hecha`. Se anota además que AC-01 y AC-02 se verificaron con un consumidor de prueba que imita al bucle, y que deben revalidarse con el bucle real al integrar HU-01-01, que es quien convierte `ToolRegistryError` en `ToolResult(is_error=True)`.
 
-- [ ] **T022** Solicitar la revisión cruzada y registrar su resultado (Principio IX)
+- [x] **T022** Solicitar la revisión cruzada y registrar su resultado (Principio IX)
   - **Archivos**: `docs/PROGRESO.md`
   - **Dependencias**: T021
   - **Criterios relacionados**: Principio IX, DoD (6), DoD (7)
@@ -256,7 +256,7 @@ La clase base `Tool` y la interfaz `ToolRegistry` ya existen desde HU-00-01. En 
   - **Estimación**: 15 min (5 min impl + 5 min check + 5 min registro)
   - **Verificación**: Un integrante de otra área (A o B) revisa el cambio contra la lista de comprobación de `arquitectura-hexagonal-clean` y confirma que `core/interfaces/` no cambió. Su resultado se anota en `docs/PROGRESO.md`. Esta tarea es humana: no se marca como completada sin esa confirmación. Queda registrado, además, que HU-00-01 sigue `Pendiente de aprobación técnica` (Sp1-03): la ratificación de `Tool` y `ToolRegistry` por el integrante C, que firma en la fila C del [§7.1 de `docs/decisiones/revision-conjunta-abc.md`](../../docs/decisiones/revision-conjunta-abc.md#71-hu-00-01--contratos-t016--sp1-03), debe producirse antes de pasar HU-01-02 a `Hecha`. También queda registrado que la revalidación de AC-01 y AC-02 con el bucle real queda pendiente de HU-01-01.
 
-- [ ] **T023** Confirmar la ejecución de la CI en Linux y Windows y registrar la evidencia (Sp1-15, Sp1-16, Sp1-17)
+- [x] **T023** Confirmar la ejecución de la CI en Linux y Windows y registrar la evidencia (Sp1-15, Sp1-16, Sp1-17)
   - **Archivos**: `docs/PROGRESO.md`
   - **Dependencias**: T021
   - **Criterios relacionados**: SC-006, Principio IV, Principio IX, DoD (1)
