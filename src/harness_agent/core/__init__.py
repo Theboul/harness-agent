@@ -15,6 +15,7 @@ from harness_agent.core.events import (
     Event,
     EventType,
 )
+from harness_agent.core.in_memory_event_bus import EventDeliveryError, InMemoryEventBus
 from harness_agent.core.interfaces import (
     ApprovalAction,
     ApprovalResult,
@@ -100,4 +101,7 @@ __all__ = [
     "UnknownToolError",
     "ToolValidationError",
     "Violation",
+    # In-memory event bus (HU-01-05)
+    "InMemoryEventBus",
+    "EventDeliveryError",
 ]
