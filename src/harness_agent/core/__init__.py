@@ -44,6 +44,15 @@ from harness_agent.core.interfaces import (
     ToolDefinition,
     ToolRegistry,
 )
+from harness_agent.core.tools import (
+    DuplicateToolError,
+    InMemoryToolRegistry,
+    InvalidToolDefinitionError,
+    ToolRegistryError,
+    ToolValidationError,
+    UnknownToolError,
+    Violation,
+)
 
 __all__ = [
     # Canonical Entities
@@ -83,4 +92,12 @@ __all__ = [
     "TaskCriteriaItem",
     "EventBus",
     "EventHandler",
+    # Tool registry and argument validation (HU-01-02)
+    "InMemoryToolRegistry",
+    "ToolRegistryError",
+    "InvalidToolDefinitionError",
+    "DuplicateToolError",
+    "UnknownToolError",
+    "ToolValidationError",
+    "Violation",
 ]
