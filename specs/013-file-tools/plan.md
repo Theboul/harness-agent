@@ -90,6 +90,50 @@ No hay violaciones; la sección de complejidad no aplica. Discrepancias de la do
 
 ---
 
+## Verificación contra las skills del proyecto
+
+Skills cargadas: `arquitectura-hexagonal-clean`, `estructura-carpetas-harness` y `verificar-fronteras-hexagonales` (exigidas por `CLAUDE.md`).
+
+### Decision Gates (`arquitectura-hexagonal-clean`)
+
+| Pregunta | Resultado |
+|---|---|
+| ¿Es regla o comportamiento nuevo? | No hay regla de negocio nueva: la regla de «permitir solo dentro del área» ya vive en `core/permissions/` (HU-05-01). Aquí se implementan un puerto existente (`AuthorizedArea`) y cuatro herramientas. |
+| ¿Necesita algo de fuera? | Sí, disco. Usa los puertos existentes `Tool` y `AuthorizedArea`; no se propone ningún puerto nuevo. |
+| ¿Quién lo implementa? | Adaptadores: `adapters/system/` (área real) y `adapters/tools/` (herramientas), porque tocan disco. |
+| ¿Cómo se conecta? | Por constructor (el área, o `None`); `bootstrap.py` no existe: la prueba de integración compone y el plan anota qué deberá conectar. |
+| ¿Cómo se prueba? | Unitarias con `tmp_path`, contrato `DummyAuthorizedArea` / `WorkspaceArea`, integración con el bucle, la política y el registro reales, y guarda `ast`. |
+| ¿Es asíncrono? | `Tool.run` es `async`; `AuthorizedArea.contains` es síncrono, como declara el puerto. |
+
+### Ruta elegida (`estructura-carpetas-harness`)
+
+| Archivo nuevo | Fila de la tabla | Prueba equivalente |
+|---|---|---|
+| `adapters/system/workspace_area.py` | «Código con … disco» → `adapters/<subpaquete>/` | `tests/unit/adapters/system/`, `tests/contracts/test_authorized_area_contract.py` |
+| `adapters/tools/read_file.py`, `write_file.py`, `list_files.py`, `search_text.py`, `_paths.py`, `_limits.py` | «Herramienta nativa» → `adapters/tools/` (receta «Nueva herramienta nativa») | `tests/unit/adapters/tools/`, `tests/integration/test_file_tools_agent_loop.py` |
+| `tests/architecture/test_adapters_boundaries.py` | Guarda de la frontera de `adapters/` (hueco conocido) | — |
+
+### Lista de comprobación (`capas-y-reglas.md`)
+
+- [x] ¿La regla de negocio está en `core/` y no en un adaptador? Sí: la política decide permisos en `core/permissions/`; los adaptadores no contienen reglas de permisos, solo comprueban la contención con el puerto.
+- [x] ¿Todo lo externo pasa por un puerto con tipos del dominio? Sí: `Tool`, `ToolResult` y `AuthorizedArea`; el disco lo toca el adaptador.
+- [x] ¿Los puertos, entidades y eventos siguen sin cambios? Sí: ninguno se modifica (`git diff` de `core/` vacío).
+- [x] ¿Los errores externos se traducen a errores de dominio, sin reproducir valores recibidos? Sí: toda excepción del sistema se convierte en un `ToolResult` con etiqueta y sin la excepción ni la ruta real.
+- [x] ¿Las dependencias se inyectan por constructor y se conectan solo en `bootstrap.py` (o en la prueba)? Sí: el área llega por constructor; la composición está en la prueba de integración.
+- [x] ¿El núcleo se probó con dobles, sin red, disco ni claves? Sí; los adaptadores se prueban sobre `tmp_path`, sin red ni claves.
+- [x] ¿El adaptador real tiene prueba de contrato en `tests/contracts/`? Sí: `test_authorized_area_contract.py`.
+- [x] ¿Pasa `pytest tests/architecture` (y la guarda nueva) en Windows y Linux? Sí: 209 pruebas en Linux; la CI de `windows-latest` se comprueba en T018.
+- [x] ¿El núcleo emite eventos en lugar de imprimir? Sin cambios en el núcleo; los adaptadores no imprimen (lo vigila la guarda).
+- [x] ¿Lo público está exportado y los consumidores importan de `harness_agent.core`? Sí: `__all__` de los dos paquetes y solo `from harness_agent.core import ...`.
+- [x] ¿Se respetan las decisiones de diseño (falla cerrada, historial intacto, secretos)? Sí: cualquier duda sobre una ruta es «fuera»; sin secretos en el repositorio.
+- [ ] ¿Otro integrante revisó el cambio? **No todavía** (T017).
+
+### Fronteras (`verificar-fronteras-hexagonales`)
+
+`pytest tests/architecture` → 209 pasadas; guarda nueva `tests/architecture/test_adapters_boundaries.py` (T014) para `adapters/` (no importa `cli`) y para `system/` y `tools/`. Sin archivos que violen una regla.
+
+---
+
 ## Project Structure
 
 ### Documentation (this feature)

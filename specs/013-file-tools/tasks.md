@@ -213,7 +213,7 @@
   - **Estimación**: 35 min (20 min impl + 10 min check + 5 min registro)
   - **Verificación**: `__all__` de cada `__init__.py` exporta lo público (`WorkspaceArea`, `windows_path_problem`; las cuatro herramientas y las constantes de límite) y `tests/unit/adapters/tools/test_public_api.py` comprueba que cada módulo importa por sí solo en un intérprete nuevo (sin ciclos) y que no se exponen los helpers privados; en la guía, sección para C con la composición (área desde `workspace_root`, herramientas, registro y política), la tabla de herramientas, los límites y los errores; el ejemplo se ejecuta tal cual en un script del scratchpad fuera del repositorio; en `arbol.md` (las dos copias idénticas salvo lo que ya difería) `adapters/system/` y `adapters/tools/` pasan de «planeado/propuesta» a existentes, y la guarda de `adapters/` figura en la lista. Solo cambian esas líneas (`git diff -U0`). Cierre: `ruff`, `mypy` y la suite en verde.
 
-- [ ] **T016** Cierre: verificación completa y registro en `docs/PROGRESO.md` (transversal)
+- [x] **T016** Cierre: verificación completa y registro en `docs/PROGRESO.md` (transversal)
   - **Archivos**: `docs/PROGRESO.md`
   - **Dependencias**: T001 a T015
   - **Criterios relacionados**: Principios VIII, IX y X, FR-017, FR-022, FR-023, SC-006, SC-007
