@@ -43,7 +43,7 @@
 
 **Propósito**: Marcar la historia `En curso`.
 
-- [ ] **T001** Marcar HU-01-03 como `En curso` en `docs/PROGRESO.md` (transversal)
+- [x] **T001** Marcar HU-01-03 como `En curso` en `docs/PROGRESO.md` (transversal)
   - **Archivos**: `docs/PROGRESO.md`
   - **Dependencias**: Ninguna
   - **Criterios relacionados**: Principio VIII
@@ -57,7 +57,7 @@
 
 **Propósito**: La autoridad sobre qué está dentro del área y las utilidades que comparten las cuatro herramientas. Bloquea todas las historias.
 
-- [ ] **T002** Implementar `WorkspaceArea`: construcción, `root` y `contains` sobre la ruta real, con sus pruebas (FR-001 a FR-003)
+- [x] **T002** Implementar `WorkspaceArea`: construcción, `root` y `contains` sobre la ruta real, con sus pruebas (FR-001 a FR-003)
   - **Archivos**: `tests/unit/adapters/__init__.py`, `tests/unit/adapters/system/__init__.py`, `tests/unit/adapters/system/test_workspace_area.py`, `src/harness_agent/adapters/system/__init__.py`, `src/harness_agent/adapters/system/workspace_area.py`
   - **Dependencias**: T001
   - **Criterios relacionados**: AC-03, AC-04, reglas de negocio 2 y 3, FR-001, FR-002, FR-003, contrato §1, data-model (WorkspaceArea), research R-02 y R-03, plan D1, D3, D4
@@ -65,7 +65,7 @@
   - **Estimación**: 40 min (25 min impl + 10 min check + 5 min registro)
   - **Verificación**: Pruebas primero con `tmp_path`: es subclase de `AuthorizedArea`; `root` es la ruta real (un enlace a la carpeta se resuelve); construir con una ruta inexistente, un archivo o un vacío falla con `ValueError` en español; `contains` es verdadero para relativa dentro, absoluta dentro, la propia raíz, subcarpetas que aún no existen y `Path`; falso para `..` que sale, absoluta fuera, hermana con el mismo prefijo (`/area` frente a `/area-otra`), enlace a archivo o carpeta que sale, `enlace/../x`, enlace roto y circular, texto vacío o solo espacios, carácter nulo, tipos no válidos (`None`, `int`, `bytes`) y cualquier excepción forzada (parche de `os.path.realpath` que lanza) sin que `contains` lance. Rojo esperado: `ModuleNotFoundError: No module named 'harness_agent.adapters.system'`. Cierre: los cuatro comandos en 0; `workspace_area.py` al 100 % de líneas y ramas.
 
-- [ ] **T003** Clasificación de rutas de Windows (`windows_path_problem`) y su uso en `contains` (FR-004, FR-005)
+- [x] **T003** Clasificación de rutas de Windows (`windows_path_problem`) y su uso en `contains` (FR-004, FR-005)
   - **Archivos**: `tests/unit/adapters/system/test_workspace_area.py`, `src/harness_agent/adapters/system/workspace_area.py`, `src/harness_agent/adapters/system/__init__.py`
   - **Dependencias**: T002
   - **Criterios relacionados**: AC-03 (Windows), FR-004, FR-005, contrato §1 (A-4), data-model (windows_path_problem), research R-04, plan D5
@@ -73,7 +73,7 @@
   - **Estimación**: 40 min (25 min impl + 10 min check + 5 min registro)
   - **Verificación**: Pruebas primero (clases nuevas en el módulo de T002): `windows_path_problem` devuelve una causa para `\\servidor\recurso`, `//servidor/x`, `\\?\C:\x`, `\\.\COM1`, `notas.txt:flujo`, `C:\area\a.txt:zone`, `CON`, `nul.txt`, `com3`, `LPT1.log`, `carpeta.`, `archivo.txt ` y `None` para `src\main.py`, `C:\area\a.txt`, `a.b.c`, `conexion.txt` (no confundir con `CON`); `WorkspaceArea(tmp_path, windows=True).contains(...)` es falso para cada caso malo y verdadero para uno bueno relativo; con `windows=False` los nombres con `:` son válidos; la comparación normaliza mayúsculas con `normcase` (prueba con parche de `os.path.normcase` o con rutas de `ntpath` según el sistema); pruebas **reales** marcadas `skipif(os.name != "nt")`: otra unidad (`D:\x` frente a `C:\...`, si existe) y mayúsculas distintas dentro del área. Rojo esperado: `ImportError: cannot import name 'windows_path_problem'`. Cierre: los cuatro comandos en 0; `workspace_area.py` al 100 % de líneas y ramas (las ramas exclusivas de Windows quedan cubiertas por las pruebas sintéticas).
 
-- [ ] **T004** [P] Prueba de contrato: `DummyAuthorizedArea` y `WorkspaceArea` cumplen lo mismo (FR-019)
+- [x] **T004** [P] Prueba de contrato: `DummyAuthorizedArea` y `WorkspaceArea` cumplen lo mismo (FR-019)
   - **Archivos**: `tests/contracts/test_authorized_area_contract.py`
   - **Dependencias**: T002
   - **Criterios relacionados**: FR-019, SC-004, contrato §1 (A-5)
@@ -81,7 +81,7 @@
   - **Estimación**: 25 min (15 min impl + 5 min check + 5 min registro)
   - **Verificación**: Una batería parametrizada por implementación (`DummyAuthorizedArea(tmp_path)` y `WorkspaceArea(tmp_path)`) con los casos que ambas deben cumplir: dentro relativa y absoluta, raíz, `..` que sale, absoluta fuera, hermana con el mismo prefijo, `root` es `Path` absoluto, `isinstance(..., AuthorizedArea)`, y que `contains` devuelve exactamente `True` o `False` (la política exige `is True`). Una prueba separada documenta que solo `WorkspaceArea` rechaza el enlace que sale (el doble es léxico). Sin código nuevo: no hay rojo previo porque valida T002 (se demuestra con una mutación temporal que invierte el resultado de `contains`). Cierre: los cuatro comandos en 0.
 
-- [ ] **T005** Implementar `_limits.py` y `_paths.py` (ruta real, errores de herramienta, acotado) con sus pruebas (FR-009, FR-010, FR-015)
+- [x] **T005** Implementar `_limits.py` y `_paths.py` (ruta real, errores de herramienta, acotado) con sus pruebas (FR-009, FR-010, FR-015)
   - **Archivos**: `tests/unit/adapters/tools/__init__.py`, `tests/unit/adapters/tools/test_paths.py`, `src/harness_agent/adapters/tools/__init__.py`, `src/harness_agent/adapters/tools/_limits.py`, `src/harness_agent/adapters/tools/_paths.py`
   - **Dependencias**: T002
   - **Criterios relacionados**: AC-01 (error claro), reglas de negocio 2 y 4, FR-009, FR-010, FR-015, data-model (Límites y Resultado de error), research R-01 y R-09, plan D2, D6, D7
