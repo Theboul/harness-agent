@@ -41,23 +41,25 @@ class FakeProvider(Provider):
     def _validate(steps: list[Step]) -> None:
         """Reject an invalid script when the provider is built, not in the middle of a test."""
         if not steps:
-            raise ValueError("The script is empty; give it at least one step.")
+            raise ValueError("El guion está vacío; dale al menos un paso.")
         seen: set[str] = set()
         for index, step in enumerate(steps):
             if isinstance(step, ProviderError):
                 continue
             if not isinstance(step, ProviderResponse):
                 raise ValueError(
-                    f"Script step {index} is a {type(step).__name__}, "
-                    "not a ProviderResponse or a ProviderError instance."
+                    f"El paso {index} del guion es de tipo {type(step).__name__}, "
+                    "no una ProviderResponse ni una instancia de ProviderError."
                 )
             for call in step.tool_calls:
                 if not call.id:
-                    raise ValueError(f"Script step {index} has a tool call with an empty id.")
+                    raise ValueError(
+                        f"El paso {index} del guion tiene una llamada a herramienta sin id."
+                    )
                 if call.id in seen:
                     raise ValueError(
-                        f"Script step {index} repeats the tool call id {call.id!r}; "
-                        "ids must be unique across the whole script."
+                        f"El paso {index} del guion repite el id de una llamada a herramienta; "
+                        "los ids deben ser únicos en todo el guion."
                     )
                 seen.add(call.id)
 
@@ -73,7 +75,7 @@ class FakeProvider(Provider):
         self.call_count += 1
         if index >= len(self._script):
             self.exhausted = True
-            raise ScriptExhausted(f"Script exhausted at provider call {index + 1}.")
+            raise ScriptExhausted(f"El guion se agotó en la llamada {index + 1} al proveedor.")
         step = copy.deepcopy(self._script[index])
         if isinstance(step, ProviderError):
             raise step
