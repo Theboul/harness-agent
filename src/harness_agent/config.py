@@ -23,6 +23,8 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, NoReturn
 
+from harness_agent.core.permissions import PermissionRules
+
 MAX_FIELD_DISPLAY = 64
 ENV_CONFIG_LOCATION = "HARNESS_CONFIG"
 DEFAULT_CONFIG_FILE = "config.toml"
@@ -36,15 +38,17 @@ PROVIDER_KEY_VARIABLES: Mapping[str, str | None] = MappingProxyType(
 _DEFAULT_SESSIONS_DB = Path(".harness") / "sessions.db"
 _LIMIT_FIELDS = ("max_turns", "max_seconds", "max_tokens")
 _PATH_FIELDS = ("workspace_root", "sessions_db")
+_PERMISSION_FIELDS = ("deny", "ask")
 _MISSING_FIELD = "falta el campo obligatorio."
 _MODEL_FORM = "debe ser un texto con la forma <proveedor>/<modelo>."
 _NOT_AN_INTEGER = "debe ser un entero mayor que 0."
 _NOT_A_TEXT = "debe ser un texto no vacío."
 _NOT_A_TABLE = "debe ser una tabla."
+_NOT_A_NAME_LIST = "debe ser una lista de textos no vacíos."
 _KEY_NAME_MARKERS = ("key", "secret", "token", "password", "passwd", "credential")
 _UNKNOWN_FIELD = "campo desconocido en el esquema."
 _TABLE_FIELDS: Mapping[str, tuple[str, ...]] = MappingProxyType(
-    {"limits": _LIMIT_FIELDS, "paths": _PATH_FIELDS}
+    {"limits": _LIMIT_FIELDS, "paths": _PATH_FIELDS, "permissions": _PERMISSION_FIELDS}
 )
 
 _ELLIPSIS = "…"
@@ -284,6 +288,8 @@ class HarnessConfig:
         api_key: API key of the provider (only from the environment), or ``None`` if the
             provider of the model needs none.
         key_variable: Name of the environment variable of the key, or ``None``.
+        permissions: Tools that are always denied or asked (HU-05-01); empty by default. The
+            configuration cannot define a rule to allow.
     """
 
     model: str
@@ -292,6 +298,7 @@ class HarnessConfig:
     source: Path
     api_key: Secret | None = None
     key_variable: str | None = None
+    permissions: PermissionRules = PermissionRules()
 
 
 def _locate(path: str | os.PathLike[str] | None, environ: Mapping[str, str]) -> tuple[Path, str]:
@@ -388,6 +395,20 @@ def _check_paths(table: Mapping[str, Any], base: Path, present: list[ConfigProbl
     )
 
 
+def _check_permissions(table: Mapping[str, Any], present: list[ConfigProblem]) -> PermissionRules:
+    """The lists of denied and asked tools: lists of non-empty texts (duplicates are dropped)."""
+    values: dict[str, tuple[str, ...]] = {}
+    for field in _PERMISSION_FIELDS:
+        if field not in table:
+            continue
+        value = table[field]
+        if isinstance(value, list) and all(isinstance(n, str) and n.strip() for n in value):
+            values[field] = tuple(dict.fromkeys(value))
+        else:
+            present.append(ConfigProblem(f"permissions.{field}", _NOT_A_NAME_LIST))
+    return PermissionRules(**values)
+
+
 def _table(data: Mapping[str, Any], name: str, present: list[ConfigProblem]) -> Mapping[str, Any]:
     """The table ``name`` (empty if absent); a value that is not a table is a problem."""
     value = data.get(name, {})
@@ -470,6 +491,7 @@ def load_config(
     model = _check_model(data, missing, present)
     limits = _check_limits(_table(data, "limits", present), present)
     paths = _check_paths(_table(data, "paths", present), file_path.parent, present)
+    permissions = _check_permissions(_table(data, "permissions", present), present)
     unknown = [ConfigProblem(name, _UNKNOWN_FIELD) for name in reported]
     problems = [*missing, *present, *unknown]
     if problems:
@@ -477,7 +499,9 @@ def load_config(
     provider = model.split("/", 1)[0]
     variable = PROVIDER_KEY_VARIABLES[provider]
     if variable is None:
-        return HarnessConfig(model=model, limits=limits, paths=paths, source=file_path)
+        return HarnessConfig(
+            model=model, limits=limits, paths=paths, source=file_path, permissions=permissions
+        )
     value = environment.get(variable)
     if value is None or not value.strip():
         raise MissingKeyError(variable, provider) from None
@@ -488,4 +512,5 @@ def load_config(
         source=file_path,
         api_key=Secret(value),
         key_variable=variable,
+        permissions=permissions,
     )

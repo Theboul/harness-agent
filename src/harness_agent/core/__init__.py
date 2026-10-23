@@ -45,6 +45,7 @@ from harness_agent.core.interfaces import (
     ToolDefinition,
     ToolRegistry,
 )
+from harness_agent.core.permissions import DefaultPermissionPolicy, PermissionRules
 from harness_agent.core.tools import (
     DuplicateToolError,
     InMemoryToolRegistry,
@@ -104,4 +105,7 @@ __all__ = [
     # In-memory event bus (HU-01-05)
     "InMemoryEventBus",
     "EventDeliveryError",
+    # Permission policy (HU-05-01)
+    "DefaultPermissionPolicy",
+    "PermissionRules",
 ]
