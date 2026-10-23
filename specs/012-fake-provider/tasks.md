@@ -176,7 +176,7 @@
   - **Estimación**: según la persona revisora
   - **Verificación**: A confirma por escrito que acepta `ProviderError`, `QuotaExceeded`, `ProviderTimeout` y `ProviderUnavailable` en `core/interfaces/provider.py`; un integrante de otra área revisa el PR. HU-00-01 sigue `Pendiente de aprobación técnica` y debe ratificarse antes de pasar a `Hecha`.
 
-- [ ] **T013** *(humana)* Ejecución de la CI en Linux y Windows y relleno de Commit/PR
+- [x] **T013** *(humana)* Ejecución de la CI en Linux y Windows y relleno de Commit/PR
   - **Archivos**: `docs/PROGRESO.md`
   - **Dependencias**: T012
   - **Criterios relacionados**: Principio IX
