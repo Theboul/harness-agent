@@ -97,7 +97,7 @@
 
 **Prueba independiente**: Con un área real sobre una carpeta temporal, cada herramienta devuelve su resultado y una ruta inexistente devuelve `[no_existe]`.
 
-- [ ] **T006** [US1] Implementar `ReadFileTool` (`leer_archivo`) con sus pruebas (FR-006, FR-007, FR-008, FR-011)
+- [x] **T006** [US1] Implementar `ReadFileTool` (`leer_archivo`) con sus pruebas (FR-006, FR-007, FR-008, FR-011)
   - **Archivos**: `tests/unit/adapters/tools/test_read_file.py`, `src/harness_agent/adapters/tools/read_file.py`
   - **Dependencias**: T005
   - **Criterios relacionados**: AC-01, regla de negocio 4, FR-006, FR-007, FR-008, FR-010, FR-011, contrato §2, research R-06
@@ -105,7 +105,7 @@
   - **Estimación**: 35 min (20 min impl + 10 min check + 5 min registro)
   - **Verificación**: Pruebas primero: `name == "leer_archivo"`, riesgo bajo, `schema` con `path` (texto, `minLength` 1) y `additionalProperties` falso, es subclase de `Tool`; lee un archivo UTF-8 por ruta relativa y absoluta (incluidos acentos y saltos de línea); un archivo vacío devuelve texto vacío sin error; `[no_existe]` para una ruta inexistente con la sugerencia de usar `listar_archivos`; `[no_es_archivo]` para una carpeta; `[demasiado_grande]` a `MAX_READ_BYTES + 1`; `[no_es_texto]` con un NUL; `[no_es_texto]` con bytes no UTF-8; `[error_de_archivo]` si `open` lanza `PermissionError` (parche); nunca lanza; solo lee `MAX_READ_BYTES + 1` bytes (parche que cuenta lo leído). Rojo esperado: `ModuleNotFoundError: No module named 'harness_agent.adapters.tools.read_file'`. Cierre: los cuatro comandos en 0; `read_file.py` al 100 %.
 
-- [ ] **T007** [P] [US1] Implementar `ListFilesTool` (`listar_archivos`) con sus pruebas (FR-013)
+- [x] **T007** [P] [US1] Implementar `ListFilesTool` (`listar_archivos`) con sus pruebas (FR-013)
   - **Archivos**: `tests/unit/adapters/tools/test_list_files.py`, `src/harness_agent/adapters/tools/list_files.py`
   - **Dependencias**: T005
   - **Criterios relacionados**: AC-01, FR-006, FR-007, FR-008, FR-010, FR-013, contrato §2
@@ -113,7 +113,7 @@
   - **Estimación**: 30 min (15 min impl + 10 min check + 5 min registro)
   - **Verificación**: Pruebas primero: `name == "listar_archivos"`, riesgo bajo, esquema con `path`; lista una carpeta con archivos, subcarpetas y un enlace, ordenada, con `archivo` o `carpeta` por entrada; `.` lista la raíz; una carpeta vacía devuelve un aviso claro, no un error; más de `MAX_LIST_ENTRIES` se recorta y lo dice; el resultado no pasa de `MAX_RESULT_CHARS`; `[no_existe]` y `[no_es_carpeta]` (un archivo); nombres con acentos y espacios; nunca lanza. Rojo esperado: `ModuleNotFoundError: No module named 'harness_agent.adapters.tools.list_files'`. Cierre: los cuatro comandos en 0; `list_files.py` al 100 %.
 
-- [ ] **T008** [US1] Implementar `SearchTextTool` (`buscar_texto`) con sus pruebas (FR-014)
+- [x] **T008** [US1] Implementar `SearchTextTool` (`buscar_texto`) con sus pruebas (FR-014)
   - **Archivos**: `tests/unit/adapters/tools/test_search_text.py`, `src/harness_agent/adapters/tools/search_text.py`
   - **Dependencias**: T005, T006
   - **Criterios relacionados**: AC-01, AC-03 (no filtrar por enlaces), FR-006, FR-007, FR-008, FR-010, FR-014, contrato §2, research R-08, plan D9
