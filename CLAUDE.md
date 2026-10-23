@@ -31,10 +31,33 @@ Harness de agente en terminal (Python 3.12, sin dependencias de ejecución): buc
 4. Busca si ya existe `specs/NNN-*` para ella; si no, sigue el flujo Spec Kit de abajo.
 5. Revisa las observaciones en `PROGRESO.md` que la mencionan (p. ej. HU-05-01 dejó la convención `path` para HU-01-03).
 
+## Skills obligatorias del proyecto
+
+**Toda especificación, plan, lista de tareas, implementación y revisión DEBE seguir las tres skills del proyecto** de `.claude/skills/`. Cárgalas con la herramienta Skill (no basta con recordarlas) en la fase que indica la tabla y respeta sus *Hard Rules*, *Decision Gates* y *Output Contract*:
+
+| Skill | Cuándo es obligatoria | Qué debe quedar escrito |
+|---|---|---|
+| `arquitectura-hexagonal-clean` (+ `references/capas-y-reglas.md`) | `/speckit-plan` (diseño de puertos/adaptadores), `/speckit-implement` y toda revisión de diseño | En `plan.md`: recorrido de los *Decision Gates* (regla en `core/`, puerto, adaptador, conexión, prueba) y la **lista de comprobación** de `capas-y-reglas.md` respondida sí/no, justificando cada «no». Al cerrar: la misma lista revisada contra el código |
+| `estructura-carpetas-harness` (+ `references/arbol.md`, `references/recetas.md`) | `/speckit-plan` (sección *Project Structure*), `/speckit-tasks` y antes de crear o mover cualquier archivo | Ruta de cada archivo nuevo con la fila de la tabla que la justifica; si es una pieza nueva (herramienta, proveedor, almacén, comando, evento) seguir su receta; prueba en la carpeta equivalente de `tests/` |
+| `verificar-fronteras-hexagonales` | Siempre que la historia toque `core/`, `cli/`, `adapters/`, `pyproject.toml` o la CI; como tarea de verificación en `tasks.md` y antes de cerrar | Resultado de `pytest tests/architecture` (y guarda `ast` nueva para la frontera del módulo que se crea), archivos que violen una regla y el puerto/evento propuesto |
+
+Además, las skills `speckit-*` se ejecutan en el orden del flujo de abajo; ninguna fase se salta.
+
+**Cómo aplicar las skills sobre el código real.** Se escribieron antes del código y algunos nombres cambiaron. La *regla* de la skill se cumple siempre; solo se traduce la ruta o la herramienta (tabla de divergencias más abajo):
+
+- Donde la skill dice `core/ports.py`, el puerto va en el archivo correspondiente de `core/interfaces/`; donde dice `core/messages.py`, en `core/entities.py`; `tests/contract/` es `tests/contracts/`.
+- Donde dice `lint-imports`, la verificación equivalente son las pruebas `ast` de `tests/architecture/` (ya en la CI de Windows y Linux). Añadir `import-linter` es un cambio de dependencias y de CI: no lo hagas dentro de una historia sin acuerdo del equipo; déjalo como observación.
+- Donde dice `bootstrap.py`, aún no existe: mientras no haya historia que lo cree, la conexión se hace a mano en las pruebas de integración (`make_rig`) y se anota en el plan qué deberá conectar la raíz de composición.
+- Los ejemplos de `assets/` (`port_provider.py`, `adapter_litellm.py`, `bootstrap.py`) son **ilustrativos**: usan nombres en español, `Protocol` y métodos síncronos. Los contratos vigentes son los de `core/interfaces/` (ABC, nombres en inglés, `async def complete/run/request`). Copia la idea, no la firma.
+- La receta «nuevo tipo de evento» exige además el acuerdo de A, B y C, porque `core/events.py` es un contrato protegido.
+
 ## Flujo Spec Kit (una historia = una spec)
 
 `/speckit-specify` → `/speckit-clarify` → `/speckit-plan` → `/speckit-tasks` → `/speckit-analyze` → `/speckit-implement` → `/speckit-converge`.
 
+- En `/speckit-plan`, el *Constitution Check* incluye las *Hard Rules* de las tres skills del proyecto; una violación sin justificar detiene el plan.
+- En `/speckit-tasks`, cada tarea que crea un archivo indica su ruta según `estructura-carpetas-harness`, y hay una tarea de verificación de fronteras (`verificar-fronteras-hexagonales`).
+- En `/speckit-analyze` y `/speckit-converge`, se revisa además el cumplimiento de las skills (lista de comprobación de `capas-y-reglas.md`).
 - Carpeta `specs/NNN-slug/` con numeración secuencial (existen 001–011, falta 008; la siguiente es 012). `.specify/feature.json` apunta a la feature activa: actualízalo al cambiar de historia.
 - Tareas de **15–40 min** (máximo absoluto 60), cada una con pruebas primero: escribir la prueba, verla fallar **por la razón esperada**, implementar lo mínimo, pasar los cuatro comandos de calidad.
 - Cada `tasks.md` incluye: mapeo a tareas `SpN-xx` con presupuesto, lista de **archivos protegidos**, tareas humanas finales (revisión cruzada y CI remota) que Claude **no** marca como hechas.
@@ -76,7 +99,7 @@ cli ──▶ core ◀── adapters        config.py ──▶ core      (boot
 
 ### Divergencias entre las skills/docs y el código real
 
-Las skills `estructura-carpetas-harness` y `arquitectura-hexagonal-clean` describen el árbol **planeado**. Manda el código:
+Las skills `estructura-carpetas-harness` y `arquitectura-hexagonal-clean` describen el árbol **planeado**. Sus reglas se cumplen igual; para las rutas, manda el código:
 
 | Las skills dicen | El código tiene |
 |---|---|
@@ -130,7 +153,7 @@ git diff --exit-code $base -- src/harness_agent/core/interfaces src/harness_agen
 
 ## Cerrar la historia
 
-1. Los cuatro comandos de calidad en exit 0, y `pytest tests/architecture`.
+1. Los cuatro comandos de calidad en exit 0, y `pytest tests/architecture`. Entrega el *Output Contract* de las tres skills del proyecto (rutas y fila que las justifica, lista de comprobación sí/no, resultado de fronteras).
 2. Actualizar `docs/PROGRESO.md` (Principio VIII): fila de la historia → **`En revisión`** (nunca `Hecha`: requiere revisión cruzada humana, CI en Windows y Linux y ratificación de HU-00-01), columnas *Archivos* y *Evidencia* (comandos y resultados reales), una línea por tarea en *Registro de cambios* y, si hay hallazgos para otras áreas, un bloque **Observaciones de HU-xx-yy**. La tabla *Resumen* solo cambia cuando algo pasa a `Hecha`.
 3. Marcar en `tasks.md` solo las tareas realmente hechas, con su evidencia; dejar las humanas sin marcar.
 4. Commit en español, estilo convencional con el ID: `feat(<área>): <descripción> (HU-xx-yy)`; `docs(...)`, `test(...)`, `ci(...)`, `chore(...)` según corresponda. Rama de trabajo `gustavo`; PR hacia `main`. Push, merge y aprobación de diff siempre con confirmación humana.
