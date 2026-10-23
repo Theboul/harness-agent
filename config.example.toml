@@ -25,3 +25,13 @@ sessions_db = ".harness/sessions.db"
 # Raíz del área de trabajo autorizada (misma regla para rutas relativas). Si no se define, no hay
 # área autorizada y las escrituras se deniegan: descomente y ajuste la línea para autorizar una.
 # workspace_root = "."
+
+# Reglas de permisos (opcional). Sin esta sección rigen solo las reglas integradas: nada se permite
+# salvo escribir (y leer) dentro del área autorizada. Las listas solo pueden endurecer la política:
+# no existen reglas de permitir en la configuración y un campo desconocido detiene el arranque.
+# Los nombres son los de las herramientas, tal cual (distinguen mayúsculas).
+# [permissions]
+# Herramientas que siempre se deniegan (prevalece sobre las demás reglas).
+# deny = []
+# Herramientas que siempre se preguntan (hoy, sin interfaz de aprobación, se deniegan con motivo).
+# ask = []
