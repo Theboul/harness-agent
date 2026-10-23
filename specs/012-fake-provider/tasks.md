@@ -39,7 +39,7 @@
 
 **Propósito**: Marcar la historia `En curso`.
 
-- [ ] **T001** Marcar HU-00-03 como `En curso` en `docs/PROGRESO.md` (transversal)
+- [x] **T001** Marcar HU-00-03 como `En curso` en `docs/PROGRESO.md` (transversal)
   - **Archivos**: `docs/PROGRESO.md`
   - **Dependencias**: Ninguna
   - **Criterios relacionados**: Principio VIII
@@ -53,7 +53,7 @@
 
 **Propósito**: Los tipos de error que el doble lanza y el adaptador real reutilizará.
 
-- [ ] **T002** Añadir `ProviderError`, `QuotaExceeded`, `ProviderTimeout` y `ProviderUnavailable` al puerto y reexportarlos, con sus pruebas (FR-001 a FR-005)
+- [x] **T002** Añadir `ProviderError`, `QuotaExceeded`, `ProviderTimeout` y `ProviderUnavailable` al puerto y reexportarlos, con sus pruebas (FR-001 a FR-005)
   - **Archivos**: `tests/unit/core/test_provider_errors.py`, `src/harness_agent/core/interfaces/provider.py`, `src/harness_agent/core/interfaces/__init__.py`, `src/harness_agent/core/__init__.py`
   - **Dependencias**: T001
   - **Criterios relacionados**: AC-02, regla de negocio 2, FR-001, FR-002, FR-003, FR-004, FR-005, SC-006, contrato §1, data-model (Producción), research R-01
@@ -69,15 +69,15 @@
 
 **Prueba independiente**: Un guion de tres pasos corre dos veces con el bucle real; historial, eventos y estado son idénticos y no se abre ningún socket.
 
-- [ ] **T003** [US1] Implementar `FakeProvider` (reproducción de respuestas, registro y copias) y exportarlo, con sus pruebas (FR-006 a FR-014)
+- [x] **T003** [US1] Implementar `FakeProvider` (reproducción de respuestas, registro y copias) y exportarlo, con sus pruebas (FR-006 a FR-014)
   - **Archivos**: `tests/unit/doubles/__init__.py`, `tests/unit/doubles/test_fake_provider.py`, `tests/doubles/fake_provider.py`, `tests/doubles/__init__.py`
   - **Dependencias**: T002
   - **Criterios relacionados**: AC-01, regla de negocio 1, FR-006, FR-007, FR-008, FR-009, FR-010, FR-011 (ids), FR-012, FR-014, FR-017, contrato §2, data-model (Prueba), research R-03, R-04 y R-07, plan D2 a D6
   - **Tarea F5**: Sp1-07
   - **Estimación**: 40 min (25 min impl + 10 min check + 5 min registro)
-  - **Verificación**: Pruebas primero: la llamada i devuelve el paso i; el orden se mantiene en 3 llamadas; devuelve una copia (mutar la respuesta no cambia la siguiente instancia del mismo guion); el guion original mutado después de construir no afecta; `received` y `received_tools` guardan copias; `call_count` cuenta; ids de llamada vacíos o repetidos se rechazan al construir con `ValueError` que nombra el id; dos instancias del mismo guion son independientes; `isinstance(provider, Provider)` y la misma firma de `complete`. En esta tarea el guion solo acepta `ProviderResponse`. Rojo esperado: `ImportError: cannot import name 'FakeProvider'`. Cierre: los cuatro comandos en 0; `fake_provider.py` al 100 %; `git diff` de `tests/doubles/` solo muestra el archivo nuevo y `__init__.py`.
+  - **Verificación**: Pruebas primero: la llamada i devuelve el paso i; el orden se mantiene en 3 llamadas; devuelve una copia (mutar la respuesta no cambia la siguiente instancia del mismo guion); el guion original mutado después de construir no afecta; `received` y `received_tools` guardan copias; `call_count` cuenta; un paso sin `usage` devuelve `usage is None` y uno con `usage` lo devuelve sin cambios; ids de llamada vacíos o repetidos se rechazan al construir con `ValueError` que nombra el id; dos instancias del mismo guion son independientes; `isinstance(provider, Provider)` y la misma firma de `complete`. En esta tarea el guion solo acepta `ProviderResponse`. Rojo esperado: `ImportError: cannot import name 'FakeProvider'`. Cierre: los cuatro comandos en 0; `fake_provider.py` al 100 %; `git diff` de `tests/doubles/` solo muestra el archivo nuevo y `__init__.py`.
 
-- [ ] **T004** [P] [US1] Prueba de contrato: `FakeProvider` es intercambiable con los otros dobles (FR-019)
+- [x] **T004** [P] [US1] Prueba de contrato: `FakeProvider` es intercambiable con los otros dobles (FR-019)
   - **Archivos**: `tests/contracts/test_fake_provider_contract.py`
   - **Dependencias**: T003
   - **Criterios relacionados**: AC-01, regla de negocio 1, FR-019, SC-005
@@ -85,13 +85,13 @@
   - **Estimación**: 25 min (15 min impl + 5 min check + 5 min registro)
   - **Verificación**: Con el mismo consumidor mínimo de `tests/contracts/test_provider_interchangeability.py` (se importa o se replica en el módulo nuevo, sin editar el existente), `DummyProvider`, `ScriptedProvider` y `FakeProvider` son intercambiables sin cambiar el consumidor; `FakeProvider` cumple `isinstance(…, Provider)` y devuelve `ProviderResponse`. Sin código nuevo: no hay rojo previo porque valida T003 (se demuestra con una mutación temporal: cambiar el tipo devuelto hace fallar la prueba). Cierre: los cuatro comandos en 0.
 
-- [ ] **T005** [US1] Integración AC-01: determinismo y «sin red» con el bucle real (FR-009, FR-010, FR-018)
+- [x] **T005** [US1] Integración AC-01: determinismo y «sin red» con el bucle real (FR-009, FR-010, FR-018)
   - **Archivos**: `tests/integration/test_fake_provider_agent_loop.py`
   - **Dependencias**: T003
   - **Criterios relacionados**: AC-01, FR-009, FR-010, FR-018, SC-001, SC-002, research R-04 y R-05, plan D8 y D9
   - **Tarea F5**: Sp1-07
   - **Estimación**: 40 min (25 min impl + 10 min check + 5 min registro)
-  - **Verificación**: Sin código de producción nuevo. Una fixture parchea `socket.socket.connect`, `socket.create_connection` y `socket.getaddrinfo` para fallar la prueba si se llaman y se aplica a todo el módulo (`autouse`). Un guion de tres pasos (dos llamadas a `RecordingTool` y una respuesta final) corre con `AgentLoop` 20 veces; en cada una, el historial y la lista `(tipo, carga)` de eventos son idénticos a la primera (se excluyen `id` y `timestamp`, D9); el proveedor recibió en cada llamada los mensajes acumulados esperados; la herramienta se ejecutó dos veces con los argumentos del guion. Nombres de prueba con `determinism` y `no_network` para el recorrido del quickstart §3. No hay rojo previo porque valida T003 (16+ casos, incluida una prueba de mutación: quitar el parche de red y abrir un socket a propósito hace fallar la fixture). Cierre: los cuatro comandos en 0.
+  - **Verificación**: Sin código de producción nuevo. Una fixture parchea `socket.create_connection` y `socket.getaddrinfo` para fallar la prueba si se llaman, y `socket.socket.connect` para fallar ante cualquier destino que no sea loopback ni `AF_UNIX` (en Windows el bucle de asyncio conecta a loopback en `socketpair()`); se aplica a todo el módulo (`autouse`). Un guion de tres pasos (dos llamadas a `RecordingTool` y una respuesta final) corre con `AgentLoop` 20 veces; en cada una, el historial y la lista `(tipo, carga)` de eventos son idénticos a la primera (se excluyen `id` y `timestamp`, D9); el proveedor recibió en cada llamada los mensajes acumulados esperados; la herramienta se ejecutó dos veces con los argumentos del guion. Nombres de prueba con `determinism` y `no_network` para el recorrido del quickstart §3. No hay rojo previo porque valida T003; una autoprueba de la fixture comprueba que un `connect` a una dirección no local falla y que uno a loopback pasa. Cierre: los cuatro comandos en 0.
 
 ---
 
@@ -101,7 +101,7 @@
 
 **Prueba independiente**: Con el bucle real y un guion cuyo primer paso es `QuotaExceeded`, el turno termina como fallo de proveedor y el evento lleva `error_type == "QuotaExceeded"`.
 
-- [ ] **T006** [US2] Admitir pasos de fallo (`ProviderError`) en el guion de `FakeProvider`, con sus pruebas (FR-007, FR-015, FR-016)
+- [x] **T006** [US2] Admitir pasos de fallo (`ProviderError`) en el guion de `FakeProvider`, con sus pruebas (FR-007, FR-015, FR-016)
   - **Archivos**: `tests/unit/doubles/test_fake_provider.py`, `tests/doubles/fake_provider.py`
   - **Dependencias**: T003
   - **Criterios relacionados**: AC-02, regla de negocio 2, FR-007, FR-008, FR-015, FR-016, SC-003, SC-004, contrato §2, research R-06, plan D4 y D7
@@ -109,13 +109,13 @@
   - **Estimación**: 35 min (20 min impl + 10 min check + 5 min registro)
   - **Verificación**: Pruebas primero (clase nueva en el módulo existente de T003): cada uno de los tres tipos se lanza como el tipo exacto y es instancia de `ProviderError`; un fallo en primera, tercera y última posición deja pasar las respuestas anteriores; el mensaje se conserva; el fallo se lanza una copia (dos instancias del mismo guion lanzan objetos distintos); la llamada tarda menos de 10 ms (`time.perf_counter`) y no usa `sleep` (se parchea `asyncio.sleep` y `time.sleep` para fallar si se llaman); `call_count` avanza también en los fallos; un guion que mezcla éxitos y fallos se repite igual en una instancia nueva. Rojo esperado: `ValueError` por paso de tipo no admitido en T003. Cierre: los cuatro comandos en 0; `fake_provider.py` al 100 %.
 
-- [ ] **T007** [US2] Integración AC-02: el bucle recibe el tipo de error canónico (FR-018, SC-003)
+- [x] **T007** [US2] Integración AC-02: el bucle recibe el tipo de error canónico (FR-018, SC-003)
   - **Archivos**: `tests/integration/test_fake_provider_agent_loop.py`
   - **Dependencias**: T005, T006
   - **Criterios relacionados**: AC-02, regla de negocio 2, FR-018, SC-003, SC-004, contrato §3, research R-02
   - **Tarea F5**: Sp1-08
   - **Estimación**: 35 min (20 min impl + 10 min check + 5 min registro)
-  - **Verificación**: Sin código de producción nuevo; clase nueva en el módulo de T005 (con la misma fixture de red bloqueada). Parametrizada por los tres tipos: con el fallo en el primer paso, `run_turn` devuelve `TurnStatus.PROVIDER_FAILED`, se publica un `PROVIDER_ERROR` con `reason == "provider_exception"` y `error_type` igual al nombre del tipo, y el tipo es el mismo objeto que `harness_agent.core` exporta. Un fallo en la tercera llamada deja el historial de las dos primeras. Un fallo con un mensaje largo se acota por el bucle sin romper la prueba. El turno entero tarda menos de 10 ms de forma holgada (SC-004 se comprueba con una cota generosa de 500 ms para no ser frágil en CI, y la cota estricta de 10 ms queda en T006). No hay rojo previo porque valida T002 y T006. Cierre: los cuatro comandos en 0.
+  - **Verificación**: Sin código de producción nuevo; clase nueva en el módulo de T005 (con la misma fixture de red bloqueada). Parametrizada por los tres tipos: con el fallo en el primer paso, `run_turn` devuelve `TurnStatus.PROVIDER_FAILED`, se publica un `PROVIDER_ERROR` con `reason == "provider_exception"` y `error_type` igual al nombre del tipo, y el tipo es el mismo objeto que `harness_agent.core` exporta. Un fallo en la tercera llamada deja el historial de las dos primeras. Un fallo con un mensaje largo se acota por el bucle sin romper la prueba. Los nombres de las pruebas incluyen `quota`, `timeout` y `unavailable` para el recorrido del quickstart §3. El turno entero tarda menos de 10 ms de forma holgada (SC-004 se comprueba con una cota generosa de 500 ms para no ser frágil en CI, y la cota estricta de 10 ms queda en T006). No hay rojo previo porque valida T002 y T006. Cierre: los cuatro comandos en 0.
 
 ---
 
@@ -125,13 +125,13 @@
 
 **Prueba independiente**: N+1 llamadas lanzan `ScriptExhausted` y marcan `exhausted`; los guiones inválidos se rechazan al construir.
 
-- [ ] **T008** [US3] Guion agotado, guion vacío, pasos inválidos y no bloqueo del bucle de eventos (FR-011, FR-013)
+- [x] **T008** [US3] Guion agotado, guion vacío, pasos inválidos y no bloqueo del bucle de eventos (FR-011, FR-013)
   - **Archivos**: `tests/unit/doubles/test_fake_provider.py`, `tests/doubles/fake_provider.py`
   - **Dependencias**: T006
   - **Criterios relacionados**: FR-011, FR-013, spec US3, research R-03, plan D3 y D5
   - **Tarea F5**: Transversal
   - **Estimación**: 30 min (15 min impl + 10 min check + 5 min registro)
-  - **Verificación**: Pruebas primero: la llamada N+1 lanza `ScriptExhausted` (el de `tests.doubles`) y `exhausted` pasa a `True`, y `call_count` sigue contando; las llamadas siguientes también lanzan; un guion vacío, un paso `None`, un `str`, una excepción que no sea `ProviderError` y un `ProviderResponse` con id de llamada vacío se rechazan al construir con `ValueError` cuyo mensaje incluye el índice del paso; `await provider.complete(...)` dentro de `asyncio.gather` con un bucle de eventos auxiliar no queda bloqueado (`run_bounded`). Rojo esperado: las rutas de agotado y validación aún no existen o no cubren todos los casos. Cierre: los cuatro comandos en 0; `fake_provider.py` al 100 % de líneas y ramas.
+  - **Verificación**: Pruebas primero: la llamada N+1 lanza `ScriptExhausted` (el de `tests.doubles`) y `exhausted` pasa a `True`, y `call_count` sigue contando; las llamadas siguientes también lanzan; un guion vacío, un paso `None`, un `str`, una excepción que no sea `ProviderError`, una *clase* de error sin instanciar (`QuotaExceeded`) y un `ProviderResponse` con id de llamada vacío se rechazan al construir con `ValueError` cuyo mensaje incluye el índice del paso; `await provider.complete(...)` dentro de `asyncio.gather` con un bucle de eventos auxiliar no queda bloqueado (`run_bounded`); cancelar la tarea entre dos llamadas no avanza `call_count`. Rojo esperado: las rutas de agotado y validación aún no existen o no cubren todos los casos. Cierre: los cuatro comandos en 0; `fake_provider.py` al 100 % de líneas y ramas.
 
 ---
 
@@ -141,7 +141,7 @@
 
 **Prueba independiente**: La suite existente sigue en verde sin cambios; una prueba de arquitectura confirma las fronteras; la guía explica los tres dobles.
 
-- [ ] **T009** [P] [US4] Prueba de arquitectura: `core/` no importa `tests/` ni terceros tras la ampliación del puerto (FR-020)
+- [x] **T009** [P] [US4] Prueba de arquitectura: `core/` no importa `tests/` ni terceros tras la ampliación del puerto (FR-020)
   - **Archivos**: `tests/architecture/test_provider_errors_boundaries.py`
   - **Dependencias**: T002
   - **Criterios relacionados**: FR-004, FR-020, spec US4, constitución Principio III
@@ -149,7 +149,7 @@
   - **Estimación**: 30 min (15 min impl + 10 min check + 5 min registro)
   - **Verificación**: Con `ast`, ningún módulo de `core/` importa `tests`, `harness_agent.cli` ni `harness_agent.adapters`; `provider.py` solo importa biblioteca estándar y módulos de `harness_agent.core`; `tests/doubles/fake_provider.py` solo importa biblioteca estándar, `harness_agent.core` (API pública o `harness_agent.core.interfaces.provider`, como los otros dobles) y `tests.doubles.scripted_provider`. Autoprueba con fragmentos que sí violan la regla. Línea base limpia, así que no hay rojo previo (la autoprueba demuestra el detector). Cierre: los cuatro comandos en 0.
 
-- [ ] **T010** [P] [US4] Documentar qué doble de proveedor usar y cómo escribir un guion con fallos (FR-021)
+- [x] **T010** [P] [US4] Documentar qué doble de proveedor usar y cómo escribir un guion con fallos (FR-021)
   - **Archivos**: `docs/guia-contratos-desarrollo.md`
   - **Dependencias**: T008
   - **Criterios relacionados**: FR-021, SC-007, contrato §2 y §4
@@ -161,7 +161,7 @@
 
 ## Phase 7: Cierre
 
-- [ ] **T011** Cierre: verificación completa y registro en `docs/PROGRESO.md` (transversal)
+- [x] **T011** Cierre: verificación completa y registro en `docs/PROGRESO.md` (transversal)
   - **Archivos**: `docs/PROGRESO.md`
   - **Dependencias**: T001 a T010
   - **Criterios relacionados**: Principios VIII, IX y X, FR-017, FR-022, FR-023, SC-005, SC-006

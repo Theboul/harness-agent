@@ -66,7 +66,7 @@ Como equipo de desarrollo, quiero escribir un guion de respuestas de texto y lla
 1. **Given** un guion con una respuesta de texto y una con llamadas a herramientas, **When** el bucle corre con el proveedor simulado, **Then** recibe las respuestas en el orden del guion, una por llamada.
 2. **Given** el mismo guion, **When** se ejecuta dos veces en procesos de prueba distintos, **Then** el resultado (historial, eventos y estado final) es idéntico.
 3. **Given** una prueba que bloquea cualquier conexión de red, **When** corre con el proveedor simulado, **Then** pasa: el proveedor no intenta abrir sockets.
-4. **Given** el proveedor simulado, **When** se comprueba contra la interfaz `Provider`, **Then** es una subclase con la misma firma de `complete`, y la suite de contrato de proveedores existente lo acepta como intercambiable con el doble actual.
+4. **Given** el proveedor simulado, **When** se comprueba contra la interfaz `Provider`, **Then** es una subclase con la misma firma de `complete`, y una prueba de contrato equivalente a la de intercambiabilidad existente lo acepta como intercambiable con los otros dobles.
 5. **Given** cada llamada al proveedor, **When** se consulta lo registrado, **Then** quedan guardados los mensajes y las herramientas recibidos, como copias que no cambian si el bucle sigue trabajando.
 6. **Given** un guion cuyas llamadas a herramientas repiten un identificador o lo dejan vacío, **When** se construye, **Then** se rechaza al crearlo, no a mitad de una prueba.
 
@@ -185,9 +185,9 @@ Como equipo de desarrollo, quiero que el proveedor simulado conviva con `Scripte
 ### Measurable Outcomes
 
 - **SC-001**: Dos ejecuciones del mismo guion de tres pasos con el bucle real producen el mismo historial, los mismos eventos y el mismo estado final en el 100 % de las repeticiones (probado con al menos 20 repeticiones por prueba).
-- **SC-002**: La suite del proveedor simulado corre con toda conexión de red bloqueada y con 0 intentos de conexión.
+- **SC-002**: La suite del proveedor simulado corre con toda conexión de red externa bloqueada y con 0 intentos de conexión.
 - **SC-003**: Los tres fallos canónicos llegan al bucle como el tipo exacto pedido y como subclase de `ProviderError` en el 100 % de los casos de prueba, y el evento de error del proveedor lleva ese nombre de tipo.
-- **SC-004**: Un fallo simulado no consume tiempo medible: la llamada devuelve en menos de 10 ms en cada caso de prueba.
+- **SC-004**: Un fallo simulado no consume tiempo medible: la llamada al proveedor devuelve en menos de 10 ms en cada caso de prueba unitaria; en la integración con el bucle completo se usa una cota holgada para no depender de la velocidad de la CI.
 - **SC-005**: 0 pruebas existentes modificadas y 0 pruebas existentes en rojo tras la historia; la suite completa sigue en verde.
 - **SC-006**: El módulo nuevo y la jerarquía de errores tienen 100 % de cobertura de líneas y ramas; `ruff`, `mypy --strict` y `pytest` terminan con código 0.
 - **SC-007**: Un integrante nuevo encuentra en la guía, en menos de un minuto de lectura, cuál de los tres dobles de proveedor usar y un ejemplo de guion con un fallo.

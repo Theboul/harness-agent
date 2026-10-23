@@ -26,8 +26,8 @@ Todas las decisiones de alcance las tomó el responsable el 2026-10-23 (véase *
 
 ## R-05 — Garantizar «sin red»
 
-- **Decision**: una fixture parchea `socket.socket.connect`, `socket.create_connection` y `socket.getaddrinfo` para fallar si se llaman, y la suite del doble la usa.
-- **Rationale**: demuestra el 0 intentos de conexión (SC-002) también en una máquina con red.
+- **Decision**: una fixture parchea `socket.create_connection` y `socket.getaddrinfo` para fallar si se llaman, y `socket.socket.connect` para fallar ante cualquier destino que no sea loopback (`127.0.0.0/8`, `::1`) ni `AF_UNIX`; la suite del doble la usa.
+- **Rationale**: demuestra el 0 intentos de conexión externa (SC-002) también en una máquina con red. Se permite loopback porque en Windows `socket.socketpair()` (el bucle de asyncio) conecta a loopback.
 - **Alternatives considered**: `pytest-socket` (descartado: dependencia nueva).
 
 ## R-06 — Fallos sin espera

@@ -54,7 +54,7 @@ El resto es verificación: pruebas unitarias, de contrato y de integración con 
 | Principio / Restricción | Requisito | Pre-diseño | Post-diseño | Evidencia |
 |---|---|---|---|---|
 | I. Una historia por especificación | Solo HU-00-03 | Pasa | Pasa | Spec y plan solo de HU-00-03 |
-| II. Microtareas de 15 a 40 min | Ninguna tarea pasa de 40 min (límite absoluto 60) | Pasa | Pasa | `tasks.md` (se genera en el paso siguiente) |
+| II. Microtareas de 15 a 40 min | Ninguna tarea pasa de 40 min (límite absoluto 60) | Pasa | Pasa | `tasks.md`: 9 tareas de trabajo (≤ 40 min) más inicio, cierre y las dos humanas |
 | III. Núcleo modular, tipado, sin dependencias externas | `core/` solo con biblioteca estándar | Pasa | Pasa | D1: cuatro excepciones sin imports nuevos; prueba de arquitectura |
 | IV. Pruebas, calidad y CI multiplataforma | Pruebas primero; ruff, mypy, pytest en Windows y Linux | Pasa | Pasa | Cada tarea escribe las pruebas antes del código |
 | V. Inmutabilidad de criterios | AC-01, AC-02, reglas y flujo copiados tal cual | Pasa | Pasa | Spec, sección «Criterios de aceptación…» |
@@ -79,7 +79,7 @@ No hay violaciones; la sección de complejidad no aplica.
 | D5 | Validación al construir: guion no vacío, tipos válidos, ids de llamadas a herramientas no vacíos y únicos en todo el guion. El error es `ValueError` con mensaje claro. | FR-011; igual que `ScriptedProvider`, pero sin opción de saltarse la regla (YAGNI). |
 | D6 | Registro: `received` y `received_tools` (copias), `call_count`, `exhausted`. Mismos nombres que `ScriptedProvider`. | Las pruebas existentes de A leen esos nombres; así las nuevas pueden compartir ayudas. |
 | D7 | Sin `asyncio.sleep` ni `block_on_call`. | FR-015; el doble de bloqueo ya existe en `ScriptedProvider`. |
-| D8 | La prueba de «sin red» parchea `socket.socket.connect`, `socket.create_connection` y `socket.getaddrinfo` para fallar la prueba si se usan. | Evidencia directa de SC-002 sin depender de que el entorno esté sin conexión. |
+| D8 | La prueba de «sin red» parchea `socket.create_connection`, `socket.getaddrinfo` y `socket.socket.connect`; este último deja pasar las direcciones de loopback y `AF_UNIX` y falla ante cualquier otro destino. | Evidencia directa de SC-002 sin depender de que el entorno esté sin conexión. En Windows `socket.socketpair()` (que usa asyncio) se implementa con un `connect` a loopback, así que bloquearlo todo rompería el bucle de eventos. |
 | D9 | Las pruebas de determinismo comparan `(tipo, carga)` de los eventos y el historial, no `id` ni `timestamp` (el evento los genera con UUID y reloj). | Son los únicos campos no deterministas del evento y no los controla el proveedor. |
 | D10 | `FakeProvider` se exporta desde `tests/doubles/__init__.py`; la jerarquía de errores desde `harness_agent.core`. No se actualizan `test_contracts.py` ni `test_core_public_api.py` (no fijan el conjunto exacto de `__all__`). | SC-005. |
 
