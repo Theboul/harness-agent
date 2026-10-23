@@ -108,7 +108,7 @@ Se escriben y acuerdan en [HU-00-01](04a-historias-fundacion.md#hu-00-01) para t
 
 | Interfaz | Operaciones | Función |
 |---|---|---|
-| Provider | complete(messages, tools) → respuesta con texto, llamadas y uso | Aísla a LiteLLM; cambiar de proveedor no toca el núcleo. |
+| Provider | complete(messages, tools) → respuesta con texto, llamadas y uso | Aísla a LiteLLM; cambiar de proveedor no toca el núcleo. Sus fallos son `ProviderError` y los tipos `QuotaExceeded`, `ProviderTimeout` y `ProviderUnavailable` (HU-00-03); los adaptadores traducen a ellos los errores de su biblioteca. |
 | Tool | name, description, schema, risk, run(args) → resultado | Todas las herramientas, nativas, MCP o de subagente, se ven igual. |
 | ToolRegistry | register, get, list, validate_args(name, args) | Valida contra el esquema antes de ejecutar. |
 | PermissionPolicy | evaluate(call) → deny \| ask \| allow | Falla cerrada; se aplica en el harness, no en el prompt. |

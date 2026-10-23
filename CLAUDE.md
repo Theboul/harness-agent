@@ -56,7 +56,7 @@ Las skills describen el código real (v1.1, 2026-10-23): `core/interfaces/` para
 - En `/speckit-plan`, el *Constitution Check* incluye las *Hard Rules* de las tres skills del proyecto; una violación sin justificar detiene el plan.
 - En `/speckit-tasks`, cada tarea que crea un archivo indica su ruta según `estructura-carpetas-harness`, y hay una tarea de verificación de fronteras (`verificar-fronteras-hexagonales`).
 - En `/speckit-analyze` y `/speckit-converge`, se revisa además el cumplimiento de las skills (lista de comprobación de `capas-y-reglas.md`).
-- Carpeta `specs/NNN-slug/` con numeración secuencial (existen 001–011, falta 008; la siguiente es 012). `.specify/feature.json` apunta a la feature activa: actualízalo al cambiar de historia.
+- Carpeta `specs/NNN-slug/` con numeración secuencial (existen 001–013, falta 008; la siguiente es 014). `.specify/feature.json` apunta a la feature activa: actualízalo al cambiar de historia.
 - Tareas de **15–40 min** (máximo absoluto 60), cada una con pruebas primero: escribir la prueba, verla fallar **por la razón esperada**, implementar lo mínimo, pasar los cuatro comandos de calidad.
 - Cada `tasks.md` incluye: mapeo a tareas `SpN-xx` con presupuesto, lista de **archivos protegidos**, tareas humanas finales (revisión cruzada y CI remota) que Claude **no** marca como hechas.
 - `.claude/skills/` y `.agents/skills/` son copias para distintos agentes (Claude / Codex / agy); si modificas una skill propia del proyecto, actualiza ambas.
@@ -108,10 +108,11 @@ cli ──▶ core ◀── adapters        config.py ──▶ core      (boot
 | `config.py` — `load_config()`, `HarnessConfig`, `Secret` | HU-00-04 (B) | TOML (`config.toml` o `HARNESS_CONFIG`) + env. Rechaza campos desconocidos y campos con aspecto de clave. `[permissions]` solo admite `deny` y `ask` (nunca `allow`) |
 | `cli/` — `run_cli(bus, run_turn, ...) -> int`, `attach_renderer`, `render_event` | HU-06-01 (C) | Solo stdlib + API pública de `core`. Comandos `/ayuda`, `/salir`. Ante excepción del turno: una línea con el tipo, exit 1 |
 | `adapters/system/` — `WorkspaceArea` (área real); `adapters/tools/` — `leer_archivo`, `escribir_archivo`, `listar_archivos`, `buscar_texto` | HU-01-03 (C) | `WorkspaceArea(root, *, windows=None)` decide la contención sobre la ruta real y falla cerrado (reglas de Windows en `windows_path_problem`); las herramientas reciben el área (o `None`) por constructor, usan `path` y devuelven errores como `ToolResult` con etiqueta (`[fuera_del_area]`, `[sin_area]`…). Sin área, nada se ejecuta |
+| `core/interfaces/provider.py` — `ProviderError`, `QuotaExceeded`, `ProviderTimeout`, `ProviderUnavailable`; `tests/doubles/fake_provider.py` — `FakeProvider(script)` | HU-00-03 (B) | Los errores canónicos son la única jerarquía que lanzan los proveedores hacia el núcleo (los adaptadores reales traducirán a ellos; HU-07-04/05 la ampliarán). `FakeProvider` reproduce un guion de `ProviderResponse` y `ProviderError` (uno por llamada, copias, sin red, reloj ni espera), valida el guion al construirse y lanza `ScriptExhausted` al agotarse. Es el doble oficial de proveedor; `ScriptedProvider` y `DummyProvider` siguen disponibles |
 | `adapters/converters/` — OpenAI/Anthropic ↔ formato canónico, `ConversionEnvelope` + sidecar | HU-07-01 (A) | D-02. `from_openai_messages`/`from_anthropic_payload` están obsoletas: usar `to_*_envelope` + `restore_messages` |
 | `tests/spikes/` | SPK-02 (A) | Base de D-01 (asyncio + cancelación) |
 
-Aún **no** hay: `FakeProvider` (HU-00-03), adaptador LiteLLM (HU-07-02/SPK-01), SQLite (HU-03-01/02), shell (HU-01-04), aprobación interactiva (HU-05-03), límites (HU-01-06), raíz de composición ni punto de entrada ejecutable.
+Aún **no** hay: adaptador LiteLLM (HU-07-02/SPK-01), SQLite (HU-03-01/02), shell (HU-01-04), aprobación interactiva (HU-05-03), límites (HU-01-06), raíz de composición ni punto de entrada ejecutable.
 
 ### Convenciones ya acordadas que las próximas historias deben respetar
 
