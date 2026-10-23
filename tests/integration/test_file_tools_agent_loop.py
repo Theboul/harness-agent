@@ -97,9 +97,11 @@ def tool_messages(result: TurnResult) -> list[Message]:
 def area_dir(tmp_path: Path) -> Path:
     area = tmp_path / "area"
     (area / "src").mkdir(parents=True)
-    (area / "src" / "pago.py").write_text("def cobrar(monto):\n    return monto\n", "utf-8")
+    (area / "src" / "pago.py").write_text(
+        "def cobrar(monto):\n    return monto\n", "utf-8", newline=""
+    )
     (tmp_path / "outside").mkdir()
-    (tmp_path / "outside" / "secret.txt").write_text(SENTINEL, encoding="utf-8")
+    (tmp_path / "outside" / "secret.txt").write_text(SENTINEL, encoding="utf-8", newline="")
     return area
 
 
@@ -208,7 +210,7 @@ class TestWriteInside:
         outcomes = []
         for _ in range(3):
             (area_dir / "src" / "pago.py").write_text(
-                "def cobrar(monto):\n    return monto\n", "utf-8"
+                "def cobrar(monto):\n    return monto\n", "utf-8", newline=""
             )
             rig = Rig(area_dir, steps())
             result = await rig.go()
@@ -286,7 +288,7 @@ def area_root_from(config: HarnessConfig) -> Path | None:
 class TestNoAreaFromConfiguration:
     def test_a_configuration_without_workspace_root_gives_no_area(self, tmp_path: Path) -> None:
         config_file = tmp_path / "config.toml"
-        config_file.write_text('model = "fake/test"\n', encoding="utf-8")
+        config_file.write_text('model = "fake/test"\n', encoding="utf-8", newline="")
 
         config = load_config(config_file, environ={})
 
@@ -301,6 +303,7 @@ class TestNoAreaFromConfiguration:
         config_file.write_text(
             f'model = "fake/test"\n[paths]\nworkspace_root = "{project.as_posix()}"\n',
             encoding="utf-8",
+            newline="",
         )
 
         root = area_root_from(load_config(config_file, environ={}))
@@ -312,7 +315,7 @@ class TestNoAreaFromConfiguration:
         self, tmp_path: Path
     ) -> None:
         config_file = tmp_path / "config.toml"
-        config_file.write_text('model = "fake/test"\n', encoding="utf-8")
+        config_file.write_text('model = "fake/test"\n', encoding="utf-8", newline="")
         root = area_root_from(load_config(config_file, environ={}))
         rig = Rig(root, script(call("c1", "escribir_archivo", path="nuevo.txt", content="x")))
 

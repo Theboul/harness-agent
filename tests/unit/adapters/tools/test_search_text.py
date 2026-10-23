@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -21,14 +22,16 @@ def area_dir(tmp_path: Path) -> Path:
     area = tmp_path / "area"
     (area / "src" / "paquete").mkdir(parents=True)
     (area / "src" / "pago.py").write_text(
-        "import os\n\ndef cobrar(monto):\n    return monto\n", encoding="utf-8"
+        "import os\n\ndef cobrar(monto):\n    return monto\n", encoding="utf-8", newline=""
     )
     (area / "src" / "paquete" / "util.py").write_text(
-        "# cobrar aquí también\nx = 1\n", encoding="utf-8"
+        "# cobrar aquí también\nx = 1\n", encoding="utf-8", newline=""
     )
-    (area / "README.md").write_text("Se puede COBRAR y cobrar.\n", encoding="utf-8")
+    (area / "README.md").write_text("Se puede COBRAR y cobrar.\n", encoding="utf-8", newline="")
     (tmp_path / "outside").mkdir()
-    (tmp_path / "outside" / "secret.txt").write_text(f"cobrar {SENTINEL}\n", encoding="utf-8")
+    (tmp_path / "outside" / "secret.txt").write_text(
+        f"cobrar {SENTINEL}\n", encoding="utf-8", newline=""
+    )
     return area
 
 
@@ -99,7 +102,7 @@ class TestSearching:
     async def test_a_regex_looking_query_is_literal_text(
         self, tool: SearchTextTool, area_dir: Path
     ) -> None:
-        (area_dir / "re.txt").write_text("a.*b\nxyz\n(grupo\n", encoding="utf-8")
+        (area_dir / "re.txt").write_text("a.*b\nxyz\n(grupo\n", encoding="utf-8", newline="")
 
         assert (await grep(tool, "re.txt", ".*")).content == "re.txt:1: a.*b"
         assert (await grep(tool, "re.txt", "(grupo")).content == "re.txt:3: (grupo"
@@ -120,7 +123,9 @@ class TestSearching:
     async def test_more_than_the_limit_is_cut_and_says_so(
         self, tool: SearchTextTool, area_dir: Path
     ) -> None:
-        (area_dir / "mucho.txt").write_text("hallazgo\n" * (_limits.MAX_MATCHES + 10), "utf-8")
+        (area_dir / "mucho.txt").write_text(
+            "hallazgo\n" * (_limits.MAX_MATCHES + 10), "utf-8", newline=""
+        )
 
         result = await grep(tool, "mucho.txt", "hallazgo")
 
@@ -129,7 +134,9 @@ class TestSearching:
         assert str(_limits.MAX_MATCHES) in lines[-1]
 
     async def test_a_long_line_is_cut(self, tool: SearchTextTool, area_dir: Path) -> None:
-        (area_dir / "larga.txt").write_text("ancla " + "z" * 1000 + "\n", encoding="utf-8")
+        (area_dir / "larga.txt").write_text(
+            "ancla " + "z" * 1000 + "\n", encoding="utf-8", newline=""
+        )
 
         result = await grep(tool, "larga.txt", "ancla")
 
@@ -142,7 +149,7 @@ class TestSearching:
         (area_dir / "tantos").mkdir()
         for number in range(30):
             (area_dir / "tantos" / f"a{number:02d}.txt").write_text(
-                ("hallazgo " + "w" * 190 + "\n") * 40, encoding="utf-8"
+                ("hallazgo " + "w" * 190 + "\n") * 40, encoding="utf-8", newline=""
             )
 
         result = await grep(tool, "tantos", "hallazgo")
@@ -303,10 +310,11 @@ class TestOddEntries:
         assert "pago.py" not in result.content
         assert "README.md:1" in result.content
 
-    @pytest.mark.skipif(os.name == "nt", reason="needs POSIX named pipes")
     async def test_a_named_pipe_in_a_folder_is_neither_opened_nor_followed(
         self, tool: SearchTextTool, area_dir: Path
     ) -> None:
+        if sys.platform == "win32":
+            pytest.skip("needs POSIX named pipes")
         os.mkfifo(area_dir / "tuberia")
 
         result = await grep(tool, ".", "cobrar")

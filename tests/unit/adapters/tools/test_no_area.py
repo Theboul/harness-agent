@@ -53,7 +53,7 @@ async def test_the_current_directory_is_never_used_as_a_default_area(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    (tmp_path / "x.txt").write_text("x", encoding="utf-8")
+    (tmp_path / "x.txt").write_text("x", encoding="utf-8", newline="")
     monkeypatch.chdir(tmp_path)
 
     result = await factory(None).run(args)

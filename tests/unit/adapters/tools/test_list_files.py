@@ -20,12 +20,12 @@ SENTINEL = "VALOR-DE-PRUEBA-123"
 def area_dir(tmp_path: Path) -> Path:
     area = tmp_path / "area"
     (area / "src" / "paquete").mkdir(parents=True)
-    (area / "src" / "main.py").write_text("x", encoding="utf-8")
-    (area / "README.md").write_text("x", encoding="utf-8")
+    (area / "src" / "main.py").write_text("x", encoding="utf-8", newline="")
+    (area / "README.md").write_text("x", encoding="utf-8", newline="")
     (area / "carpeta vacía").mkdir()
-    (area / "ñandú.txt").write_text("x", encoding="utf-8")
+    (area / "ñandú.txt").write_text("x", encoding="utf-8", newline="")
     (tmp_path / "outside").mkdir()
-    (tmp_path / "outside" / "secret.txt").write_text(SENTINEL, encoding="utf-8")
+    (tmp_path / "outside" / "secret.txt").write_text(SENTINEL, encoding="utf-8", newline="")
     return area
 
 
@@ -108,7 +108,7 @@ class TestListing:
         self, tool: ListFilesTool, area_dir: Path
     ) -> None:
         try:
-            (area_dir / "a\n[archivo] falso").write_text("x", encoding="utf-8")
+            (area_dir / "a\n[archivo] falso").write_text("x", encoding="utf-8", newline="")
         except (OSError, ValueError):
             pytest.skip("this system does not allow control characters in names")
 
@@ -123,7 +123,7 @@ class TestListing:
         many = area_dir / "muchos"
         many.mkdir()
         for number in range(_limits.MAX_LIST_ENTRIES + 25):
-            (many / f"f{number:04d}.txt").write_text("", encoding="utf-8")
+            (many / f"f{number:04d}.txt").write_text("", encoding="utf-8", newline="")
 
         result = await ls(tool, "muchos")
 
@@ -139,7 +139,7 @@ class TestListing:
         wide = area_dir / "anchos"
         wide.mkdir()
         for number in range(_limits.MAX_LIST_ENTRIES):
-            (wide / (f"{number:03d}-" + "n" * 200)).write_text("", encoding="utf-8")
+            (wide / (f"{number:03d}-" + "n" * 200)).write_text("", encoding="utf-8", newline="")
 
         result = await ls(tool, "anchos")
 

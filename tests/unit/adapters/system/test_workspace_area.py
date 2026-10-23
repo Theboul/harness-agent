@@ -24,9 +24,9 @@ def layout(tmp_path: Path) -> tuple[Path, Path]:
     area = tmp_path / "area"
     outside = tmp_path / "outside"
     (area / "src").mkdir(parents=True)
-    (area / "src" / "main.py").write_text("print(1)\n", encoding="utf-8")
+    (area / "src" / "main.py").write_text("print(1)\n", encoding="utf-8", newline="")
     outside.mkdir()
-    (outside / "secret.txt").write_text(SENTINEL, encoding="utf-8")
+    (outside / "secret.txt").write_text(SENTINEL, encoding="utf-8", newline="")
     return area, outside
 
 
@@ -69,7 +69,7 @@ class TestConstruction:
         area, _ = layout
         target = area / "main-file" if bad == "file" else area / "missing"
         if bad == "file":
-            target.write_text("x", encoding="utf-8")
+            target.write_text("x", encoding="utf-8", newline="")
 
         with pytest.raises(ValueError, match="carpeta existente") as raised:
             WorkspaceArea(target)
@@ -164,6 +164,10 @@ class TestSymbolicLinks:
         # By text "enlace-dir/../x" collapses to "x", inside the area; but the link takes the path
         # to the outside folder and ".." climbs from there, so the real path is outside.
         assert os.path.normpath("enlace-dir/../x") == "x"
+        if os.name == "nt":
+            # Windows collapses ".." lexically before it follows links, as the system itself does
+            assert WorkspaceArea(area).contains("enlace-dir/../x") is True
+            return
         assert WorkspaceArea(area).contains("enlace-dir/../x") is False
         assert WorkspaceArea(area).contains("enlace-dir/../area/src/main.py") is True
 
@@ -313,6 +317,7 @@ class TestWindowsInArea:
     def test_an_ordinary_relative_path_is_inside(self, layout: tuple[Path, Path]) -> None:
         assert WorkspaceArea(layout[0], windows=True).contains("src/main.py") is True
 
+    @pytest.mark.skipif(os.name == "nt", reason="a colon or CON is not a valid name on Windows")
     def test_without_the_windows_rules_a_colon_is_a_valid_name_character(
         self, layout: tuple[Path, Path]
     ) -> None:

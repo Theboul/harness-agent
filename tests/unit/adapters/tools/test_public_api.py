@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -32,6 +33,18 @@ TOOLS_API = {
     "MAX_RESULT_CHARS",
 }
 SYSTEM_API = {"WorkspaceArea", "windows_path_problem"}
+
+
+def _clean_environment() -> dict[str, str]:
+    """The environment of the test without the variables that make a child process write coverage
+    data into the repository (pytest-cov), plus the source path. Windows needs its own variables
+    (``SYSTEMROOT``) for Python to start, so the rest is kept."""
+    kept = {
+        key: value
+        for key, value in os.environ.items()
+        if not key.startswith(("COV_CORE", "COVERAGE"))
+    }
+    return {**kept, "PYTHONPATH": str(SRC)}
 
 
 def test_tools_expose_the_four_tools_and_the_limits() -> None:
@@ -73,7 +86,7 @@ def test_the_helpers_of_the_package_are_not_public_api() -> None:
 def test_every_module_imports_on_its_own_in_a_fresh_interpreter(statement: str) -> None:
     completed = subprocess.run(
         [sys.executable, "-c", statement],
-        env={"PYTHONPATH": str(SRC), "PATH": ""},
+        env=_clean_environment(),
         capture_output=True,
         text=True,
         timeout=60,

@@ -98,9 +98,9 @@ class TestResolveInArea:
     @pytest.fixture
     def area_dir(self, tmp_path: Path) -> Path:
         (tmp_path / "area" / "src").mkdir(parents=True)
-        (tmp_path / "area" / "src" / "main.py").write_text("x", encoding="utf-8")
+        (tmp_path / "area" / "src" / "main.py").write_text("x", encoding="utf-8", newline="")
         (tmp_path / "outside").mkdir()
-        (tmp_path / "outside" / "secret.txt").write_text(SENTINEL, encoding="utf-8")
+        (tmp_path / "outside" / "secret.txt").write_text(SENTINEL, encoding="utf-8", newline="")
         return tmp_path / "area"
 
     def test_without_an_area_the_result_is_sin_area(self) -> None:

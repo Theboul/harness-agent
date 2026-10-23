@@ -20,9 +20,9 @@ SENTINEL = "VALOR-DE-PRUEBA-123"
 def area_dir(tmp_path: Path) -> Path:
     area = tmp_path / "area"
     (area / "src").mkdir(parents=True)
-    (area / "src" / "existente.txt").write_text("contenido anterior", encoding="utf-8")
+    (area / "src" / "existente.txt").write_text("contenido anterior", encoding="utf-8", newline="")
     (tmp_path / "outside").mkdir()
-    (tmp_path / "outside" / "secret.txt").write_text(SENTINEL, encoding="utf-8")
+    (tmp_path / "outside" / "secret.txt").write_text(SENTINEL, encoding="utf-8", newline="")
     return area
 
 

@@ -46,10 +46,12 @@ def link(target: Path, path: Path, *, directory: bool = False) -> None:
 def world(tmp_path: Path) -> Path:
     """``tmp_path`` with an ``area`` and an ``outside`` that holds a sentinel file."""
     (tmp_path / "area" / "src").mkdir(parents=True)
-    (tmp_path / "area" / "src" / "pago.py").write_text("cobrar\n", encoding="utf-8")
+    (tmp_path / "area" / "src" / "pago.py").write_text("cobrar\n", encoding="utf-8", newline="")
     (tmp_path / "area-otra").mkdir()
     (tmp_path / "outside").mkdir()
-    (tmp_path / "outside" / "secret.txt").write_text(f"cobrar {SENTINEL}", encoding="utf-8")
+    (tmp_path / "outside" / "secret.txt").write_text(
+        f"cobrar {SENTINEL}", encoding="utf-8", newline=""
+    )
     return tmp_path
 
 
@@ -81,11 +83,12 @@ def hostile_paths(world: Path) -> list[str]:
         "enlace-archivo",
         "enlace-carpeta/secret.txt",
         "enlace-carpeta/nuevo/x.txt",
-        "enlace-carpeta/../x.txt",
         "enlace-roto",
         "a\x00b",
         "",
         "   ",
+        # POSIX resolves the link before ".."; Windows collapses ".." first (see the area tests)
+        *([] if os.name == "nt" else ["enlace-carpeta/../x.txt"]),
     ]
 
 

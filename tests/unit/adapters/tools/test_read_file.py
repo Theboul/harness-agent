@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -20,10 +21,12 @@ SENTINEL = "VALOR-DE-PRUEBA-123"
 def area_dir(tmp_path: Path) -> Path:
     area = tmp_path / "area"
     (area / "src").mkdir(parents=True)
-    (area / "src" / "main.py").write_text("print('hola')\nsegunda línea ñandú\n", encoding="utf-8")
-    (area / "vacio.txt").write_text("", encoding="utf-8")
+    (area / "src" / "main.py").write_text(
+        "print('hola')\nsegunda línea ñandú\n", encoding="utf-8", newline=""
+    )
+    (area / "vacio.txt").write_text("", encoding="utf-8", newline="")
     (tmp_path / "outside").mkdir()
-    (tmp_path / "outside" / "secret.txt").write_text(SENTINEL, encoding="utf-8")
+    (tmp_path / "outside" / "secret.txt").write_text(SENTINEL, encoding="utf-8", newline="")
     return area
 
 
@@ -219,9 +222,10 @@ class TestErrors:
         assert result.content.startswith("[demasiado_grande] ")
         assert requested == [_limits.MAX_READ_BYTES + 1]
 
-    @pytest.mark.skipif(os.name == "nt", reason="needs POSIX named pipes")
     async def test_a_special_file_is_not_opened(self, tool: ReadFileTool, area_dir: Path) -> None:
         fifo = area_dir / "tuberia"
+        if sys.platform == "win32":
+            pytest.skip("needs POSIX named pipes")
         os.mkfifo(fifo)
 
         result = await read(tool, "tuberia")
