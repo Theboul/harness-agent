@@ -85,6 +85,49 @@ No hay violaciones; la sección de complejidad no aplica.
 
 ---
 
+## Verificación contra las skills del proyecto
+
+Skills cargadas: `arquitectura-hexagonal-clean`, `estructura-carpetas-harness` y `verificar-fronteras-hexagonales` (exigidas por `CLAUDE.md`).
+
+### Decision Gates (`arquitectura-hexagonal-clean`)
+
+| Pregunta | Resultado |
+|---|---|
+| ¿Es regla o comportamiento nuevo? | Sí, parcial: la jerarquía de errores de proveedor es parte del contrato; vive en `core/interfaces/provider.py`, exportada en `core/__init__.py`. El `FakeProvider` es un doble, no una regla. |
+| ¿Necesita algo de fuera? | No: sin red, disco, reloj ni entorno. |
+| ¿Quién lo implementa? | El doble, `tests/doubles/fake_provider.py` (decisión del responsable); el adaptador real lo implementa HU-07-02. |
+| ¿Cómo se conecta? | Por constructor (el guion); `bootstrap.py` no existe y el doble solo se usa en pruebas. |
+| ¿Cómo se prueba? | Núcleo con dobles, sin red; prueba de contrato en `tests/contracts/test_fake_provider_contract.py`; integración con el bucle real. |
+| ¿Es asíncrono? | `Provider.complete` es `async` y el doble lo respeta. |
+
+### Ruta elegida (`estructura-carpetas-harness`)
+
+| Archivo nuevo | Fila de la tabla | Prueba equivalente |
+|---|---|---|
+| Errores en `core/interfaces/provider.py` | «Interfaz que el núcleo necesita de fuera (puerto)» / «Error de dominio» | `tests/unit/core/test_provider_errors.py` |
+| `tests/doubles/fake_provider.py` | «Doble de prueba reutilizable» (protegido; la spec lo justifica: es la historia) | `tests/unit/doubles/`, `tests/contracts/`, `tests/integration/` |
+
+### Lista de comprobación (`capas-y-reglas.md`)
+
+- [x] ¿La regla de negocio está en `core/` y no en un adaptador? Sí: la jerarquía de errores está en el puerto; el doble no contiene reglas.
+- [x] ¿Todo lo externo pasa por un puerto? Sí / no aplica: no hay E/S nueva.
+- [ ] ¿Los puertos, entidades y eventos siguen sin cambios (o con acuerdo de A, B y C)? **Parcial**: entidades y eventos sin cambios; el puerto `Provider` gana cuatro excepciones (aditivo, firma intacta) por decisión del responsable; el visto bueno de A queda como tarea humana T012.
+- [x] ¿Los errores externos se traducen a errores de dominio, sin reproducir valores recibidos? Sí: el doble lanza los tipos canónicos; el adaptador real de HU-07-02 traducirá los de su biblioteca.
+- [x] ¿Las dependencias se inyectan por constructor? Sí (el guion).
+- [x] ¿El núcleo se probó con dobles, sin red, disco ni claves? Sí, con la red externa bloqueada en las pruebas de integración.
+- [x] ¿El adaptador real tiene prueba de contrato? No aplica todavía (no hay adaptador real); el contrato del doble está en `tests/contracts/`.
+- [x] ¿Pasa `pytest tests/architecture` en Windows y Linux? Sí: 183 pruebas en Linux y CI de `windows-latest` en verde.
+- [x] ¿El núcleo emite eventos en lugar de imprimir? Sí, sin cambios.
+- [x] ¿Lo público está exportado en `core/__init__.py`? Sí.
+- [x] ¿Se respetan las decisiones de diseño (falla cerrada, historial intacto, secretos)? Sí: sin permisos, historial ni secretos en juego; el guion agotado falla de forma explícita.
+- [ ] ¿Otro integrante revisó el cambio? **No todavía** (T012).
+
+### Fronteras (`verificar-fronteras-hexagonales`)
+
+`pytest tests/architecture` → 183 pasadas; guarda nueva `tests/architecture/test_provider_errors_boundaries.py` (T009) para el puerto ampliado y el doble. No se creó ningún módulo nuevo en `core/`, así que no hace falta otra guarda de módulo. Sin archivos que violen una regla.
+
+---
+
 ## Project Structure
 
 ### Documentation (this feature)

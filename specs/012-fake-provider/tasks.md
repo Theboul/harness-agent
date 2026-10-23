@@ -167,7 +167,7 @@
   - **Criterios relacionados**: Principios VIII, IX y X, FR-017, FR-022, FR-023, SC-005, SC-006
   - **Tarea F5**: Transversal
   - **Estimación**: 35 min (15 min impl + 15 min check + 5 min registro)
-  - **Verificación**: Los cuatro comandos de CI en 0; cobertura del módulo nuevo y de los errores al 100 %; recorrido manual del quickstart §3 y §4; `git diff --exit-code "$(git merge-base HEAD origin/main)" -- docs/archivo src/harness_agent/core/loop.py tests/doubles/scripted_provider.py tests/doubles/dummy_provider.py` → 0; `git diff --stat` contra `origin/main` solo lista los archivos de la lista de este plan; detector de claves de HU-00-04 sin coincidencias. La fila de HU-00-03 pasa a `En revisión` (no a `Hecha`: faltan T012 y T013), con rutas y evidencia; la tabla *Resumen* no cambia hasta `Hecha`; se añade una línea al registro de cambios por tarea.
+  - **Verificación**: Los cuatro comandos de CI en 0 y `pytest tests/architecture` (verificación de fronteras de la skill `verificar-fronteras-hexagonales`); cobertura del módulo nuevo y de los errores al 100 %; recorrido manual del quickstart §3 y §4; `git diff --exit-code "$(git merge-base HEAD origin/main)" -- docs/archivo src/harness_agent/core/loop.py tests/doubles/scripted_provider.py tests/doubles/dummy_provider.py` → 0; `git diff --stat` contra `origin/main` solo lista los archivos de la lista de este plan; detector de claves de HU-00-04 sin coincidencias. La fila de HU-00-03 pasa a `En revisión` (no a `Hecha`: faltan T012 y T013), con rutas y evidencia; la tabla *Resumen* no cambia hasta `Hecha`; se añade una línea al registro de cambios por tarea.
 
 - [ ] **T012** *(humana)* Visto bueno de A a la ampliación del puerto y revisión cruzada por A o C
   - **Archivos**: —
