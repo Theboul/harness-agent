@@ -189,6 +189,9 @@ class TestSkippedFiles:
             ("latin.txt", "cobrar ñ".encode("latin-1"), "[no_es_texto] "),
             ("grande.txt", b"cobrar" + b"a" * _limits.MAX_READ_BYTES, "[demasiado_grande] "),
         ],
+        # explicit ids: pytest puts the test id in an environment variable, and a 256 KiB value
+        # in the id exceeds the limit of Windows environment variables
+        ids=["binario", "latin1", "demasiado-grande"],
     )
     async def test_naming_such_a_file_directly_explains_why_it_cannot_be_searched(
         self, tool: SearchTextTool, area_dir: Path, name: str, content: bytes, category: str
