@@ -42,7 +42,7 @@ harness-agent/
 │   │   └── subagents/      # (planeado: HU-09-01) SubagentRunner, perfiles, resultado estructurado
 │   ├── adapters/           # implementaciones de los puertos
 │   │   ├── converters/     # formato canónico <-> OpenAI/Anthropic, ConversionEnvelope (HU-07-01)
-│   │   ├── providers/      # (planeado: HU-00-03 fake_provider, HU-07-02 litellm_provider)
+│   │   ├── providers/      # (planeado: HU-07-02 litellm_provider; el FakeProvider de HU-00-03 vive en tests/doubles/fake_provider.py)
 │   │   ├── storage/        # (planeado: HU-03-01) SQLite: esquema, sesiones, eventos
 │   │   ├── tools/          # leer_archivo, escribir_archivo, listar_archivos, buscar_texto (HU-01-03); planeado: shell (HU-01-04), …
 │   │   ├── system/         # WorkspaceArea: AuthorizedArea real (rutas reales, «..», enlaces, reglas de Windows) (HU-01-03)
