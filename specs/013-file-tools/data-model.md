@@ -51,7 +51,7 @@ La unidad distinta de la del área no se decide aquí sino en el paso 5 (`common
 |---|---|---|---|---|
 | `ReadFileTool` | `leer_archivo` | bajo | `path` | texto del archivo |
 | `WriteFileTool` | `escribir_archivo` | medio | `path`, `content` | confirmación con bytes escritos |
-| `ListFilesTool` | `listar_archivos` | bajo | `path` | entradas, una por línea (`archivo`/`carpeta`) |
+| `ListFilesTool` | `listar_archivos` | bajo | `path` | entradas, una por línea (`[archivo]`, `[carpeta]` o `[enlace]`) |
 | `SearchTextTool` | `buscar_texto` | bajo | `path`, `query` | coincidencias `ruta:línea: texto` |
 
 Todas: constructor `Tool(area: AuthorizedArea | None)`; `additionalProperties: false`; `path` con `minLength: 1`.
@@ -66,6 +66,8 @@ Todas: constructor `Tool(area: AuthorizedArea | None)`; `additionalProperties: f
 | `[fuera_del_area]` | la ruta real queda fuera, o no se pudo resolver |
 | `[no_existe]` | la ruta no existe |
 | `[no_es_archivo]` / `[no_es_carpeta]` | tipo equivocado |
+| `[contenido_invalido]` | `content` no es texto o no se puede codificar en UTF-8 |
+| `[consulta_invalida]` | `query` no es un texto de 1 a 200 caracteres |
 | `[demasiado_grande]` | supera un límite de tamaño |
 | `[no_es_texto]` | binario o no UTF-8 |
 | `[error_de_archivo]` | error del sistema (permisos, disco) |

@@ -197,7 +197,7 @@
 
 ## Phase 8: Fronteras, documentación y cierre
 
-- [ ] **T014** [P] Guarda de arquitectura de `adapters/` con autopruebas (FR-018, plan D11)
+- [x] **T014** [P] Guarda de arquitectura de `adapters/` con autopruebas (FR-018, plan D11)
   - **Archivos**: `tests/architecture/test_adapters_boundaries.py`
   - **Dependencias**: T008, T009
   - **Criterios relacionados**: FR-016, FR-018, skill `verificar-fronteras-hexagonales` (hueco «nada comprueba que `adapters/` no importe `cli/`»)
@@ -205,13 +205,13 @@
   - **Estimación**: 35 min (20 min impl + 10 min check + 5 min registro)
   - **Verificación**: Con `ast`, reutilizando `forbidden_imports`, `find_config_reads` y `terminal_uses` de las guardas existentes (no copiarlos): ningún módulo de `adapters/` importa `harness_agent.cli`; `adapters/system/` y `adapters/tools/` solo importan biblioteca estándar y `harness_agent.core` (nunca submódulos del núcleo, `config`, `observability`, `bootstrap`, otro adaptador ni terceros); no leen configuración ni entorno ni la terminal (`print`, `input`, `sys.stdout`); línea base con al menos 8 módulos revisados y 0 hallazgos. Autoprueba con fragmentos que violan y que respetan cada regla, y prueba de mutación sobre una copia en `tmp_path`. Línea base limpia, así que no hay rojo previo. Cierre: los cuatro comandos en 0; `pytest tests/architecture` en verde.
 
-- [ ] **T015** [P] API pública, guía y árbol de carpetas de las skills (FR-023)
-  - **Archivos**: `src/harness_agent/adapters/tools/__init__.py`, `src/harness_agent/adapters/system/__init__.py`, `docs/guia-contratos-desarrollo.md`, `.claude/skills/estructura-carpetas-harness/references/arbol.md`, `.agents/skills/estructura-carpetas-harness/references/arbol.md`
+- [x] **T015** [P] API pública, guía y árbol de carpetas de las skills (FR-023)
+  - **Archivos**: `src/harness_agent/adapters/tools/__init__.py`, `src/harness_agent/adapters/system/__init__.py`, `tests/unit/adapters/tools/test_public_api.py`, `docs/guia-contratos-desarrollo.md`, `.claude/skills/estructura-carpetas-harness/references/arbol.md`, `.agents/skills/estructura-carpetas-harness/references/arbol.md` (y, por la regla de `CLAUDE.md`, `verificar-fronteras-hexagonales/SKILL.md` en las dos copias y la nota de huecos de `CLAUDE.md`)
   - **Dependencias**: T009, T012
   - **Criterios relacionados**: FR-023, Principio VIII, `CLAUDE.md` (actualizar las dos copias de la skill)
   - **Tarea F5**: Transversal
   - **Estimación**: 35 min (20 min impl + 10 min check + 5 min registro)
-  - **Verificación**: `__all__` de cada `__init__.py` exporta lo público (`WorkspaceArea`, `windows_path_problem`; las cuatro herramientas y las constantes de límite) y una prueba mínima (en un módulo de prueba existente de la historia) comprueba que importan sin ciclos y que no exponen helpers privados; en la guía, sección para C con la composición (área desde `workspace_root`, herramientas, registro y política), la tabla de herramientas, los límites y los errores; el ejemplo se ejecuta tal cual en un script del scratchpad fuera del repositorio; en `arbol.md` (las dos copias idénticas salvo lo que ya difería) `adapters/system/` y `adapters/tools/` pasan de «planeado/propuesta» a existentes, y la guarda de `adapters/` figura en la lista. Solo cambian esas líneas (`git diff -U0`). Cierre: `ruff`, `mypy` y la suite en verde.
+  - **Verificación**: `__all__` de cada `__init__.py` exporta lo público (`WorkspaceArea`, `windows_path_problem`; las cuatro herramientas y las constantes de límite) y `tests/unit/adapters/tools/test_public_api.py` comprueba que cada módulo importa por sí solo en un intérprete nuevo (sin ciclos) y que no se exponen los helpers privados; en la guía, sección para C con la composición (área desde `workspace_root`, herramientas, registro y política), la tabla de herramientas, los límites y los errores; el ejemplo se ejecuta tal cual en un script del scratchpad fuera del repositorio; en `arbol.md` (las dos copias idénticas salvo lo que ya difería) `adapters/system/` y `adapters/tools/` pasan de «planeado/propuesta» a existentes, y la guarda de `adapters/` figura en la lista. Solo cambian esas líneas (`git diff -U0`). Cierre: `ruff`, `mypy` y la suite en verde.
 
 - [ ] **T016** Cierre: verificación completa y registro en `docs/PROGRESO.md` (transversal)
   - **Archivos**: `docs/PROGRESO.md`

@@ -44,8 +44,8 @@ harness-agent/
 │   │   ├── converters/     # formato canónico <-> OpenAI/Anthropic, ConversionEnvelope (HU-07-01)
 │   │   ├── providers/      # (planeado: HU-00-03 fake_provider, HU-07-02 litellm_provider)
 │   │   ├── storage/        # (planeado: HU-03-01) SQLite: esquema, sesiones, eventos
-│   │   ├── tools/          # (planeado: HU-01-03 archivos, HU-01-04 shell, …) herramientas nativas
-│   │   ├── system/         # (propuesta, a confirmar en el plan de HU-01-03) AuthorizedArea real (rutas reales, «..», enlaces)
+│   │   ├── tools/          # leer_archivo, escribir_archivo, listar_archivos, buscar_texto (HU-01-03); planeado: shell (HU-01-04), …
+│   │   ├── system/         # WorkspaceArea: AuthorizedArea real (rutas reales, «..», enlaces, reglas de Windows) (HU-01-03)
 │   │   └── mcp/            # (planeado: HU-08-01) cliente MCP por stdio y traducción a Tool
 │   ├── observability/      # (planeado: HU-05-05, HU-10-01, HU-10-02) auditoría, trazas, redacción
 │   ├── config.py           # load_config(), HarnessConfig, Secret (HU-00-04)

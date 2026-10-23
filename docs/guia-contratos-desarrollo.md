@@ -133,6 +133,38 @@ async def test_politica_con_dobles():
     assert aprobacion.action == ApprovalAction.APPROVE_ONCE
 ```
 
+#### Herramientas de archivos y área de trabajo (HU-01-03):
+
+Cuatro herramientas nativas actúan solo dentro del área autorizada (`adapters/tools/`), y `WorkspaceArea` (`adapters/system/`) es la implementación real de `AuthorizedArea`: decide la contención sobre la **ruta real** (resuelve `..`, rutas absolutas y enlaces simbólicos; en Windows rechaza además UNC, otra unidad, flujos alternos y nombres reservados) y falla cerrado.
+
+| Herramienta | Argumentos | Riesgo | Qué hace |
+|---|---|---|---|
+| `leer_archivo` | `path` | bajo | Texto UTF-8 de un archivo (máximo 256 KiB) |
+| `escribir_archivo` | `path`, `content` | medio | Crea o reemplaza un archivo (máximo 1 MiB) y las carpetas que falten |
+| `listar_archivos` | `path` | bajo | Entradas de una carpeta, ordenadas, sin recursión (máximo 200) |
+| `buscar_texto` | `path`, `query` | bajo | Texto literal, sensible a mayúsculas, recursivo (máximo 50 coincidencias) |
+
+`bootstrap.py` aún no existe: la composición se hace a mano (en las pruebas de integración) y debe usar **la misma área** en las herramientas y en la política.
+
+```python
+from harness_agent.adapters.system import WorkspaceArea
+from harness_agent.adapters.tools import ListFilesTool, ReadFileTool, SearchTextTool, WriteFileTool
+from harness_agent.core import DefaultPermissionPolicy, InMemoryToolRegistry, PermissionRules
+
+root = config.paths.workspace_root                       # None si no está configurada
+area = WorkspaceArea(root) if root is not None else None  # sin área, nada se ejecuta
+
+registry = InMemoryToolRegistry()
+for tool in (ReadFileTool(area), WriteFileTool(area), ListFilesTool(area), SearchTextTool(area)):
+    registry.register(tool)
+policy = DefaultPermissionPolicy(registry, area, PermissionRules())
+```
+
+- Todas llaman `path` a la ruta (convención de HU-05-01); el registro rechaza argumentos extra o mal formados.
+- Antes de actuar, cada herramienta pregunta dos veces al área (con el texto de la ruta y con la ruta real); si alguna dice que no, devuelve `[fuera_del_area]` y no toca el disco.
+- Ninguna lanza: todo error es un `ToolResult` con `is_error=True`, una etiqueta (`[no_existe]`, `[no_es_archivo]`, `[no_es_carpeta]`, `[demasiado_grande]`, `[no_es_texto]`, `[contenido_invalido]`, `[consulta_invalida]`, `[sin_area]`, `[fuera_del_area]`, `[error_de_archivo]`), la causa y una sugerencia en español.
+- Hoy una escritura fuera del área se pregunta y, sin aprobador, el bucle la deniega con un texto genérico; la causa específica llega con HU-05-03.
+
 ---
 
 ## 4. Reglas Obligatorias de Diseño y Pureza
