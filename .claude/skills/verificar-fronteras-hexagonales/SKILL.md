@@ -39,9 +39,10 @@ Cargar al:
 | `test_loop_boundaries.py` | `core/loop.py`: solo stdlib y núcleo (`forbidden_imports`), sin consola, sin eventos de límite/aprobación, sin ciclos |
 | `test_core_tools_stdlib_only.py` | `core/tools/`: lista blanca stdlib + núcleo |
 | `test_permissions_boundaries.py` | `core/permissions/`: lista blanca, sin E/S, todo «permitir» protegido por `AuthorizedArea.contains` |
+| `test_adapters_boundaries.py` | `adapters/`: ninguno importa `cli`; `adapters/system/` y `adapters/tools/` solo stdlib, API pública del núcleo y su paquete, sin config ni terminal ni otro adaptador (HU-01-03) |
 | `test_no_secrets_in_repo.py` | Ningún archivo versionado con nombre o contenido de clave |
 
-**Huecos conocidos** (los cierra la historia que los toca): no hay una lista blanca para *todo* `core/` (las importaciones de `adapters`, `observability` o `mcp` solo se detectan en los módulos que tienen guarda propia); `forbidden_imports` acepta módulos estándar que hacen E/S (`sqlite3`, `subprocess`, `socket`…) porque son de la biblioteca estándar, así que ni `loop.py`, ni `core/tools/`, ni `core/permissions/` los detectan hoy (la plantilla añade `io_stdlib_imports`); y nada comprueba aún que `adapters/` no importe `cli/`. Por eso cada módulo o subpaquete nuevo de `core/` trae su guarda, y la primera historia que cree un adaptador fuera de `converters/` añade `test_adapters_boundaries.py`.
+**Huecos conocidos** (los cierra la historia que los toca): no hay una lista blanca para *todo* `core/` (las importaciones de `adapters`, `observability` o `mcp` solo se detectan en los módulos que tienen guarda propia); `forbidden_imports` acepta módulos estándar que hacen E/S (`sqlite3`, `subprocess`, `socket`…) porque son de la biblioteca estándar, así que ni `loop.py`, ni `core/tools/`, ni `core/permissions/` los detectan hoy (la plantilla añade `io_stdlib_imports`). Por eso cada módulo o subpaquete nuevo de `core/` trae su guarda; `adapters/` ya tiene `test_adapters_boundaries.py` (HU-01-03), que cubre `system/` y `tools/`, y cada paquete nuevo de `adapters/` (`providers/`, `storage/`, `mcp/`) debe añadirse a su lista `GUARDED`.
 
 ## Decision Gates
 

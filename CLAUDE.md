@@ -93,7 +93,7 @@ cli ──▶ core ◀── adapters        config.py ──▶ core      (boot
 - Dependencias por constructor (inyección); reloj, ids y entorno también se inyectan.
 - Falla cerrada siempre: lo no previsto se pregunta o se deniega, nunca se permite.
 - Sin secretos en el repo: claves solo en variables de entorno (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`); `config.toml`, `.env` y `.harness/` están ignorados. `tests/architecture/test_no_secrets_in_repo.py` lo vigila.
-- Las fronteras se verifican con tests `ast` en `tests/architecture/` (no hay `import-linter`). Huecos conocidos (detalle en la skill `verificar-fronteras-hexagonales`): no hay lista blanca para todo `core/`, `forbidden_imports` deja pasar módulos estándar de E/S (`sqlite3`, `subprocess`) y nada vigila aún que `adapters/` no importe `cli/`.
+- Las fronteras se verifican con tests `ast` en `tests/architecture/` (no hay `import-linter`). Huecos conocidos (detalle en la skill `verificar-fronteras-hexagonales`): no hay lista blanca para todo `core/`, `forbidden_imports` deja pasar módulos estándar de E/S (`sqlite3`, `subprocess`) (`adapters/` ya está vigilado por `test_adapters_boundaries.py`: no importa `cli/` y `system/` y `tools/` solo usan stdlib y la API pública del núcleo).
 - Árbol completo, existente y planeado, con la tabla de puertos por archivo: `.claude/skills/estructura-carpetas-harness/references/arbol.md`.
 
 ## Qué existe hoy (snapshot 2026-10-22; el estado real está en PROGRESO.md)
@@ -107,10 +107,11 @@ cli ──▶ core ◀── adapters        config.py ──▶ core      (boot
 | `core/permissions/` — `DefaultPermissionPolicy(registry, area=None, rules=PermissionRules(), *, allow_reads_in_area=True)` | HU-05-01 (C) | Orden deny > ask > allow. Solo dos «permitir»: escritura (riesgo medio) y lectura (riesgo bajo) **con `path` dentro de `AuthorizedArea`**. La regla de lectura es supuesto pendiente del PO |
 | `config.py` — `load_config()`, `HarnessConfig`, `Secret` | HU-00-04 (B) | TOML (`config.toml` o `HARNESS_CONFIG`) + env. Rechaza campos desconocidos y campos con aspecto de clave. `[permissions]` solo admite `deny` y `ask` (nunca `allow`) |
 | `cli/` — `run_cli(bus, run_turn, ...) -> int`, `attach_renderer`, `render_event` | HU-06-01 (C) | Solo stdlib + API pública de `core`. Comandos `/ayuda`, `/salir`. Ante excepción del turno: una línea con el tipo, exit 1 |
+| `adapters/system/` — `WorkspaceArea` (área real); `adapters/tools/` — `leer_archivo`, `escribir_archivo`, `listar_archivos`, `buscar_texto` | HU-01-03 (C) | `WorkspaceArea(root, *, windows=None)` decide la contención sobre la ruta real y falla cerrado (reglas de Windows en `windows_path_problem`); las herramientas reciben el área (o `None`) por constructor, usan `path` y devuelven errores como `ToolResult` con etiqueta (`[fuera_del_area]`, `[sin_area]`…). Sin área, nada se ejecuta |
 | `adapters/converters/` — OpenAI/Anthropic ↔ formato canónico, `ConversionEnvelope` + sidecar | HU-07-01 (A) | D-02. `from_openai_messages`/`from_anthropic_payload` están obsoletas: usar `to_*_envelope` + `restore_messages` |
 | `tests/spikes/` | SPK-02 (A) | Base de D-01 (asyncio + cancelación) |
 
-Aún **no** hay: `FakeProvider` (HU-00-03), adaptador LiteLLM (HU-07-02/SPK-01), herramientas de archivos (HU-01-03), SQLite (HU-03-01/02), shell (HU-01-04), aprobación interactiva (HU-05-03), límites (HU-01-06), raíz de composición ni punto de entrada ejecutable.
+Aún **no** hay: `FakeProvider` (HU-00-03), adaptador LiteLLM (HU-07-02/SPK-01), SQLite (HU-03-01/02), shell (HU-01-04), aprobación interactiva (HU-05-03), límites (HU-01-06), raíz de composición ni punto de entrada ejecutable.
 
 ### Convenciones ya acordadas que las próximas historias deben respetar
 
