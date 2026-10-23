@@ -64,6 +64,9 @@ La verificación es el grueso del trabajo: pruebas unitarias, un contrato compar
 | VIII. Registro en `docs/PROGRESO.md` | `En curso` y `En revisión` con registro | Pasa | Pasa | Primera y última tarea de trabajo |
 | IX. Definition of Done estricta | Revisión cruzada y CI en ambos sistemas | Pasa | Pasa | Tareas humanas finales |
 | X. Inmutabilidad de `docs/archivo/` | No se toca | Pasa | Pasa | `git diff` de cierre |
+| Skill `arquitectura-hexagonal-clean` (Hard Rules) | Dependencias hacia el núcleo; todo lo externo (disco) por un puerto; los adaptadores no contienen reglas de negocio ni importan de otro adaptador; errores externos traducidos; inyección por constructor; falla cerrada | Pasa | Pasa | `WorkspaceArea` y las herramientas implementan los puertos `AuthorizedArea` y `Tool` sin cambiarlos; reciben el área por constructor; la política sigue en `core/permissions/`; ante la duda, fuera del área (sección «Verificación contra las skills») |
+| Skill `estructura-carpetas-harness` (Hard Rules) | Cada archivo en la carpeta de su fila (herramienta nativa → `adapters/tools/`, disco → `adapters/system/`); `__init__.py` con la API pública; pruebas en la carpeta equivalente; receta «Nueva herramienta nativa» | Pasa | Pasa | Tabla «Ruta elegida» del plan; `__all__` de los dos paquetes comprobado en `test_public_api.py`; `arbol.md` actualizado en las dos copias |
+| Skill `verificar-fronteras-hexagonales` (Hard Rules) | Guardas `ast` en `tests/architecture/`; `adapters/` no importa `cli`; ninguna excepción para que una violación pase | Pasa | Pasa | `tests/architecture/test_adapters_boundaries.py` (T014) con autopruebas y prueba de mutación; `pytest tests/architecture` en verde |
 | V-02 Prioridad de denegación / falla cerrada | Ante la duda, fuera del área | Pasa | Pasa | FR-003, D4 |
 | V-17 / A-01, A-02 | Sin escapes por «..», enlaces, UNC | Pasa | Pasa | FR-002, FR-004, batería de escape |
 

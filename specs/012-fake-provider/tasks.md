@@ -217,16 +217,16 @@ Exceso aproximado de 80 min (1,3 veces) sobre lo presupuestado, sin contar las d
 
 **Origen**: `/speckit-converge` del 2026-10-23 sobre `main` (`84fd559`). Trabajo que quedó sin cubrir respecto a la spec, el plan y las reglas de `CLAUDE.md`. Cada tarea sigue las reglas de arriba (pruebas primero cuando toca código, cuatro comandos de calidad en 0, registro en `docs/PROGRESO.md`).
 
-- [ ] T014 Actualizar `CLAUDE.md`: añadir a «Qué existe hoy» la fila de `tests/doubles/fake_provider.py` (`FakeProvider`) y de los errores canónicos de `core/interfaces/provider.py`, quitar `FakeProvider` de «Aún no hay» y corregir la numeración de specs («existen 001–013, falta 008; la siguiente es 014») per Principio VIII y `CLAUDE.md` «Cerrar la historia» (partial)
+- [x] T014 Actualizar `CLAUDE.md`: añadir a «Qué existe hoy» la fila de `tests/doubles/fake_provider.py` (`FakeProvider`) y de los errores canónicos de `core/interfaces/provider.py`, quitar `FakeProvider` de «Aún no hay» y corregir la numeración de specs («existen 001–013, falta 008; la siguiente es 014») per Principio VIII y `CLAUDE.md` «Cerrar la historia» (partial)
   - **Archivos**: `CLAUDE.md`
   - **Estimación**: 20 min
-- [ ] T015 Reflejar la jerarquía `ProviderError`, `QuotaExceeded`, `ProviderTimeout` y `ProviderUnavailable` en los documentos de contratos: fila `Provider` de `docs/02-arquitectura.md` §4, el bloque de importaciones de `docs/guia-contratos-desarrollo.md` §1 y `specs/001-repo-skeleton-interfaces/contracts/core_interfaces.md` per FR-001 y FR-002 (partial)
+- [x] T015 Reflejar la jerarquía `ProviderError`, `QuotaExceeded`, `ProviderTimeout` y `ProviderUnavailable` en los documentos de contratos: fila `Provider` de `docs/02-arquitectura.md` §4, el bloque de importaciones de `docs/guia-contratos-desarrollo.md` §1 y `specs/001-repo-skeleton-interfaces/contracts/core_interfaces.md` per FR-001 y FR-002 (partial)
   - **Archivos**: `docs/02-arquitectura.md`, `docs/guia-contratos-desarrollo.md`, `specs/001-repo-skeleton-interfaces/contracts/core_interfaces.md`
   - **Estimación**: 30 min
   - **Nota**: es un contrato de HU-00-01; los cambios son de documentación y se revisan junto con T012
-- [ ] T016 Pasar a español los mensajes de validación de `tests/doubles/fake_provider.py` sin reproducir el id recibido (conservar el índice del paso) y ajustar las expresiones `match` de `tests/unit/doubles/test_fake_provider.py` per `CLAUDE.md` «Pruebas: mensajes de error de validación en español, sin reproducir el valor recibido» (partial)
+- [x] T016 Pasar a español los mensajes de validación de `tests/doubles/fake_provider.py` sin reproducir el id recibido (conservar el índice del paso) y ajustar las expresiones `match` de `tests/unit/doubles/test_fake_provider.py` per `CLAUDE.md` «Pruebas: mensajes de error de validación en español, sin reproducir el valor recibido» (partial)
   - **Archivos**: `tests/doubles/fake_provider.py`, `tests/unit/doubles/test_fake_provider.py`
   - **Estimación**: 25 min
-- [ ] T017 Añadir al *Constitution Check* de `plan.md` las filas de las *Hard Rules* de `arquitectura-hexagonal-clean`, `estructura-carpetas-harness` y `verificar-fronteras-hexagonales`, con su evidencia (hoy se cubren en «Verificación contra las skills») per `CLAUDE.md` «Flujo Spec Kit» (partial)
+- [x] T017 Añadir al *Constitution Check* de `plan.md` las filas de las *Hard Rules* de `arquitectura-hexagonal-clean`, `estructura-carpetas-harness` y `verificar-fronteras-hexagonales`, con su evidencia (hoy se cubren en «Verificación contra las skills») per `CLAUDE.md` «Flujo Spec Kit» (partial)
   - **Archivos**: `specs/012-fake-provider/plan.md`
   - **Estimación**: 20 min
