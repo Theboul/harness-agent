@@ -43,13 +43,11 @@ Harness de agente en terminal (Python 3.12, sin dependencias de ejecución): buc
 
 Además, las skills `speckit-*` se ejecutan en el orden del flujo de abajo; ninguna fase se salta.
 
-**Cómo aplicar las skills sobre el código real.** Se escribieron antes del código y algunos nombres cambiaron. La *regla* de la skill se cumple siempre; solo se traduce la ruta o la herramienta (tabla de divergencias más abajo):
+Las skills describen el código real (v1.1, 2026-10-23): `core/interfaces/` para los puertos, `core/entities.py`, pruebas `ast` de `tests/architecture/` en lugar de `import-linter` y carpetas marcadas como «planeadas» hasta que llegue su historia. Si encuentras una diferencia entre una skill y el código, manda el código: corrige la skill (en `.claude/skills/` y `.agents/skills/`) en el mismo cambio y anótalo en `PROGRESO.md`.
 
-- Donde la skill dice `core/ports.py`, el puerto va en el archivo correspondiente de `core/interfaces/`; donde dice `core/messages.py`, en `core/entities.py`; `tests/contract/` es `tests/contracts/`.
-- Donde dice `lint-imports`, la verificación equivalente son las pruebas `ast` de `tests/architecture/` (ya en la CI de Windows y Linux). Añadir `import-linter` es un cambio de dependencias y de CI: no lo hagas dentro de una historia sin acuerdo del equipo; déjalo como observación.
-- Donde dice `bootstrap.py`, aún no existe: mientras no haya historia que lo cree, la conexión se hace a mano en las pruebas de integración (`make_rig`) y se anota en el plan qué deberá conectar la raíz de composición.
-- Los ejemplos de `assets/` (`port_provider.py`, `adapter_litellm.py`, `bootstrap.py`) son **ilustrativos**: usan nombres en español, `Protocol` y métodos síncronos. Los contratos vigentes son los de `core/interfaces/` (ABC, nombres en inglés, `async def complete/run/request`). Copia la idea, no la firma.
-- La receta «nuevo tipo de evento» exige además el acuerdo de A, B y C, porque `core/events.py` es un contrato protegido.
+- `bootstrap.py` aún no existe: la conexión se hace a mano en las pruebas de integración (`make_rig`) y el plan anota qué deberá conectar la raíz de composición.
+- Los ejemplos de `arquitectura-hexagonal-clean/assets/` siguen los contratos reales, pero `adapter_litellm.py` y `bootstrap.py` son ilustrativos (usan piezas que aún no existen).
+- Cada módulo nuevo de `core/` trae su guarda en `tests/architecture/`, a partir de `verificar-fronteras-hexagonales/assets/test_module_boundaries.py`.
 
 ## Flujo Spec Kit (una historia = una spec)
 
@@ -95,19 +93,8 @@ cli ──▶ core ◀── adapters        config.py ──▶ core      (boot
 - Dependencias por constructor (inyección); reloj, ids y entorno también se inyectan.
 - Falla cerrada siempre: lo no previsto se pregunta o se deniega, nunca se permite.
 - Sin secretos en el repo: claves solo en variables de entorno (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`); `config.toml`, `.env` y `.harness/` están ignorados. `tests/architecture/test_no_secrets_in_repo.py` lo vigila.
-- Las fronteras se verifican con tests `ast` en `tests/architecture/` (no hay `import-linter` instalado).
-
-### Divergencias entre las skills/docs y el código real
-
-Las skills `estructura-carpetas-harness` y `arquitectura-hexagonal-clean` describen el árbol **planeado**. Sus reglas se cumplen igual; para las rutas, manda el código:
-
-| Las skills dicen | El código tiene |
-|---|---|
-| `core/ports.py` | `core/interfaces/` (`provider.py`, `tool.py`, `security.py`, `storage.py`, `context.py`, `system.py`, `connections.py`, `event_bus.py`) |
-| `core/messages.py` | `core/entities.py` |
-| `tests/contract/`, `tests/failures/` | `tests/contracts/`; no hay `failures/` todavía. Además `tests/core/` (bucle), `tests/adapters/`, `tests/spikes/`, `tests/doubles/` |
-| `lint-imports` | tests `ast` en `tests/architecture/` |
-| `bootstrap.py`, `observability/`, `adapters/providers`, `adapters/storage`, `adapters/tools` | aún no existen; se crean cuando su historia llegue |
+- Las fronteras se verifican con tests `ast` en `tests/architecture/` (no hay `import-linter`). Huecos conocidos (detalle en la skill `verificar-fronteras-hexagonales`): no hay lista blanca para todo `core/`, `forbidden_imports` deja pasar módulos estándar de E/S (`sqlite3`, `subprocess`) y nada vigila aún que `adapters/` no importe `cli/`.
+- Árbol completo, existente y planeado, con la tabla de puertos por archivo: `.claude/skills/estructura-carpetas-harness/references/arbol.md`.
 
 ## Qué existe hoy (snapshot 2026-10-22; el estado real está en PROGRESO.md)
 
