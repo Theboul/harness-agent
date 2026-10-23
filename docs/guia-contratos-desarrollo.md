@@ -78,6 +78,34 @@ session_store.save_event(event)
 assert len(session_store.load_session("sesion-test")) == 1
 ```
 
+#### Qué doble de proveedor usar (HU-00-03):
+
+| Necesito… | Uso |
+|---|---|
+| Una respuesta fija, sin más | `DummyProvider` |
+| Excepciones arbitrarias, bloquear una llamada a propósito o ids de llamada repetidos | `ScriptedProvider` |
+| Reproducir un guion y simular cuota, tiempo agotado o indisponibilidad con los tipos canónicos | `FakeProvider` |
+
+`FakeProvider` recibe una lista de pasos; la llamada *i* a `complete` consume el paso *i*. Cada paso es una `ProviderResponse` (texto y/o llamadas a herramientas) o un `ProviderError` que se lanza al instante, sin esperar. No usa red, reloj ni azar, así que el mismo guion da el mismo resultado en cada ejecución. Los errores canónicos (`ProviderError`, `QuotaExceeded`, `ProviderTimeout`, `ProviderUnavailable`) se importan de `harness_agent.core`; los adaptadores reales lanzarán esos mismos tipos.
+
+```python
+from harness_agent.core import ProviderResponse, QuotaExceeded, ToolCall
+from tests.doubles import FakeProvider
+
+provider = FakeProvider(
+    [
+        ProviderResponse(tool_calls=[ToolCall(id="c1", name="echo", arguments={"text": "hola"})]),
+        QuotaExceeded("cuota agotada"),  # la segunda llamada falla
+        ProviderResponse(content="listo"),
+    ]
+)
+```
+
+- El guion se valida al crear el proveedor: no puede estar vacío, cada paso debe ser una `ProviderResponse` o una instancia de `ProviderError`, y los ids de las llamadas a herramientas no pueden estar vacíos ni repetirse en todo el guion.
+- Si el bucle pide más pasos de los escritos, el proveedor lanza `ScriptExhausted` y deja `provider.exhausted = True`; nunca inventa una respuesta.
+- Para comprobar lo que el bucle envió, usa `provider.received`, `provider.received_tools` y `provider.call_count`.
+- Con el bucle real, un `QuotaExceeded` termina el turno como `TurnStatus.PROVIDER_FAILED` y publica `PROVIDER_ERROR` con `error_type == "QuotaExceeded"`.
+
 ---
 
 ## 3. Guía para el Desarrollador C (Herramientas, Control y Permisos)

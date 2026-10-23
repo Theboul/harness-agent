@@ -43,6 +43,26 @@ class ProviderResponse:
     usage: TokenUsage | None = None
 
 
+class ProviderError(Exception):
+    """Base class for the failures a provider reports to the core.
+
+    Adapters translate the errors of their client library into these types, so the core never
+    sees a third-party exception. A simulated provider raises the same types (HU-00-03).
+    """
+
+
+class QuotaExceeded(ProviderError):
+    """The provider's quota or credit is exhausted."""
+
+
+class ProviderTimeout(ProviderError):
+    """The provider did not answer within the allowed time."""
+
+
+class ProviderUnavailable(ProviderError):
+    """The provider's service is not available."""
+
+
 class Provider(ABC):
     """Abstract Base Class for LLM providers.
 

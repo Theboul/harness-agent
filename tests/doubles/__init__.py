@@ -9,6 +9,7 @@ from tests.doubles.dummy_approver import DummyApprover
 from tests.doubles.dummy_provider import DummyProvider
 from tests.doubles.dummy_tool import DummyTool
 from tests.doubles.failing_bus import FailingEventBus
+from tests.doubles.fake_provider import FakeProvider
 from tests.doubles.in_memory_registry import InMemoryToolRegistry
 from tests.doubles.in_memory_store import InMemoryMemoryStore, InMemorySessionStore
 from tests.doubles.recording_bus import RecordingEventBus
@@ -33,4 +34,5 @@ __all__ = [
     "RaisingTool",
     "BlockingTool",
     "FailingEventBus",
+    "FakeProvider",
 ]
