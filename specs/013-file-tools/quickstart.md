@@ -28,10 +28,10 @@ pytest tests/unit/adapters tests/contracts/test_authorized_area_contract.py \
 
 ## 3. Recorrido manual (AC-01 a AC-04)
 
-1. **AC-01**: en la integración, `-k read`: lee un archivo del área y una ruta inexistente devuelve `[no_existe]`.
-2. **AC-02**: `-k write_inside`: la escritura dentro se ejecuta y el evento de decisión es «allow»; `-k write_outside`: se deniega y no se crea el archivo.
+1. **AC-01**: en la integración, `-k TestRead`: lee un archivo del área y una ruta inexistente devuelve `[no_existe]`.
+2. **AC-02**: `-k TestWriteInside`: la escritura dentro se ejecuta y el evento de decisión es «allow»; `-k TestWriteOutside`: se pregunta, se deniega y no se crea el archivo.
 3. **AC-03**: `pytest tests/unit/adapters/tools/test_escape_attempts.py -q --no-cov`: ninguna ruta hostil escribe fuera.
-4. **AC-04**: `-k no_area`: sin `workspace_root` nada se ejecuta.
+4. **AC-04**: `-k TestNoArea`: sin `workspace_root` nada se ejecuta.
 5. **Windows**: en la CI de `windows-latest` corren las pruebas marcadas por plataforma; en Linux, las sintéticas de `windows_path_problem`.
 
 ## 4. Archivos protegidos

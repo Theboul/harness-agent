@@ -129,7 +129,7 @@
 
 **Prueba independiente**: Con el bucle real, una escritura dentro se ejecuta y publica «allow»; fuera, se deniega y no se crea nada.
 
-- [ ] **T009** [US2] Implementar `WriteFileTool` (`escribir_archivo`) con sus pruebas (FR-008, FR-012)
+- [x] **T009** [US2] Implementar `WriteFileTool` (`escribir_archivo`) con sus pruebas (FR-008, FR-012)
   - **Archivos**: `tests/unit/adapters/tools/test_write_file.py`, `src/harness_agent/adapters/tools/write_file.py`
   - **Dependencias**: T005
   - **Criterios relacionados**: AC-02, AC-03 (rechazo antes de escribir), reglas de negocio 1 y 3, FR-006, FR-007, FR-008, FR-009, FR-010, FR-012, contrato §2 (T-2), research R-07, plan D8
@@ -137,7 +137,7 @@
   - **Estimación**: 40 min (25 min impl + 10 min check + 5 min registro)
   - **Verificación**: Pruebas primero: `name == "escribir_archivo"`, riesgo **medio**, esquema con `path` y `content` (texto) y `additionalProperties` falso; crea un archivo nuevo, reemplaza uno existente (el contenido anterior desaparece), escribe UTF-8 con acentos y saltos de línea, crea carpetas intermedias que faltan, devuelve la cantidad de bytes; `[fuera_del_area]` sin tocar el disco para `..`, absoluta fuera y enlace que sale (el archivo externo queda idéntico y no se crea ninguna carpeta intermedia); `[no_es_archivo]` si el destino es una carpeta; `[demasiado_grande]` para `MAX_WRITE_BYTES + 1` sin tocar el disco; `[error_de_archivo]` si `write_bytes` lanza `OSError`; contenido vacío crea un archivo vacío; nunca lanza. Rojo esperado: `ModuleNotFoundError: No module named 'harness_agent.adapters.tools.write_file'`. Cierre: los cuatro comandos en 0; `write_file.py` al 100 %.
 
-- [ ] **T010** [US2] Integración AC-01 y AC-02 con el bucle real, la política real y el área real (FR-020)
+- [x] **T010** [US2] Integración AC-01 y AC-02 con el bucle real, la política real y el área real (FR-020)
   - **Archivos**: `tests/integration/test_file_tools_agent_loop.py`
   - **Dependencias**: T006, T007, T008, T009
   - **Criterios relacionados**: AC-01, AC-02, FR-020, SC-003, contrato §3, research R-10, plan D10
