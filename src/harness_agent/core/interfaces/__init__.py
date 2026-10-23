@@ -20,7 +20,11 @@ from harness_agent.core.interfaces.event_bus import (
 )
 from harness_agent.core.interfaces.provider import (
     Provider,
+    ProviderError,
     ProviderResponse,
+    ProviderTimeout,
+    ProviderUnavailable,
+    QuotaExceeded,
     ToolDefinition,
 )
 from harness_agent.core.interfaces.security import (
@@ -54,6 +58,10 @@ __all__ = [
     "Provider",
     "ProviderResponse",
     "ToolDefinition",
+    "ProviderError",
+    "QuotaExceeded",
+    "ProviderTimeout",
+    "ProviderUnavailable",
     # 2. Tool
     "Tool",
     "ToolRegistry",
