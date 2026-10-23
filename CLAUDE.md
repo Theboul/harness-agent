@@ -1,0 +1,145 @@
+# CLAUDE.md — harness-agent
+
+Contexto base para cada sesión que implementa **una** historia (feature). Léelo entero; el resto de la documentación se consulta solo en la parte que toque (Principio VII de la constitución).
+
+## Qué es
+
+Harness de agente en terminal (Python 3.12, sin dependencias de ejecución): bucle razonar–actuar–observar, herramientas, permisos que fallan cerrados, contexto, sesiones, memoria, proveedores LLM y MCP. Enfoque final: **Coding Harness** por tickets (ticket → cambios → pruebas → verificación de criterios → aprobación humana → PR). Proyecto universitario de 3 personas, 4 sprints semanales con cierre el 14/11/2026.
+
+- Equipo por áreas: **A — Núcleo**, **B — Estado**, **C — Control y conexiones**. Product Owner: Brad. Todo cambio lo revisa alguien de otra área.
+- Idioma: documentación, specs, mensajes al usuario y commits en **español**; identificadores, docstrings y comentarios del código en **inglés** (decisión 2026-10-17/18).
+
+## Fuentes de verdad (en este orden)
+
+| Qué | Dónde |
+|---|---|
+| Reglas no negociables | `.specify/memory/constitution.md` (Principios I–X, V-01 a V-17, DoD) |
+| Estado de cada historia, evidencia y decisiones abiertas | `docs/PROGRESO.md` (**única** fuente de estado) |
+| Ficha de la historia (AC, reglas, dependencias, responsable) | `docs/04a`…`04e-historias-*.md`, ancla `#hu-xx-yy` (ver `docs/00-indice.md` para saber en qué archivo está cada ID) |
+| Contratos, eventos, modelo de datos SQLite | `docs/02-arquitectura.md` §4 |
+| Tareas del sprint (`Sp1-xx`…) y presupuesto en minutos | `docs/03-plan-sprints.md` |
+| Artefactos de una historia ya trabajada | `specs/NNN-slug/` (spec, plan, research, data-model, contracts/, tasks, quickstart) |
+| Decisiones técnicas | `docs/decisiones/D-01-asyncio-cancelacion.md`, `D-02-preservacion-metadatos-conversion.md` |
+
+**Nunca** editar `docs/archivo/` (Principio X). No leer los `04x` completos: ir al ancla de la historia.
+
+## Al abrir una sesión para una feature
+
+1. Localiza la historia en `docs/PROGRESO.md` (sprint, responsable, estado, observaciones de historias previas que la afectan).
+2. Lee su ficha en `04x` y las fichas de sus dependencias («Depende de»). Los **criterios de aceptación y la prioridad son inmutables** sin permiso del PO (Principio V).
+3. Comprueba que pertenece al **sprint activo**; no implementes nada de sprints futuros (Principio VI). Si una historia necesita algo de otra futura, déjalo como observación.
+4. Busca si ya existe `specs/NNN-*` para ella; si no, sigue el flujo Spec Kit de abajo.
+5. Revisa las observaciones en `PROGRESO.md` que la mencionan (p. ej. HU-05-01 dejó la convención `path` para HU-01-03).
+
+## Flujo Spec Kit (una historia = una spec)
+
+`/speckit-specify` → `/speckit-clarify` → `/speckit-plan` → `/speckit-tasks` → `/speckit-analyze` → `/speckit-implement` → `/speckit-converge`.
+
+- Carpeta `specs/NNN-slug/` con numeración secuencial (existen 001–011, falta 008; la siguiente es 012). `.specify/feature.json` apunta a la feature activa: actualízalo al cambiar de historia.
+- Tareas de **15–40 min** (máximo absoluto 60), cada una con pruebas primero: escribir la prueba, verla fallar **por la razón esperada**, implementar lo mínimo, pasar los cuatro comandos de calidad.
+- Cada `tasks.md` incluye: mapeo a tareas `SpN-xx` con presupuesto, lista de **archivos protegidos**, tareas humanas finales (revisión cruzada y CI remota) que Claude **no** marca como hechas.
+- `.claude/skills/` y `.agents/skills/` son copias para distintos agentes (Claude / Codex / agy); si modificas una skill propia del proyecto, actualiza ambas.
+
+## Comandos
+
+```powershell
+python -m venv .venv; .venv\Scripts\Activate.ps1
+pip install -r requirements-dev.txt; pip install -e . --no-deps   # igual que la CI
+
+# Las cuatro puertas de calidad (las mismas de .github/workflows/ci.yml); todas deben dar exit 0
+ruff format --check .
+ruff check .
+mypy src tests
+pytest --cov=harness_agent --cov-report=term-missing
+
+pytest tests/architecture          # fronteras hexagonales (rápido; correr al tocar core/ o cli/)
+pytest tests/unit/core/permissions/test_policy.py -k nombre   # un test concreto
+```
+
+CI: GitHub Actions en `ubuntu-latest` y `windows-latest`, solo Python 3.12, en push/PR a `main`. Omisiones esperadas en Windows: los 5 tests de `tests/spikes/test_linux_sigterm_spike.py` y 1 de enlace simbólico.
+
+## Arquitectura (hexagonal) y reglas duras
+
+```
+cli ──▶ core ◀── adapters        config.py ──▶ core      (bootstrap.py: raíz de composición, aún no existe)
+```
+
+- `core/` importa **solo biblioteca estándar** y `harness_agent.core`. Nunca `adapters`, `cli`, `config`, `observability`, SDKs (`openai`, `anthropic`, `litellm`, `mcp`…) ni `sqlite3`. No lee archivos, entorno ni configuración; no usa `print`/`input`: **todo sale por el `EventBus`**.
+- Consumidores (cli, adapters, tests) importan desde `harness_agent.core`, no de submódulos. Lo nuevo y público de `core/` se exporta en `core/__init__.py` (`__all__`).
+- `Message`, `ToolCall`, `ToolResult`, `TokenUsage`, `Event` y demás tipos del dominio son `@dataclass(frozen=True)`.
+- Puertos async: `Provider.complete`, `Tool.run`, `Approver.request`, `McpClient.*`, `SubagentRunner.execute`. El resto son síncronos.
+- **Los puertos de `core/interfaces/` y el catálogo de 17 eventos (`core/events.py`) solo cambian con acuerdo de A, B y C.** Si una historia parece exigirlo, detente y déjalo como hallazgo.
+- Dependencias por constructor (inyección); reloj, ids y entorno también se inyectan.
+- Falla cerrada siempre: lo no previsto se pregunta o se deniega, nunca se permite.
+- Sin secretos en el repo: claves solo en variables de entorno (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`); `config.toml`, `.env` y `.harness/` están ignorados. `tests/architecture/test_no_secrets_in_repo.py` lo vigila.
+- Las fronteras se verifican con tests `ast` en `tests/architecture/` (no hay `import-linter` instalado).
+
+### Divergencias entre las skills/docs y el código real
+
+Las skills `estructura-carpetas-harness` y `arquitectura-hexagonal-clean` describen el árbol **planeado**. Manda el código:
+
+| Las skills dicen | El código tiene |
+|---|---|
+| `core/ports.py` | `core/interfaces/` (`provider.py`, `tool.py`, `security.py`, `storage.py`, `context.py`, `system.py`, `connections.py`, `event_bus.py`) |
+| `core/messages.py` | `core/entities.py` |
+| `tests/contract/`, `tests/failures/` | `tests/contracts/`; no hay `failures/` todavía. Además `tests/core/` (bucle), `tests/adapters/`, `tests/spikes/`, `tests/doubles/` |
+| `lint-imports` | tests `ast` en `tests/architecture/` |
+| `bootstrap.py`, `observability/`, `adapters/providers`, `adapters/storage`, `adapters/tools` | aún no existen; se crean cuando su historia llegue |
+
+## Qué existe hoy (snapshot 2026-10-22; el estado real está en PROGRESO.md)
+
+| Módulo | Historia | Notas clave |
+|---|---|---|
+| `core/entities.py`, `core/events.py`, `core/interfaces/` | HU-00-01 (A) | Contratos. HU-00-01 sigue **pendiente de ratificación técnica** de A, B y C (Sp1-03), lo que bloquea pasar cualquier historia a `Hecha` |
+| `core/loop.py` — `AgentLoop(provider, registry, policy, bus).run_turn(session_id=, task=, history=) -> TurnResult` | HU-01-01 (A) | Resuelve `ask` como `deny` con `[approval_required_unavailable]` hasta HU-05-03. No emite aún `APPROVAL_REQUESTED` ni `LIMIT_REACHED`. Errores al modelo con prefijos `[unknown_tool]`, `[invalid_arguments]`, `[permission_denied]`, truncados a 500 caracteres |
+| `core/tools/` — `InMemoryToolRegistry`, `check_schema`, `validate_arguments` | HU-01-02 (C) | Validador JSON Schema propio (stdlib). Ojo: `tests/doubles/in_memory_registry.py` es **otro** `InMemoryToolRegistry` (doble sin validación) |
+| `core/in_memory_event_bus.py` — `InMemoryEventBus`, `EventDeliveryError` | HU-01-05 (B) | Un suscriptor que falla hace fallar `emit` (grupo de excepciones); `CancelledError`/`KeyboardInterrupt` se propagan sin agrupar |
+| `core/permissions/` — `DefaultPermissionPolicy(registry, area=None, rules=PermissionRules(), *, allow_reads_in_area=True)` | HU-05-01 (C) | Orden deny > ask > allow. Solo dos «permitir»: escritura (riesgo medio) y lectura (riesgo bajo) **con `path` dentro de `AuthorizedArea`**. La regla de lectura es supuesto pendiente del PO |
+| `config.py` — `load_config()`, `HarnessConfig`, `Secret` | HU-00-04 (B) | TOML (`config.toml` o `HARNESS_CONFIG`) + env. Rechaza campos desconocidos y campos con aspecto de clave. `[permissions]` solo admite `deny` y `ask` (nunca `allow`) |
+| `cli/` — `run_cli(bus, run_turn, ...) -> int`, `attach_renderer`, `render_event` | HU-06-01 (C) | Solo stdlib + API pública de `core`. Comandos `/ayuda`, `/salir`. Ante excepción del turno: una línea con el tipo, exit 1 |
+| `adapters/converters/` — OpenAI/Anthropic ↔ formato canónico, `ConversionEnvelope` + sidecar | HU-07-01 (A) | D-02. `from_openai_messages`/`from_anthropic_payload` están obsoletas: usar `to_*_envelope` + `restore_messages` |
+| `tests/spikes/` | SPK-02 (A) | Base de D-01 (asyncio + cancelación) |
+
+Aún **no** hay: `FakeProvider` (HU-00-03), adaptador LiteLLM (HU-07-02/SPK-01), herramientas de archivos (HU-01-03), SQLite (HU-03-01/02), shell (HU-01-04), aprobación interactiva (HU-05-03), límites (HU-01-06), raíz de composición ni punto de entrada ejecutable.
+
+### Convenciones ya acordadas que las próximas historias deben respetar
+
+- Herramientas de archivos (HU-01-03): el argumento de ruta se llama **`path`** y cada herramienta declara su `RiskLevel` (escribir = MEDIUM; leer, listar, buscar = LOW). Herramientas con varias rutas → HIGH. Ver `specs/007-permission-policy/contracts/path_argument_convention.md`.
+- Cuando HU-05-03 emita `APPROVAL_REQUESTED`, invertir `test_observation_the_loop_does_not_emit_approval_requested_yet`.
+- Cuando HU-01-06 defina `core/limits.py`, mapear `config.Limits` en la raíz de composición (o que `config.py` importe del núcleo; coordinar con A).
+- La carga de los eventos del bucle no incluye argumentos ni contenido (para no filtrar datos); la CLI no inventa campos que el evento no trae.
+
+## Pruebas
+
+- Sin red, sin claves, sin proveedor real, sin consola: dobles de `tests/doubles/` (`ScriptedProvider`, `ScriptedPolicy`, `RecordingEventBus`, `FailingEventBus`, `DummyTool`, `RecordingTool`, `FailingTool`, `RaisingTool`, `BlockingTool`, `DummyApprover`, `DummyAuthorizedArea`, `InMemorySessionStore`…) y `make_rig` de `tests/core/support.py` para cablear el bucle.
+- `tests/doubles/` está protegido por defecto: añade dobles nuevos solo si la spec lo justifica.
+- Ubicación: `tests/unit/<ruta del módulo>/`, `tests/contracts/` (un contrato que se corre contra el doble y la implementación real), `tests/integration/` (con el `AgentLoop` real), `tests/architecture/` (guardas `ast` de la frontera nueva).
+- Usa un valor centinela (`VALOR-DE-PRUEBA-123`) para comprobar que los mensajes de error y eventos no reproducen datos de entrada.
+- No escribas literales que el detector de secretos marque (asignaciones a nombres tipo `secret`, `token`, `password` con valores largos).
+- `asyncio_mode = "auto"`; cobertura objetivo del módulo nuevo: 100 % de líneas y ramas.
+- Mensajes de error de validación: en español, sin reproducir el valor recibido.
+
+## Archivos protegidos por defecto
+
+Salvo que la historia lo exija y esté acordado: `src/harness_agent/core/interfaces/`, `core/events.py`, `core/loop.py` (dueño A), `core/in_memory_event_bus.py`, `cli/` (si la historia no es de CLI), `tests/doubles/`, `docs/archivo/`. Antes de cerrar, verifica:
+
+```bash
+base=$(git merge-base HEAD origin/main)
+git diff --exit-code $base -- src/harness_agent/core/interfaces src/harness_agent/core/events.py tests/doubles docs/archivo
+```
+
+## Cerrar la historia
+
+1. Los cuatro comandos de calidad en exit 0, y `pytest tests/architecture`.
+2. Actualizar `docs/PROGRESO.md` (Principio VIII): fila de la historia → **`En revisión`** (nunca `Hecha`: requiere revisión cruzada humana, CI en Windows y Linux y ratificación de HU-00-01), columnas *Archivos* y *Evidencia* (comandos y resultados reales), una línea por tarea en *Registro de cambios* y, si hay hallazgos para otras áreas, un bloque **Observaciones de HU-xx-yy**. La tabla *Resumen* solo cambia cuando algo pasa a `Hecha`.
+3. Marcar en `tasks.md` solo las tareas realmente hechas, con su evidencia; dejar las humanas sin marcar.
+4. Commit en español, estilo convencional con el ID: `feat(<área>): <descripción> (HU-xx-yy)`; `docs(...)`, `test(...)`, `ci(...)`, `chore(...)` según corresponda. Rama de trabajo `gustavo`; PR hacia `main`. Push, merge y aprobación de diff siempre con confirmación humana.
+5. Reporta honestamente lo pendiente (revisión cruzada, CI remota, supuestos sin confirmar por el PO).
+
+## Decisiones abiertas que conviene tener presentes
+
+- HU-00-01 (contratos), D-01 (async) y D-02 (envelope) pendientes de aprobación técnica individual de A, B y C.
+- D-IA: proveedores reales y presupuesto de API sin decidir → usar `fake/test` y dobles.
+- PD-06: entorno aislado para el shell, pendiente del PO.
+- Reparto del Sprint 4 por ratificar.
+Detalle en `docs/PROGRESO.md` § Decisiones abiertas.
