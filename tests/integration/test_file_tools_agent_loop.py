@@ -19,6 +19,7 @@ from harness_agent.adapters.tools.list_files import ListFilesTool
 from harness_agent.adapters.tools.read_file import ReadFileTool
 from harness_agent.adapters.tools.search_text import SearchTextTool
 from harness_agent.adapters.tools.write_file import WriteFileTool
+from harness_agent.config import HarnessConfig, load_config
 from harness_agent.core import (
     DefaultPermissionPolicy,
     EventType,
@@ -275,3 +276,49 @@ class TestNoArea:
         )
         assert [d[1:] for d in rig.decisions()] == [("ask", "deny")] * 4
         assert not (area_dir / "x.txt").exists()
+
+
+def area_root_from(config: HarnessConfig) -> Path | None:
+    """What ``bootstrap.py`` will do with the configuration: no ``workspace_root``, no area."""
+    return config.paths.workspace_root
+
+
+class TestNoAreaFromConfiguration:
+    def test_a_configuration_without_workspace_root_gives_no_area(self, tmp_path: Path) -> None:
+        config_file = tmp_path / "config.toml"
+        config_file.write_text('model = "fake/test"\n', encoding="utf-8")
+
+        config = load_config(config_file, environ={})
+
+        assert area_root_from(config) is None
+
+    def test_a_configuration_with_workspace_root_gives_an_area_on_its_real_path(
+        self, tmp_path: Path
+    ) -> None:
+        project = tmp_path / "proyecto"
+        project.mkdir()
+        config_file = tmp_path / "config.toml"
+        config_file.write_text(
+            f'model = "fake/test"\n[paths]\nworkspace_root = "{project.as_posix()}"\n',
+            encoding="utf-8",
+        )
+
+        root = area_root_from(load_config(config_file, environ={}))
+
+        assert root is not None
+        assert WorkspaceArea(root).root == project.resolve()
+
+    async def test_no_area_from_the_configuration_means_nothing_runs_and_nothing_is_written(
+        self, tmp_path: Path
+    ) -> None:
+        config_file = tmp_path / "config.toml"
+        config_file.write_text('model = "fake/test"\n', encoding="utf-8")
+        root = area_root_from(load_config(config_file, environ={}))
+        rig = Rig(root, script(call("c1", "escribir_archivo", path="nuevo.txt", content="x")))
+
+        result = await rig.go()
+
+        (message,) = tool_messages(result)
+        assert message.content.startswith("[approval_required_unavailable]")
+        assert rig.decisions() == [("escribir_archivo", "ask", "deny")]
+        assert not (tmp_path / "nuevo.txt").exists()

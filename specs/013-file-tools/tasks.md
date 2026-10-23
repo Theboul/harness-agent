@@ -153,7 +153,7 @@
 
 **Prueba independiente**: Una batería de al menos 15 rutas hostiles contra las cuatro herramientas y contra el área.
 
-- [ ] **T011** [US3] Batería de escape contra las cuatro herramientas y el área (FR-021, SC-001)
+- [x] **T011** [US3] Batería de escape contra las cuatro herramientas y el área (FR-021, SC-001)
   - **Archivos**: `tests/unit/adapters/tools/test_escape_attempts.py`
   - **Dependencias**: T003, T006, T007, T008, T009
   - **Criterios relacionados**: AC-03, reglas de negocio 2 y 3, SC-001, spec US3, research R-05
@@ -169,7 +169,7 @@
 
 **Prueba independiente**: Con `area=None`, cada herramienta devuelve `[sin_area]` y, con el bucle real, la política pregunta y se deniega.
 
-- [ ] **T012** [US4] Sin área: herramientas con `area=None` e integración AC-04 (FR-015)
+- [x] **T012** [US4] Sin área: herramientas con `area=None` e integración AC-04 (FR-015)
   - **Archivos**: `tests/unit/adapters/tools/test_no_area.py`, `tests/integration/test_file_tools_agent_loop.py`
   - **Dependencias**: T010
   - **Criterios relacionados**: AC-04, regla de negocio 3, FR-015, spec US4
@@ -185,7 +185,7 @@
 
 **Prueba independiente**: Las cuatro se registran en el registro real y la política real decide como indica el contrato.
 
-- [ ] **T013** [US5] Registro real y clasificación por la política (Sp1-21)
+- [x] **T013** [US5] Registro real y clasificación por la política (Sp1-21)
   - **Archivos**: `tests/unit/adapters/tools/test_registration_and_risk.py`
   - **Dependencias**: T009, T006, T007, T008
   - **Criterios relacionados**: FR-006, FR-007, FR-008, spec US5, convención `path`
