@@ -41,13 +41,13 @@
 
 **Propósito**: Marcar la historia `En curso` y dejar claro que los AC son propuestos.
 
-- [ ] T001 Marcar la historia propuesta como `En curso` en `docs/PROGRESO.md` (transversal)
+- [x] T001 Marcar la historia propuesta como `En curso` en `docs/PROGRESO.md` (transversal)
   - **Archivos**: `docs/PROGRESO.md`
   - **Dependencias**: Ninguna
   - **Criterios relacionados**: Principio VIII, PD-08
   - **Estimación**: 20 min
   - **Verificación**: Fila nueva en la tabla de Sprint 1: «HU-00-08 (propuesta) — Raíz de composición y punto de entrada ejecutable», responsable `C — Control y conexiones`, estado `En curso`, PHU «—». Bloque **Observaciones de HU-00-08 (propuesta)** con: ID provisional, AC-P1 a AC-P3 pendientes de ratificación, 3 h asignadas por el PO y el aviso de capacidad. Una línea nueva en el Registro de cambios (una línea por fila, CRLF, tabla *Resumen* intacta). Línea base de las cuatro puertas antes de tocar código.
-  - **Evidencia**:
+  - **Evidencia**: 2026-10-24: fila «HU-00-08 (propuesta)» en la tabla de Sprint 1 (`En curso`, responsable C), bloque Observaciones de HU-00-08, PD-08 `En curso` y fila en el Registro de cambios; tabla *Resumen* intacta. Línea base: ruff format/check y mypy en 0; 3116 pasadas y 8 omitidas; `test_no_secrets_in_repo` fallaba por texto de `plan.md`/`tasks.md` (asignación de clave) y se reformuló, ya 28/28.
 
 - [ ] T002 *(humana)* El PO ratifica o sustituye AC-P1 a AC-P3 y decide el ID definitivo (puede hacerse al final, pero antes de pasar a `Hecha`)
   - **Archivos**: `docs/PROGRESO.md` (solo para anotar la decisión)
@@ -69,7 +69,7 @@
   - **Criterios relacionados**: FR-003, FR-004, FR-005, FR-007, FR-011, FR-012, FR-013; AC-P1, AC-P2
   - **Estimación**: 40 min
   - **Pruebas primero**: con configuración construida a mano (`HarnessConfig`) y `provider_factory` con un proveedor mínimo: (1) la composición devuelve el bucle, el bus, el almacén y un `session_id` que existe en el almacén con `model=config.model`; (2) un evento emitido por el bus queda guardado (registrador conectado antes de devolver); (3) el registrador está suscrito a los 17 tipos; (4) sin `workspace_root` → `notices` con el aviso de área ausente y una herramienta de archivos devuelve `[sin_area]`; (5) `workspace_root` que no es carpeta → el otro aviso, sin reproducir la ruta; (6) con área válida → sin avisos y las 4 herramientas registradas por nombre (`leer_archivo`, `escribir_archivo`, `listar_archivos`, `buscar_texto`); (7) el proveedor se construye **antes** de abrir la base (si `provider_factory` lanza, el archivo de la base no existe); (8) si falla un paso posterior a abrir el almacén, este se cierra antes de propagar; (9) `close()` cierra el almacén y es idempotente; (10) reloj e identificadores inyectados llegan al almacén (`session_id` fijo). Deben fallar con `ModuleNotFoundError: harness_agent.bootstrap`.
-  - **Implementación**: `Composition` (`@dataclass(frozen=True)`: `loop`, `bus`, `store`, `session_id`, `notices`, `close()`), `compose(config, *, provider_factory=None, clock=None, id_factory=None)` con el orden de `data-model.md`, constantes con los dos textos de aviso, `_default_provider(config)` con `LiteLLMProvider(config.model, max_output_tokens=config.limits.max_output_tokens, api_key=config.api_key)`.
+  - **Implementación**: `Composition` (`@dataclass(frozen=True)`: `loop`, `bus`, `store`, `session_id`, `notices`, `close()`), `compose(config, *, provider_factory=None, clock=None, id_factory=None)` con el orden de `data-model.md`, constantes con los dos textos de aviso, `_default_provider(config)` con `LiteLLMProvider` construido con `config.model`, el tope `config.limits.max_output_tokens` y la clave `config.api_key`.
   - **Verificación**: las pruebas pasan; `bootstrap.py` no importa submódulos (`harness_agent.core.loop`, etc.); cuatro puertas en 0.
   - **Evidencia**:
 
