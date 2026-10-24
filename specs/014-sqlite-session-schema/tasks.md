@@ -77,7 +77,7 @@
 
 **Propósito**: Abrir, cerrar y traducir fallos del motor.
 
-- [ ] **T004** [US3] `SqliteSessionStore`: constructor, ruta, `close` y gestor de contexto (FR-010, FR-013, plan D5, D7, D8)
+- [x] **T004** [US3] `SqliteSessionStore`: constructor, ruta, `close` y gestor de contexto (FR-010, FR-013, plan D5, D7, D8)
   - **Archivos**: `tests/unit/adapters/storage/test_sqlite_session_store.py`, `src/harness_agent/adapters/storage/sqlite_session_store.py`
   - **Dependencias**: T003
   - **Criterios relacionados**: FR-004, FR-010, FR-013, historia 3 (escenarios 1 y 2), Edge Cases (`:memory:`, cierre)
@@ -93,7 +93,7 @@
 
 **Prueba independiente**: crear una sesión y leerla de vuelta con id, fecha UTC y estado `active`.
 
-- [ ] **T005** [US1] `StoredSession` y `create_session` / `get_session` (AC-01, FR-005, FR-007, FR-012)
+- [x] **T005** [US1] `StoredSession` y `create_session` / `get_session` (AC-01, FR-005, FR-007, FR-012)
   - **Archivos**: `tests/unit/adapters/storage/test_sqlite_session_store.py`, `src/harness_agent/adapters/storage/sqlite_session_store.py`
   - **Dependencias**: T004
   - **Criterios relacionados**: AC-01, FR-005, FR-007, FR-012, historia 1 (escenarios 1 a 3), plan D2, D5
@@ -101,7 +101,7 @@
   - **Estimación**: 40 min
   - **Verificación**: Pruebas primero con reloj e `id_factory` falsos: la sesión creada tiene el id del generador, `created_at` igual al reloj en UTC, estado `active`, `model`/`goal` opcionales (`None` por defecto) y `parent_id` `None`; un reloj sin zona se toma como UTC; `StoredSession` es inmutable; `get_session` devuelve lo mismo y `None` para un id desconocido; dos sesiones con el generador real tienen ids distintos; objetivo con comillas y caracteres especiales (`'; DROP TABLE sessions; --`) se guarda y lee intacto.
 
-- [ ] **T006** [US1] `list_sessions` y persistencia al reabrir (FR-008, FR-009)
+- [x] **T006** [US1] `list_sessions` y persistencia al reabrir (FR-008, FR-009)
   - **Archivos**: `tests/unit/adapters/storage/test_sqlite_session_store.py`, `src/harness_agent/adapters/storage/sqlite_session_store.py`
   - **Dependencias**: T005
   - **Criterios relacionados**: AC-01, FR-008, FR-009, historia 1 (escenarios 4 y 5), plan D9, SC-001, SC-002, SC-003
@@ -117,7 +117,7 @@
 
 **Prueba independiente**: hija con `parent_id` válido se guarda; con uno inexistente se rechaza sin crear nada.
 
-- [ ] **T007** [US2] `parent_id` y `ParentSessionNotFound` (regla 1, FR-006)
+- [x] **T007** [US2] `parent_id` y `ParentSessionNotFound` (regla 1, FR-006)
   - **Archivos**: `tests/unit/adapters/storage/test_sqlite_session_store.py`, `src/harness_agent/adapters/storage/sqlite_session_store.py`
   - **Dependencias**: T005
   - **Criterios relacionados**: Regla de negocio 1, FR-006, historia 2 (escenarios 1 a 3), plan D6
@@ -129,7 +129,7 @@
 
 ## Phase 6: Pruebas de creación y errores (Sp1-28)
 
-- [ ] **T008** Traducción de errores del motor, uso tras cerrar y cobertura al 100 % (FR-011, FR-016, SC-004)
+- [x] **T008** Traducción de errores del motor, uso tras cerrar y cobertura al 100 % (FR-011, FR-016, SC-004)
   - **Archivos**: `tests/unit/adapters/storage/test_sqlite_session_store.py`, `src/harness_agent/adapters/storage/sqlite_session_store.py`
   - **Dependencias**: T006, T007
   - **Criterios relacionados**: FR-011, FR-016, SC-004, SC-006, historia 3 (escenario 6), Edge Cases
