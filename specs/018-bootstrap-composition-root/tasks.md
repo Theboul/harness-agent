@@ -101,14 +101,14 @@
   - **Verificación**: las pruebas pasan; `pip install -e . --no-deps` no se rompe (mismo `pyproject.toml` válido); cuatro puertas en 0.
   - **Evidencia**: 2026-10-24: rojo por `ImportError: cannot import name 'main'`; verde con `main()` en `bootstrap.py`, `src/harness_agent/__main__.py`, `[project.scripts]` en `pyproject.toml`, `TestMainHappyPath` (4) en `tests/unit/test_bootstrap_main.py` y `tests/unit/test_entry_point.py` (3). `bootstrap.py` y `__main__.py` al 100 %. Comprobado en un entorno limpio de Python 3.12: `pip install --no-deps .` crea el comando `harness` y arranca. `main` aún no traduce errores (T007); sin configuración muestra la traza de `ConfigFileNotFoundError`.
 
-- [ ] T006 [US1] [US2] Integración con el `AgentLoop` real en `tests/integration/test_bootstrap_session.py`
+- [x] T006 [US1] [US2] Integración con el `AgentLoop` real en `tests/integration/test_bootstrap_session.py`
   - **Archivos**: `tests/integration/test_bootstrap_session.py` (nuevo)
   - **Dependencias**: T005
   - **Criterios relacionados**: AC-P1, AC-P2; Historia 1 (escenarios 1 a 4), Historia 2 (escenarios 1 y 2); SC-002, SC-005
   - **Estimación**: 40 min
   - **Pruebas primero** (la composición real con `FakeProvider`, `blocked_network` y base en `tmp_path`; fallan mientras falte algún cableado): (1) tarea «crea `notas.txt`» → el archivo existe dentro del área, la salida contiene la solicitud y el resultado de la herramienta y el código es 0; (2) **SC-002**: los eventos guardados en la base (en orden y con un solo `session_id`) coinciden en número y tipos con los que se mostraron; (3) segunda tarea que usa lo de la primera → el historial se conserva; (4) escritura fuera del área → denegada y el archivo no existe (**SC-005**); (5) acción que pide aprobación (con `config.permissions.ask = ("leer_archivo",)`) → denegada con motivo; (6) `QuotaExceeded` a mitad de tarea → la sesión sigue y el error se muestra; (7) interrupción: la tarea de `run_session` se cancela con una llamada al proveedor en espera → el evento `INTERRUPTED` queda guardado y la base se puede cerrar (esta es la ruta de cancelación que produce una señal real; la señal en sí solo se ve a mano en T015); (8) sin `workspace_root` → aviso y la escritura queda denegada con `[approval_required_unavailable]`, sin crear ningún archivo.
   - **Verificación**: pasan sin cambios en `src/`; `rm -f .coverage*` antes de confirmar.
-  - **Evidencia**:
+  - **Evidencia**: 2026-10-24: `tests/integration/test_bootstrap_session.py` (8 pruebas con el `AgentLoop`, las herramientas, `WorkspaceArea`, la política, el bus, SQLite y la CLI reales; `blocked_network`): tarea que escribe dentro del área, eventos guardados = emitidos en orden bajo una sola sesión (SC-002), segunda tarea que ve la primera, escritura fuera del área denegada (SC-005), sin área, aprobación denegada con motivo, `QuotaExceeded` con sesión que sigue e interrupción que guarda `INTERRUPTED`. No hizo falta cambiar `src/` (la composición de T003 a T005 ya cumplía), así que no hubo rojo natural; se comprobó que las pruebas detectan fallos con dos mutaciones temporales y revertidas: sin `attach_event_recorder` fallan 3, y con una política sobre otra área falla la de «sin área».
 
 ---
 
