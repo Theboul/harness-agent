@@ -306,3 +306,46 @@ class TestFailuresDuringTheSession:
         types = [e.type for e in composition.store.load_session(composition.session_id)]
         assert EventType.INTERRUPTED in types
         composition.close()
+
+
+RUNS = 20
+
+
+class TestTheSameSessionTwentyTimes:
+    async def test_the_output_the_events_and_the_file_are_identical_in_every_run(
+        self,
+        tmp_path: Path,
+        opened: list[Composition],
+        blocked_network: None,  # noqa: F811
+    ) -> None:
+        signatures: list[tuple[Any, ...]] = []
+        for index in range(RUNS):
+            folder = tmp_path / f"ejecucion-{index}"
+            folder.mkdir()
+            run = Run(
+                opened,
+                folder,
+                [
+                    ProviderResponse(tool_calls=[write_note()]),
+                    ProviderResponse(content="listo"),
+                    ProviderResponse(tool_calls=[call("c2", "leer_archivo", path="notas.txt")]),
+                    ProviderResponse(content="leído"),
+                ],
+                workspace=folder,
+            )
+
+            code = await run.go("escribe notas.txt\nlee notas.txt\n/salir\n")
+
+            signatures.append(
+                (
+                    code,
+                    run.output.getvalue(),
+                    [(e.type, e.payload) for e in run.saved()],
+                    run.provider.received,
+                    (folder / "notas.txt").read_text(encoding="utf-8"),
+                )
+            )
+
+        assert len(signatures) == RUNS
+        assert all(signature == signatures[0] for signature in signatures[1:])
+        assert signatures[0][0] == 0

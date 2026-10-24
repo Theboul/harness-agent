@@ -128,14 +128,14 @@
 
 ## Phase 5: User Story 4 — La conexión es verificable sin red (P2)
 
-- [ ] T008 [US4] Determinismo: 20 ejecuciones idénticas y sin red (`tests/integration/test_bootstrap_session.py`)
+- [x] T008 [US4] Determinismo: 20 ejecuciones idénticas y sin red (`tests/integration/test_bootstrap_session.py`)
   - **Archivos**: `tests/integration/test_bootstrap_session.py` (ampliación)
   - **Dependencias**: T006
   - **Criterios relacionados**: FR-012; Historia 4 (escenario 1); SC-004
   - **Estimación**: 20 min
   - **Pruebas primero**: ejecutar 20 veces la misma sesión (reloj e identificadores inyectados, base `:memory:` nueva en cada una) y comparar la salida de la terminal y los eventos guardados: idénticos; el guardia de red no se dispara. Si falla, la causa es no determinismo en la composición (orden de construcción, reloj real) y se corrige en `bootstrap.py`.
   - **Verificación**: pasa 20/20; sin cambios de código si la composición ya es determinista (se anota).
-  - **Evidencia**:
+  - **Evidencia**: 2026-10-24: `TestTheSameSessionTwentyTimes` en `tests/integration/test_bootstrap_session.py`: 20 ejecuciones de una sesión de dos tareas (reloj e identificador de sesión inyectados, base nueva en cada una, `blocked_network`) con salida de la terminal, eventos guardados (tipo y carga), mensajes recibidos por el proveedor y archivo escrito idénticos; el guardia de red no se dispara. La composición ya era determinista: no hubo cambios en `src/`.
 
 - [ ] T009 [P] [US4] Guarda de arquitectura `tests/architecture/test_bootstrap_boundaries.py` y verificación de fronteras
   - **Archivos** (fila: guarda `ast` de la frontera nueva, skill `verificar-fronteras-hexagonales`): `tests/architecture/test_bootstrap_boundaries.py` (nuevo)
