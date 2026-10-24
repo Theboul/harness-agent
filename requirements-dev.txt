@@ -6,3 +6,32 @@ pytest-asyncio==0.25.3
 pytest-cov==6.0.0
 mypy==1.14.1
 ruff==0.9.6
+
+# Optional dependency of the LiteLLM adapter (HU-07-02). It is the same pin as the extra "litellm" of
+# pyproject.toml (tests/unit/test_dependency_pins.py keeps both in step); the CI installs this file,
+# not the extra. The lines below are the dependencies pip resolved for it on 2026-10-24 (Python 3.12),
+# pinned so that the CI is reproducible on Ubuntu and Windows. Deeper transitive dependencies are
+# still resolved by pip. To update: install the new litellm in a clean environment with a short path
+# and copy the versions that "pip list" shows for these names.
+litellm[mcp]==1.106.2
+aiohttp==3.14.5
+boto3==1.43.118
+click==8.5.0
+fastuuid==0.14.0
+filelock==3.32.7
+httpx==0.28.1
+httpx2==2.16.0
+huggingface-hub==1.33.0
+importlib-metadata==8.9.0
+jinja2==3.1.6
+jsonschema==4.26.0
+mcp==2.3.0
+openai==2.54.0
+packaging==26.3
+pydantic==2.14.1
+pydantic-settings==2.16.1
+python-dotenv==1.2.4
+pyyaml==6.0.3
+tiktoken==0.14.0
+tokenizers==0.23.3
+typing-extensions==4.16.0

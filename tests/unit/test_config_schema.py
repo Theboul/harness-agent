@@ -191,7 +191,9 @@ class TestEsquemaInvalido:
     def test_an_unknown_provider_lists_the_admitted_ones(self, tmp_path: Path) -> None:
         assert problems_of(tmp_path, 'model = "desconocido/x"\n') == (
             ConfigProblem(
-                "model", "el proveedor no es uno de los admitidos (anthropic, fake, openai)."
+                "model",
+                "el proveedor no es uno de los admitidos "
+                "(anthropic, fake, gemini, groq, ollama, openai, openrouter).",
             ),
         )
 

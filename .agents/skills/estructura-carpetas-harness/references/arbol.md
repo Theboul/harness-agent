@@ -42,7 +42,7 @@ harness-agent/
 │   │   └── subagents/      # (planeado: HU-09-01) SubagentRunner, perfiles, resultado estructurado
 │   ├── adapters/           # implementaciones de los puertos
 │   │   ├── converters/     # formato canónico <-> OpenAI/Anthropic, ConversionEnvelope (HU-07-01)
-│   │   ├── providers/      # (planeado: HU-07-02 litellm_provider; el FakeProvider de HU-00-03 vive en tests/doubles/fake_provider.py)
+│   │   ├── providers/      # LiteLLMProvider: un adaptador para cualquier <proveedor>/<modelo>, sin ramas por proveedor; litellm (dependencia opcional) solo aquí y con importlib (HU-07-02); el FakeProvider de HU-00-03 vive en tests/doubles/fake_provider.py
 │   │   ├── storage/        # SqliteSessionStore: esquema sessions/events, creación de sesión (HU-03-01), save_event/load_session y attach_event_recorder (HU-03-02)
 │   │   ├── tools/          # leer_archivo, escribir_archivo, listar_archivos, buscar_texto (HU-01-03); planeado: shell (HU-01-04), …
 │   │   ├── system/         # WorkspaceArea: AuthorizedArea real (rutas reales, «..», enlaces, reglas de Windows) (HU-01-03)
@@ -55,14 +55,15 @@ harness-agent/
 │       ├── render.py       # render_event: texto de cada evento, sanitizado y acotado
 │       └── approver.py     # (planeado: HU-05-03) pregunta de aprobación en terminal
 └── tests/
+    ├── litellm_offline.py  # sustituye el codificador de LiteLLM en memoria para que ninguna prueba descargue nada (HU-07-02)
     ├── doubles/            # dobles compartidos (ScriptedProvider, ScriptedPolicy, RecordingEventBus…); protegido
     ├── unit/               # una prueba por módulo, ruta espejo: unit/core/<pkg>/, unit/cli/, unit/test_config_*.py
     ├── core/               # bucle del agente (support.py: make_rig)
-    ├── adapters/           # pruebas de adaptadores (hoy: conversores)
+    ├── adapters/           # pruebas de adaptadores (hoy: conversores); las del resto de adaptadores van en unit/adapters/<paquete>/ (p. ej. providers/)
     ├── contracts/          # un contrato que corre contra el doble y la implementación real
     ├── integration/        # piezas reales juntas (AgentLoop + bus/política/registro/CLI)
     ├── architecture/       # guardas AST de fronteras y secretos
-    ├── spikes/             # spikes (SPK-02); algunos solo en Linux
+    ├── spikes/             # spikes (SPK-01, SPK-02); algunos solo en Linux; conftest.py mantiene offline el de LiteLLM
     └── failures/           # (planeado: HU-00-05.1) fallos: cierre forzado, proveedor caído, MCP caído
 ```
 
