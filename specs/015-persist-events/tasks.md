@@ -115,7 +115,7 @@
 
 ## Phase 5: User Story 4 — suscripción al bus (Sp1-29)
 
-- [ ] **T008** [US4] `attach_event_recorder` (FR-018)
+- [x] **T008** [US4] `attach_event_recorder` (FR-018)
   - **Archivos**: `tests/unit/adapters/storage/test_event_recorder.py`, `src/harness_agent/adapters/storage/event_recorder.py`
   - **Dependencias**: T004
   - **Criterios relacionados**: Historia 4 (escenarios 1, 2 y 4), FR-018, plan D7
