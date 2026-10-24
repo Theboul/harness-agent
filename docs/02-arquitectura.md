@@ -117,9 +117,9 @@ Se escriben y acuerdan en [HU-00-01](04a-historias-fundacion.md#hu-00-01) para t
 | ContextManager | assemble(session_id, model_id) → mensajes; compact(session_id) | Controla prefijo, recortes y umbral. |
 | MemoryStore | save(key, content), search(token_budget), delete(key) | Separada del historial. |
 | McpClient | connect, list_tools, call_tool(name, arguments) | Traduce cada herramienta MCP a Tool. |
-| SubagentRunner | execute(profile, objective, context, output_schema) → resultado | Crea la sesión hija y devuelve el resultado estructurado. |
+| SubagentRunner | execute(profile, goal, context, output_schema) → resultado | Crea la sesión hija y devuelve el resultado estructurado. |
 | Shell | execute(command, timeout_seconds) → código de salida y salida; interpreter_name | Una implementación para bash y otra para PowerShell. Es la única puerta a comandos del sistema. |
-| TaskCriteria | load_criteria(session_id), get_pending(session_id), mark_passes(criteria_id, evidence), export_readonly_copy(session_id, destination) | Lee y escribe la tabla criterios de SQLite. Solo el harness llama a marcar_pasa. La copia JSON es de solo lectura y se restaura si cambia. |
+| TaskCriteria | load_criteria(session_id), get_pending(session_id), mark_passes(criteria_id, evidence), export_readonly_copy(session_id, destination) | Lee y escribe la tabla criterios de SQLite. Solo el harness llama a mark_passes. La copia JSON es de solo lectura y se restaura si cambia. |
 | AuthorizedArea | contains(path) → verdadero o falso sobre la ruta real; root | Resuelve «..», enlaces simbólicos, unidades y rutas UNC antes de comparar. La usan las herramientas de archivos y la política de permisos. |
 | EventBus | emit(event), subscribe(event_type, handler) | Único canal del núcleo hacia las interfaces. |
 

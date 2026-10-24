@@ -1,10 +1,16 @@
 <!--
-Sync Impact Report:
+Sync Impact Report (1.1.0, 2026-10-17):
+- Version change: 1.0.0 -> 1.1.0 (MINOR: se acota la versión soportada de Python).
+- Modified principle: Principio III. «Python 3.12+» pasa a «Python 3.12.x» como único estándar obligatorio (PD-07, aprobada por el Product Owner el 2026-10-17). Se descarta la compatibilidad con Python 3.11; no es obligatorio dar soporte a 3.13 o superior.
+- Templates/artefactos alineados: pyproject.toml (`requires-python = ">=3.12,<3.13"`), .github/workflows/ci.yml (matriz Windows y Linux con 3.12), requirements-dev.txt, specs de HU-00-01, HU-00-02 y SPK-02, docs/ vigentes.
+- Follow-up TODOs: ninguno.
+
+Sync Impact Report (1.0.0):
 - Version change: Initial scaffold -> 1.0.0
 - List of modified principles: Replaced template placeholders with 10 ratified core principles:
   - Principio I: Una historia de usuario por especificación
   - Principio II: Microtareas acotadas de 15 a 40 minutos
-  - Principio III: Código modular, reutilizable y tipado en Python 3.12+
+  - Principio III: Código modular, reutilizable y tipado en Python 3.12.x (acotado por PD-07 en la versión 1.1.0)
   - Principio IV: Pruebas automatizadas, calidad y CI multiplataforma
   - Principio V: Inmutabilidad de criterios de aceptación y prioridades
   - Principio VI: Disciplina de sprints y entrega por fases
@@ -32,8 +38,8 @@ Cada especificación funcional generada mediante Spec Kit DEBE abordar exclusiva
 Toda tarea de implementación generada en los planes de trabajo DEBE descomponerse en unidades atómicas estimadas para completarse en un rango de 15 a 40 minutos. El límite máximo absoluto por microtarea es de 60 minutos, debiendo incluir en dicho lapso la codificación, las pruebas automatizadas y el registro de progreso. Si una tarea supera o amenaza con superar los 60 minutos, DEBE dividirse de inmediato.
 *Razón de ser:* Mitiga la fatiga contextual del agente y del desarrollador, asegura puntos de control frecuentes y mantiene una cadencia de verificación predecible.
 
-### Principio III: Código modular, reutilizable y tipado en Python 3.12+
-Todo el código del proyecto DEBE implementarse en Python 3.12+ bajo los principios de Arquitectura Hexagonal (Puertos y Adaptadores). El código DEBE ser modular, fuertemente tipado con type hints exhaustivos, altamente desacoplado y comprobable mediante inversión de dependencias. El núcleo (`src/harness_agent/core/`) NUNCA debe importar librerías de interfaz de usuario (CLI o web), SDKs propietarios de proveedores LLM ni librerías de infraestructura externa.
+### Principio III: Código modular, reutilizable y tipado en Python 3.12.x
+Todo el código del proyecto DEBE implementarse en Python 3.12.x (única versión soportada oficialmente; sin compatibilidad obligatoria con 3.11 ni con 3.13 o superior, decisión PD-07 del Product Owner, 2026-10-17) bajo los principios de Arquitectura Hexagonal (Puertos y Adaptadores). El código DEBE ser modular, fuertemente tipado con type hints exhaustivos, altamente desacoplado y comprobable mediante inversión de dependencias. El núcleo (`src/harness_agent/core/`) NUNCA debe importar librerías de interfaz de usuario (CLI o web), SDKs propietarios de proveedores LLM ni librerías de infraestructura externa.
 *Razón de ser:* Permite que el núcleo permanezca puro, reutilizable y agnóstico a la interfaz y a los proveedores, facilitando la evolución técnica y la portabilidad.
 
 ### Principio IV: Pruebas automatizadas, calidad y CI multiplataforma
@@ -129,4 +135,4 @@ El número de versión de la constitución sigue la convención SemVer (`MAJOR.M
 - **MINOR:** Adición de nuevos principios, secciones organizativas o ampliación de directrices de desarrollo sin romper compatibilidad con los principios existentes.
 - **PATCH:** Correcciones de redacción, resolución de erratas tipográficas o aclaraciones no semánticas.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-17
+**Version**: 1.1.0 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-17

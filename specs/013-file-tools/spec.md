@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-23
 
-**Status**: Draft
+**Status**: En revisión (ver docs/PROGRESO.md)
 
 **Proyecto**: HARNESS v2.5 | **Sprint**: 1 | **Responsable**: C — Control y conexiones | **Tareas de referencia**: Sp1-18, Sp1-19, Sp1-20, Sp1-21, Sp1-22 | **Requisitos**: RF-1.2 | **Depende de**: HU-01-02 (registro de herramientas, ya integrada) y, para la decisión de permisos, HU-05-01 (política, ya integrada)
 

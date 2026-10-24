@@ -77,7 +77,7 @@ pytest tests/architecture          # fronteras hexagonales (rápido; correr al t
 pytest tests/unit/core/permissions/test_policy.py -k nombre   # un test concreto
 ```
 
-CI: GitHub Actions en `ubuntu-latest` y `windows-latest`, solo Python 3.12, en push/PR a `main`. Omisiones esperadas en Windows: los 5 tests de `tests/spikes/test_linux_sigterm_spike.py` y 1 de enlace simbólico.
+CI: GitHub Actions en `ubuntu-latest` y `windows-latest`, solo Python 3.12, en push/PR a `main`. Omisiones esperadas en Windows local (32 con `pytest -rs`): los 5 tests de `tests/spikes/test_linux_sigterm_spike.py` (señales POSIX), unos 23 que necesitan crear enlaces simbólicos (se omiten si el sistema no concede el privilegio), 2 que necesitan `mkfifo` (tuberías POSIX) y 2 de nombres no válidos en Windows (nombre reservado y caracteres de control).
 
 ## Arquitectura (hexagonal) y reglas duras
 
@@ -96,7 +96,7 @@ cli ──▶ core ◀── adapters        config.py ──▶ core      (boot
 - Las fronteras se verifican con tests `ast` en `tests/architecture/` (no hay `import-linter`). Huecos conocidos (detalle en la skill `verificar-fronteras-hexagonales`): no hay lista blanca para todo `core/`, `forbidden_imports` deja pasar módulos estándar de E/S (`sqlite3`, `subprocess`) (`adapters/` ya está vigilado por `test_adapters_boundaries.py`: no importa `cli/` y `system/` y `tools/` solo usan stdlib y la API pública del núcleo).
 - Árbol completo, existente y planeado, con la tabla de puertos por archivo: `.claude/skills/estructura-carpetas-harness/references/arbol.md`.
 
-## Qué existe hoy (snapshot 2026-10-22; el estado real está en PROGRESO.md)
+## Qué existe hoy (snapshot 2026-10-23; el estado real está en PROGRESO.md)
 
 | Módulo | Historia | Notas clave |
 |---|---|---|

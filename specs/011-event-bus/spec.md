@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-20
 
-**Status**: Draft
+**Status**: En revisión (ver docs/PROGRESO.md)
 
 **Proyecto**: HARNESS v2.5 | **Sprint**: 1 | **Responsable**: B — Estado (la implementa Gustavo en nombre de B) | **Tareas de referencia**: Sp1-23 (ya cumplida por HU-00-01), Sp1-24, Sp1-25 | **Requisitos**: RF-1.8 | **Depende de**: HU-00-01
 

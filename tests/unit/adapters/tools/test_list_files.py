@@ -138,8 +138,13 @@ class TestListing:
     ) -> None:
         wide = area_dir / "anchos"
         wide.mkdir()
+        # Windows rejects paths over 260 characters, so shrink the names to fit the temp dir.
+        name_length = min(200, 255 - len(str(wide)) - len(f"{os.sep}000-"))
+        assert name_length * _limits.MAX_LIST_ENTRIES > _limits.MAX_RESULT_CHARS
         for number in range(_limits.MAX_LIST_ENTRIES):
-            (wide / (f"{number:03d}-" + "n" * 200)).write_text("", encoding="utf-8", newline="")
+            (wide / (f"{number:03d}-" + "n" * name_length)).write_text(
+                "", encoding="utf-8", newline=""
+            )
 
         result = await ls(tool, "anchos")
 

@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-23
 
-**Status**: Draft
+**Status**: En revisión (ver docs/PROGRESO.md)
 
 **Proyecto**: HARNESS v2.5 | **Sprint**: 1 | **Responsable**: B — Estado | **Tareas de referencia**: Sp1-07, Sp1-08 | **Requisitos**: RNF-1, RNF-6 | **Depende de**: HU-00-01 (contratos; sigue «Pendiente de aprobación técnica»)
 

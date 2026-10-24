@@ -173,9 +173,9 @@ class LeerArchivoTool(Tool):
         return {
             "type": "object",
             "properties": {
-                "ruta": {"type": "string", "description": "Ruta relativa del archivo"}
+                "path": {"type": "string", "description": "Ruta relativa del archivo"}
             },
-            "required": ["ruta"]
+            "required": ["path"]
         }
 
     @property
@@ -191,11 +191,11 @@ class LeerArchivoTool(Tool):
 ```python
 import pytest
 from tests.doubles import DummyTool, DummyApprover
-from harness_agent.core import ToolCall, ApprovalAction
+from harness_agent.core import ApprovalAction, RiskLevel, ToolCall
 
 @pytest.mark.asyncio
 async def test_politica_con_dobles():
-    tool = DummyTool(name="shell", risk="high")
+    tool = DummyTool(name="shell", risk=RiskLevel.HIGH)
     approver = DummyApprover(default_action=ApprovalAction.APPROVE_ONCE)
 
     call = ToolCall(id="c1", name="shell", arguments={"cmd": "pytest"})
@@ -239,11 +239,13 @@ policy = DefaultPermissionPolicy(registry, area, PermissionRules())
 
 ## 4. Reglas Obligatorias de Diseño y Pureza
 
-1. **Firmas asíncronas (propuesta SPK-02 / D-01, pendiente de aprobación)**: `Provider.complete`, `Tool.run` y `Approver.request` son corutinas (`async def`) y siguen siendo provisionales hasta que A, B y C aprueben D-01 y HU-00-01 (T016). El spike midió en Windows una cancelación con retorno de control de 1.0 a 2.4 ms (límite de AC-01: 500 ms); la evidencia en Linux está pendiente. Todas las demás interfaces (`SessionStore`, `MemoryStore`, `ContextManager`, `AuthorizedArea`) son síncronas (`def`).
+1. **Firmas asíncronas (propuesta SPK-02 / D-01, pendiente de aprobación)**: `Provider.complete`, `Tool.run` y `Approver.request` son corutinas (`async def`) y siguen siendo provisionales hasta que A, B y C aprueben D-01 y HU-00-01 (T016). El spike midió en Windows una cancelación con retorno de control de 1.0 a 2.4 ms (límite de AC-01: 500 ms); la evidencia en Linux existe en WSL2 Ubuntu local (0.7 a 1.4 ms; escalamiento `SIGTERM` → `SIGKILL` con un hijo real, véase `docs/decisiones/D-01-asyncio-cancelacion.md` y SPK-02 en `docs/PROGRESO.md`), pero no es un runner de GitHub Actions: aún no hay una ejecución registrada en la CI de `ubuntu-latest` para el spike. Todas las demás interfaces (`SessionStore`, `MemoryStore`, `ContextManager`, `AuthorizedArea`) son síncronas (`def`).
 2. **Pureza del Núcleo (AC-02)**: Ningún módulo bajo `src/harness_agent/core/` puede importar SDKs de proveedores (`openai`, `anthropic`, `litellm`, `google-genai`). Las implementaciones concretas residen en `src/harness_agent/adapters/`.
 3. **Inmutabilidad**: `Message`, `ToolCall`, `ToolResult`, `TokenUsage` y `Event` son `@dataclass(frozen=True)`. No intentar mutar sus atributos en tiempo de ejecución.
 4. **Verificación Continua**: Antes de abrir un PR, ejecutar:
    ```powershell
-   pytest tests/
-   mypy src/ tests/
+   ruff format --check .
+   ruff check .
+   mypy src tests
+   pytest
    ```

@@ -86,7 +86,7 @@ Todos se reexportan en `core/interfaces/__init__.py` y en `core/__init__.py`.
 | Área | Dueño de |
 |---|---|
 | A (Núcleo) | `core/loop.py`, `core/limits.py`, `core/subagents/`, `adapters/converters/`, segundo proveedor y conmutación (HU-07-03 a HU-07-05) |
-| B (Estado) | `adapters/storage/`, `core/context/`, `core/in_memory_event_bus.py`, `config.py`, `observability/`, `adapters/providers/` (FakeProvider HU-00-03, LiteLLM HU-07-02) |
+| B (Estado) | `adapters/storage/`, `core/context/`, `core/in_memory_event_bus.py`, `config.py`, `observability/`, `adapters/providers/` (LiteLLM HU-07-02; el FakeProvider de HU-00-03 vive en `tests/doubles/fake_provider.py`) |
 | C (Control y conexiones) | `core/permissions/`, `core/tools/`, `adapters/tools/`, `adapters/system/`, `adapters/mcp/`, `cli/` |
 | A, B y C juntos | `core/interfaces/`, `core/entities.py`, `core/events.py` (contratos de HU-00-01) |
 

@@ -282,7 +282,7 @@
   - **Estimación**: 20 min (10 min impl + 5 min check + 5 min registro)
   - **Verificación**: La fila de `HU-00-04` pasa de `En curso` a `En revisión` (no a `Hecha` hasta la revisión cruzada y la CI en Windows y Linux), con responsable `B — Estado`, las rutas bajo `src/harness_agent/` y `tests/` más las plantillas y `.gitignore`, y la evidencia verificable (comandos de T023, T024 y T021 con su resultado). Se añade una entrada en *Registro de cambios* con enlace a HU-00-04 y a las decisiones de la historia (valores no secretos solo del archivo, ubicación por parámetro > `HARNESS_CONFIG` > `config.toml`, archivo inexistente detiene el arranque, campos de clave desconocidos rechazados pero nunca los del esquema, `Secret` oculto y copiable, `.env` no se lee, `.harness/` ignorado) y una nota «Observaciones de HU-00-04» con: (a) el **aviso a B** de capacidad: la historia se estimó en 680 min frente a los 180 min presupuestados para Sp1-09, Sp1-10 y Sp1-11 (3,8 veces), sin recorte de alcance por decisión del responsable; (b) que **HU-00-01, de la que depende, sigue `Pendiente de aprobación técnica`** (Sp1-03) y debe ratificarse antes de pasar HU-00-04 a `Hecha`; (c) lo pendiente de confirmar con B y A: nombres de variables de clave y formato `<proveedor>/<modelo>` (D6), valores por defecto de los límites y la futura adopción de los límites de `core/limits.py` (D5). La tabla *Resumen* no cambia hasta que la historia quede `Hecha`. Sin LF sueltos ni filas partidas.
 
-- [x] **T026** Solicitar la revisión cruzada y registrar su resultado (Principio IX)
+- [ ] **T026** Solicitar la revisión cruzada y registrar su resultado (Principio IX)
   - **Archivos**: `docs/PROGRESO.md`
   - **Dependencias**: T025
   - **Criterios relacionados**: Principio IX, DoD (5), DoD (6), DoD (7)
@@ -290,7 +290,7 @@
   - **Estimación**: 15 min (5 min impl + 5 min check + 5 min registro)
   - **Verificación**: Un integrante del **área A** (la DoD exige un área distinta de quien implementa) revisa el cambio contra la lista de comprobación de `arquitectura-hexagonal-clean`, confirma que `core/interfaces/` y `core/` no cambiaron, y revisa que ningún mensaje, `repr` ni plantilla pueda exponer una clave. Su resultado se anota en `docs/PROGRESO.md`, junto con el recordatorio de que HU-00-01 sigue `Pendiente de aprobación técnica` y debe ratificarse antes de pasar HU-00-04 a `Hecha`. **Esta tarea es humana: no se marca como completada sin esa confirmación.**
 
-- [x] **T027** Confirmar la ejecución de la CI en Linux y Windows y registrar la evidencia (Sp1-09, Sp1-10, Sp1-11)
+- [ ] **T027** Confirmar la ejecución de la CI en Linux y Windows y registrar la evidencia (Sp1-09, Sp1-10, Sp1-11)
   - **Archivos**: `docs/PROGRESO.md`
   - **Dependencias**: T025
   - **Criterios relacionados**: SC-006, FR-022 (segunda frase), Principio IV, Principio VIII, Principio IX, DoD (1)
