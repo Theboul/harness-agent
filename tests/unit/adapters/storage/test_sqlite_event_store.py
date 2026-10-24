@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import sqlite3
+import statistics
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, NoReturn
@@ -320,3 +322,16 @@ def test_load_session_on_a_closed_store_is_a_domain_error() -> None:
 
     with pytest.raises(SessionStoreError):
         closed.load_session("s")
+
+
+def test_a_save_takes_under_100_ms_at_the_median(tmp_path: Path) -> None:
+    """SC-004: the durable write is cheap enough for one save per event."""
+    durations: list[float] = []
+    with SqliteSessionStore(tmp_path / "sessions.db") as timed:
+        sid = timed.create_session().id
+        for index in range(100):
+            start = time.perf_counter()
+            timed.save_event(make_event(f"e{index}", sid))
+            durations.append(time.perf_counter() - start)
+
+    assert statistics.median(durations) < 0.1
