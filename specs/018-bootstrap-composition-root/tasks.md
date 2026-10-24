@@ -137,14 +137,14 @@
   - **Verificación**: pasa 20/20; sin cambios de código si la composición ya es determinista (se anota).
   - **Evidencia**: 2026-10-24: `TestTheSameSessionTwentyTimes` en `tests/integration/test_bootstrap_session.py`: 20 ejecuciones de una sesión de dos tareas (reloj e identificador de sesión inyectados, base nueva en cada una, `blocked_network`) con salida de la terminal, eventos guardados (tipo y carga), mensajes recibidos por el proveedor y archivo escrito idénticos; el guardia de red no se dispara. La composición ya era determinista: no hubo cambios en `src/`.
 
-- [ ] T009 [P] [US4] Guarda de arquitectura `tests/architecture/test_bootstrap_boundaries.py` y verificación de fronteras
+- [x] T009 [P] [US4] Guarda de arquitectura `tests/architecture/test_bootstrap_boundaries.py` y verificación de fronteras
   - **Archivos** (fila: guarda `ast` de la frontera nueva, skill `verificar-fronteras-hexagonales`): `tests/architecture/test_bootstrap_boundaries.py` (nuevo)
   - **Dependencias**: T005 (necesita `bootstrap.py` y `__main__.py`)
   - **Criterios relacionados**: FR-011, FR-014; Historia 4 (escenario 2)
   - **Estimación**: 40 min
   - **Pruebas primero** (autopruebas con fragmentos sintéticos y prueba de mutación sobre copias en `tmp_path`, como `test_cli_boundaries.py`; reutilizar `forbidden_imports`/`find_config_reads`/`terminal_uses`, no copiarlos): (a) `config.py` no importa `harness_agent.bootstrap` y nada importa `harness_agent.__main__` (que `core/`, `cli/` y `adapters/` no importen `bootstrap` ya lo vigilan las guardas existentes: no se duplica); (b) `bootstrap.py` solo importa stdlib, `harness_agent.core` (nombres de `__all__`), `harness_agent.config`, `harness_agent.cli` y la API pública (`__all__`) de `adapters.storage`, `.system` y `.tools`, **más solo los dos submódulos autorizados** `harness_agent.core.loop` y `harness_agent.adapters.providers.litellm_provider`; cualquier otro submódulo falla (con autoprueba que lo demuestra); (c) `bootstrap.py` no lee `os.environ`/`os.getenv` ni usa `print`/`input`/`sys.stdout` como llamada directa; (d) `__main__.py` solo importa `bootstrap` (y `sys` si lo necesita); (e) `bootstrap.py` es el único módulo de `src/` que importa a la vez `core`, `adapters`, `cli` y `config`.
   - **Verificación**: `pytest tests/architecture` en verde con la guarda nueva; se informa qué reglas cubre, ningún archivo viola una regla y no se añadió ninguna excepción a las guardas existentes.
-  - **Evidencia**:
+  - **Evidencia**: 2026-10-24: `tests/architecture/test_bootstrap_boundaries.py` (32 pruebas): reglas (a) a (e) con autopruebas de cada detector y pruebas de mutación sobre una copia del paquete (importar `bootstrap` desde `config.py`, importar `__main__`, un segundo módulo que une las cuatro capas, un submódulo prohibido y una lectura de `os.environ` en `bootstrap.py`). Ajustes frente al texto de la tarea: (c) prohíbe `os.environ`/`os.getenv` y las llamadas a `print`/`input`, pero **permite** referirse a `sys.stdin/stdout/stderr` como valor por omisión de los flujos inyectados; `harness_agent.config` es un módulo sin `__all__`, así que para él se comprueban sus nombres públicos. `pytest tests/architecture`: 331 pasadas. Sin excepciones nuevas en las guardas existentes. Ningún archivo viola una regla; no hace falta puerto ni evento nuevo.
 
 ---
 
