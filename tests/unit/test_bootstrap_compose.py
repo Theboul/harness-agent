@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import dataclasses
 from collections.abc import Iterator
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -23,32 +22,18 @@ from harness_agent.bootstrap import (
     Composition,
     compose,
 )
-from harness_agent.config import HarnessConfig, Limits, Paths, Secret
+from harness_agent.config import HarnessConfig, Secret
 from harness_agent.core import Event, EventType, Provider, ProviderResponse, Role, ToolCall
 from tests.doubles import FakeProvider
-
-FIXED_TIME = datetime(2026, 10, 24, 12, 0, tzinfo=timezone.utc)
-SENTINEL = "VALOR-DE-PRUEBA-123"
-
-
-def make_config(
-    tmp_path: Path,
-    *,
-    workspace: Path | None = None,
-    model: str = "openai/modelo-de-prueba",
-    api_key: Secret | None = None,
-) -> HarnessConfig:
-    return HarnessConfig(
-        model=model,
-        limits=Limits(max_output_tokens=777),
-        paths=Paths(workspace_root=workspace, sessions_db=tmp_path / "datos" / "sesiones.db"),
-        source=tmp_path / "config.toml",
-        api_key=api_key,
-    )
-
-
-def scripted(*texts: str) -> FakeProvider:
-    return FakeProvider([ProviderResponse(content=text) for text in texts])
+from tests.unit.bootstrap_support import (
+    FIXED_TIME,
+    SENTINEL,
+    build,
+    make_config,
+    make_event,
+    one_turn,
+    scripted,
+)
 
 
 @pytest.fixture
@@ -57,26 +42,6 @@ def opened() -> Iterator[list[Composition]]:
     yield compositions
     for composition in compositions:
         composition.close()
-
-
-def build(
-    opened: list[Composition],
-    config: HarnessConfig,
-    provider: Provider | None = None,
-    **kwargs: Any,
-) -> Composition:
-    chosen = provider if provider is not None else scripted("listo")
-    composition = compose(config, provider_factory=lambda _config: chosen, **kwargs)
-    opened.append(composition)
-    return composition
-
-
-def make_event(event_type: EventType, session_id: str, index: int) -> Event:
-    return Event(id=f"evento-{index}", session_id=session_id, type=event_type, payload={})
-
-
-async def one_turn(composition: Composition, task: str = "hola") -> Any:
-    return await composition.loop.run_turn(session_id=composition.session_id, task=task, history=[])
 
 
 class TestTheSession:

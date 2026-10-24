@@ -81,7 +81,7 @@
 
 **Prueba independiente**: con proveedor simulado y entrada de dos líneas, el archivo se crea dentro del área, la terminal muestra los eventos y la salida es 0.
 
-- [ ] T004 [US1] `run_session()` con historial continuo y avisos en `src/harness_agent/bootstrap.py` (+ clase `TestRunSession` en `tests/unit/test_bootstrap_main.py`)
+- [x] T004 [US1] `run_session()` con historial continuo y avisos en `src/harness_agent/bootstrap.py` (+ clase `TestRunSession` en `tests/unit/test_bootstrap_main.py`)
   - **Archivos**: `src/harness_agent/bootstrap.py`, `tests/unit/test_bootstrap_main.py` (nuevo)
   - **Dependencias**: T003
   - **Criterios relacionados**: FR-006, FR-007, FR-013; Historia 1 (escenarios 2, 4 y 5)
@@ -89,7 +89,7 @@
   - **Pruebas primero**: con `StringIO` de entrada y salida y un proveedor que registra los mensajes que recibe: (1) los avisos de `notices` se escriben **antes** del primer prompt; (2) la segunda tarea llega al proveedor con el historial de la primera (el historial crece entre líneas); (3) `/salir` y fin de entrada devuelven 0; (4) un turno que lanza una excepción ordinaria devuelve 1 (lo decide `run_cli`); (5) una acción que pide aprobación se deniega con `[approval_required_unavailable]` en lo que recibe el modelo (se provoca con `config.permissions.ask = ("leer_archivo",)`, sin tocar la política); (6) la entrada se cierra antes de la primera tarea → código 0 y ningún evento guardado en la sesión. Deben fallar con `AttributeError`/`ImportError` de `run_session`.
   - **Implementación**: `run_session(composition, *, input_stream=None, output=None)`: lista `history` propia de la sesión, `run_turn(task)` que llama a `composition.loop.run_turn(session_id=…, task=…, history=history)`, escritura de avisos y `return await run_cli(composition.bus, run_turn, input_stream=…, output=…)`.
   - **Verificación**: las pruebas pasan; `cli/` no se modifica (`git diff` limpio).
-  - **Evidencia**:
+  - **Evidencia**: 2026-10-24: rojo por `ImportError: cannot import name 'run_session'`; verde con `run_session` en `bootstrap.py` y `TestRunSession` (7 pruebas) en `tests/unit/test_bootstrap_main.py`; los ayudantes comunes pasaron a `tests/unit/bootstrap_support.py`. `bootstrap.py` al 100 % (72 líneas, 14 ramas). El turno que lanza una excepción ordinaria se provoca con un suscriptor que falla (`EventDeliveryError`): el bucle absorbe las excepciones del proveedor como `PROVIDER_ERROR`, así que `ScriptExhausted` no produce código 1. `cli/` sin cambios.
 
 - [ ] T005 [US1] `main()` en el camino feliz, `__main__.py` y el comando `harness` (`src/harness_agent/bootstrap.py`, `src/harness_agent/__main__.py`, `pyproject.toml`, `tests/unit/test_entry_point.py`)
   - **Archivos**: `src/harness_agent/bootstrap.py`, `src/harness_agent/__main__.py` (nuevo), `pyproject.toml` (solo `[project.scripts]`), `tests/unit/test_entry_point.py` (nuevo), ampliación de `tests/unit/test_bootstrap_main.py`

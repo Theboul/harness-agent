@@ -13,16 +13,18 @@ provider, authorized area and tools, policy, bus, session store, session, event 
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, TextIO
 
 from harness_agent.adapters.providers.litellm_provider import LiteLLMProvider
 from harness_agent.adapters.storage import SqliteSessionStore, attach_event_recorder
 from harness_agent.adapters.system import WorkspaceArea
 from harness_agent.adapters.tools import ListFilesTool, ReadFileTool, SearchTextTool, WriteFileTool
+from harness_agent.cli import run_cli
 from harness_agent.config import HarnessConfig
 from harness_agent.core import (
     AuthorizedArea,
@@ -30,6 +32,7 @@ from harness_agent.core import (
     EventBus,
     InMemoryEventBus,
     InMemoryToolRegistry,
+    Message,
     Provider,
 )
 from harness_agent.core.loop import AgentLoop
@@ -133,3 +136,42 @@ def compose(
         store.close()
         raise
     return Composition(loop=loop, bus=bus, store=store, session_id=session.id, notices=notices)
+
+
+def _write_notice(stream: TextIO, text: str) -> None:
+    """Write one line, replacing what the stream cannot encode (as the terminal render does)."""
+    encoding = getattr(stream, "encoding", None)
+    line = text + "\n"
+    if encoding:
+        line = line.encode(encoding, errors="replace").decode(encoding, errors="replace")
+    stream.write(line)
+    stream.flush()
+
+
+async def run_session(
+    composition: Composition,
+    *,
+    input_stream: TextIO | None = None,
+    output: TextIO | None = None,
+) -> int:
+    """Run the terminal cycle over ``composition`` and return its exit code (0 or 1).
+
+    The startup notices are written before the first prompt. The conversation history is kept
+    between the lines of the session, so each task sees the previous ones.
+
+    Args:
+        composition: The connected system.
+        input_stream: Where the lines are read from; defaults to standard input.
+        output: Where the notices and the events are written; defaults to standard output.
+    """
+    stream = sys.stdout if output is None else output
+    for notice in composition.notices:
+        _write_notice(stream, notice)
+    history: list[Message] = []
+
+    async def run_turn(task: str) -> object:
+        return await composition.loop.run_turn(
+            session_id=composition.session_id, task=task, history=history
+        )
+
+    return await run_cli(composition.bus, run_turn, input_stream=input_stream, output=stream)
