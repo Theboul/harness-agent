@@ -39,7 +39,7 @@
 
 ## Phase 1: Setup (estado)
 
-- [ ] **T001** Marcar HU-03-02 como `En curso` en `docs/PROGRESO.md` (transversal)
+- [x] **T001** Marcar HU-03-02 como `En curso` en `docs/PROGRESO.md` (transversal)
   - **Archivos**: `docs/PROGRESO.md`
   - **Dependencias**: Ninguna
   - **Criterios relacionados**: Principio VIII
