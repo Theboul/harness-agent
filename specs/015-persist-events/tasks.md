@@ -95,7 +95,7 @@
 
 **Prueba independiente**: un proceso hijo muere con `os._exit` y el padre reabre la base.
 
-- [ ] **T006** [US2] AC-01: el evento confirmado sobrevive a un cierre abrupto (FR-003, FR-013)
+- [x] **T006** [US2] AC-01: el evento confirmado sobrevive a un cierre abrupto (FR-003, FR-013)
   - **Archivos**: `tests/integration/test_session_store_abrupt_close.py`, `src/harness_agent/adapters/storage/sqlite_session_store.py`
   - **Dependencias**: T004
   - **Criterios relacionados**: AC-01, regla de negocio 1, historia 2, FR-003, FR-013, plan D4, D6, SC-001
@@ -103,7 +103,7 @@
   - **Estimación**: 40 min
   - **Verificación**: Pruebas primero con un auxiliar que lanza `sys.executable -c` con `PYTHONPATH=src` en un proceso hijo: el hijo crea la sesión, guarda N eventos y termina con `os._exit(0)` sin cerrar; el padre reabre el archivo y encuentra todos en orden (20 repeticiones); un evento confirmado es visible desde una segunda conexión mientras la primera sigue abierta; en el código se fija `PRAGMA synchronous = FULL` al abrir (la prueba lo lee con `PRAGMA synchronous` en la conexión del almacén).
 
-- [ ] **T007** [US3] AC-02: una escritura cortada no deja la base corrupta (FR-009, FR-010)
+- [x] **T007** [US3] AC-02: una escritura cortada no deja la base corrupta (FR-009, FR-010)
   - **Archivos**: `tests/integration/test_session_store_abrupt_close.py`
   - **Dependencias**: T006
   - **Criterios relacionados**: AC-02, regla de negocio 2, historia 3, FR-009, FR-010, plan D6, SC-002
