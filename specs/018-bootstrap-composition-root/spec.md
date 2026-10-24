@@ -26,6 +26,8 @@ Respuestas del PO (2026-10-24):
 
 - Q: ¿En qué sprint y a cuál área se asigna esta historia? → A: **Sprint 1, área C — Control y conexiones.** Cierra el hito del Sprint 1 (modelo real y sesión guardada en SQLite) y PD-08. Suma unas 3 h a un sprint ya sobrecargado (R-22); el PO asume esa carga.
 
+- Q: ¿Qué pasa con Ctrl-C en mitad de un turno: termina el programa o solo se cancela el turno? → A: **Termina el programa** (recomendación aceptada): cierra la base, no muestra traza y sale con un código distinto de cero; lo ya guardado se conserva. Cancelar solo el turno y seguir en la sesión queda fuera de alcance (cancelación controlada, Sprint posterior).
+
 No quedan preguntas abiertas en la spec.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -67,7 +69,7 @@ Cada ejecución crea una sesión en la base de datos configurada y guarda cada e
 **Acceptance Scenarios**:
 
 1. **Given** una ejecución normal, **When** termina, **Then** la base contiene una sesión con el modelo configurado y todos los eventos emitidos, en orden y con el mismo identificador de sesión.
-2. **Given** que el proceso se interrumpe con Ctrl-C a mitad de un turno, **When** se inspecciona la base, **Then** los eventos anteriores a la interrupción están guardados y el comando no muestra traza.
+2. **Given** que el proceso se interrumpe con Ctrl-C a mitad de un turno, **When** se inspecciona la base, **Then** el programa terminó con el código de interrupción, los eventos anteriores a la interrupción están guardados y el comando no muestra traza.
 3. **Given** que la ruta de la base no existe, **When** arranca, **Then** se crea (incluidas sus carpetas) sin pedir nada al usuario.
 
 ---
@@ -106,7 +108,7 @@ Quien desarrolla puede ejecutar la misma composición en pruebas con un proveedo
 ### Edge Cases
 
 - La entrada se cierra antes de la primera tarea: sale con 0 sin crear eventos de turno (la sesión sí se crea y se cierra).
-- `Ctrl-C` durante la espera de una tarea o durante un turno: salida limpia, base cerrada, sin traza.
+- `Ctrl-C` durante la espera de una tarea o durante un turno: el programa termina (no se cancela solo el turno), con la base cerrada, sin traza y con el código de interrupción.
 - El modelo falla con un error de proveedor (cuota, tiempo, servicio): se muestra con el mecanismo ya existente y la sesión sigue; no cierra el programa.
 - Dos ejecuciones simultáneas sobre la misma base: la segunda no corrompe la primera (el almacén ya lo gestiona); si no puede abrir, falla cerrada con mensaje.
 - El área de trabajo apunta a una carpeta que no existe: el área falla cerrada y las herramientas devuelven `[sin_area]`; se avisa al arrancar.
@@ -125,7 +127,7 @@ Quien desarrolla puede ejecutar la misma composición en pruebas con un proveedo
 - **FR-006**: El harness MUST mantener el historial de la conversación entre las líneas de una misma sesión.
 - **FR-007**: Sin área de trabajo utilizable, el harness MUST arrancar con las herramientas de archivos desactivadas (fallan cerradas) y MUST avisar al usuario una vez; MUST NOT usar el directorio actual ni ningún otro como área por omisión.
 - **FR-008**: Si falta la clave, la dependencia opcional del proveedor o la base de datos no se puede abrir, el harness MUST terminar con código distinto de cero y un mensaje de una línea en español, antes de pedir ninguna tarea.
-- **FR-009**: Al terminar por `/salir`, fin de entrada o interrupción de teclado, el harness MUST cerrar el almacén y MUST NOT mostrar traza. Los códigos de salida MUST distinguir: terminación normal (0), error durante un turno (el que ya define la CLI) y fallo de arranque (distinto de ambos).
+- **FR-009**: Al terminar por `/salir`, fin de entrada o interrupción de teclado, el harness MUST cerrar el almacén y MUST NOT mostrar traza. Una interrupción de teclado MUST terminar el programa entero (no solo el turno en curso). Los códigos de salida MUST distinguir: terminación normal (0), error durante un turno (el que ya define la CLI), fallo de arranque y interrupción de teclado (130, la convención de las terminales), todos distintos entre sí.
 - **FR-010**: El harness MUST NOT escribir en ninguna salida (pantalla, eventos, errores, base de datos) el valor de ninguna clave.
 - **FR-011**: La composición MUST NOT cambiar puertos, entidades, catálogo de eventos, bucle, política, almacén, herramientas ni CLI; solo los usa por su API pública.
 - **FR-012**: Todo lo que toca el exterior (ruta de configuración, entorno, flujos de entrada y salida, proveedor, reloj, generador de identificadores) MUST poder inyectarse para probar la composición sin red, claves ni consola.
