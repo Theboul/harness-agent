@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-20
 
-**Status**: Clarified (2026-10-21): Q1, Q2 y Q3 resueltas; queda un supuesto pendiente de confirmación del PO (regla de lectura, FR-007)
+**Status**: En revisión (clarificada, 2026-10-21): Q1, Q2 y Q3 resueltas; queda un supuesto pendiente de confirmación del PO (regla de lectura, FR-007)
 
 **Proyecto**: HARNESS v2.5 | **Sprint**: 1 | **Responsable**: C — Control y conexiones | **Tareas de referencia**: Sp1-32, Sp1-33, Sp1-34, Sp1-35, Sp1-36 | **Requisitos**: RF-5.1, RF-5.2, RF-5.3 | **Depende de**: HU-00-01, HU-01-03, HU-01-05
 

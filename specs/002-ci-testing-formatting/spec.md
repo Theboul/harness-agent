@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-17
 
-**Status**: Draft
+**Status**: En revisión (ver docs/PROGRESO.md)
 
 ## Clarifications
 
