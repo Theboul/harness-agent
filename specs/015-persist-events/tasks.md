@@ -123,7 +123,7 @@
   - **Estimación**: 35 min
   - **Verificación**: Pruebas primero con `InMemoryEventBus` real y un almacén real: se emite un evento de cada uno de los 17 `EventType` y todos quedan guardados en orden antes de que `emit` devuelva; un fallo del almacén (sesión inexistente) llega al emisor como `EventDeliveryError` con la causa `SessionNotFound`; con un `SessionStore` falso (doble propio de la prueba) se comprueba que el recorder solo usa el puerto.
 
-- [ ] **T009** [US4] Integración con el bucle real (FR-018)
+- [x] **T009** [US4] Integración con el bucle real (FR-018)
   - **Archivos**: `tests/integration/test_event_recorder_agent_loop.py`
   - **Dependencias**: T008
   - **Criterios relacionados**: Historia 4 (escenario 3), FR-018
