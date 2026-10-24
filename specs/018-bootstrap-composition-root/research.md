@@ -49,7 +49,7 @@ Fase 0 de `/speckit-plan`. No quedan marcadores `NEEDS CLARIFICATION`; aquí se 
 
 ## 7. Avisos de área
 
-- **Sin `paths.workspace_root`**: aviso único «Aviso: no hay área de trabajo configurada (paths.workspace_root); las herramientas de archivos están desactivadas.» Las herramientas se registran igualmente con `area=None` para que el modelo reciba `[sin_area]` en vez de `[unknown_tool]`, como acordó HU-01-03.
+- **Sin `paths.workspace_root`**: aviso único «Aviso: no hay área de trabajo configurada (paths.workspace_root); las herramientas de archivos están desactivadas.» Las herramientas se registran igualmente con `area=None` (el modelo las conoce, no recibe `[unknown_tool]`), pero la política sin área trata cualquier uso como «preguntar» y, sin aprobación interactiva, lo deniega: el modelo recibe `[approval_required_unavailable]` y la herramienta no llega a ejecutarse (comprobado en T003 con las cuatro herramientas). El `[sin_area]` de las herramientas queda como segunda barrera.
 - **Carpeta inexistente o no carpeta**: se detecta con `WorkspaceArea(...).root.is_dir()` y se trata igual que sin área, con un aviso distinto que no reproduce la ruta (puede ser sensible).
 - **Alternativa**: abortar el arranque. Descartada: AC-04 de HU-01-03 pide que arranque y falle cerrado, y permite usar el agente solo para conversar.
 

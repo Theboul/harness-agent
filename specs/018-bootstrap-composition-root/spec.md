@@ -18,7 +18,7 @@ Decisiones tomadas por el responsable antes de redactar (no son preguntas abiert
 
 - La historia **no existe en los documentos**. Esta spec la propone para cerrar PD-08 (`docs/PROGRESO.md`: «ninguna historia es dueña de la raíz de composición ni del punto de entrada»). **No inventa criterios de aceptación oficiales**: los de abajo son propuestos y quedan marcados así hasta que el PO los ratifique (Principio V).
 - La composición **solo conecta**: no añade reglas de negocio, no cambia puertos, eventos, bucle, política, almacén, herramientas ni CLI. Si para conectarlos hace falta cambiar alguno, es un hallazgo para A, B y C, no un cambio de esta historia.
-- Sin área de trabajo configurada no se concede ninguna: las herramientas de archivos siguen fallando cerradas con `[sin_area]` (regla ya acordada en HU-01-03). **No** se usa el directorio actual como área por omisión.
+- Sin área de trabajo configurada no se concede ninguna: ninguna herramienta de archivos puede ejecutarse: la política sin área trata cualquier uso como «preguntar» y, sin aprobación interactiva, lo deniega con motivo (la herramienta misma devolvería `[sin_area]` si llegara a ejecutarse; regla de HU-01-03). **No** se usa el directorio actual como área por omisión.
 - Las acciones que hoy piden aprobación se siguen denegando con motivo hasta que llegue HU-05-03; esta historia no construye aprobación interactiva.
 - Fuera de alcance: límites de turnos/tiempo/costo (HU-01-06), reanudar una sesión (HU-03-04), shell (HU-01-04), contexto y compactación, MCP, subagentes, el flujo de ticket del Coding Harness, redacción de secretos en eventos (HU-10-02) y empaquetado/instalador.
 
@@ -87,7 +87,7 @@ Si algo impide arrancar, el usuario lo sabe en una línea, en español, con la c
 1. **Given** una configuración con un campo inválido o una clave escrita en el archivo, **When** se ejecuta el comando, **Then** se muestra el error de configuración ya definido por HU-00-04 (una línea, sin el valor) y el código de salida es distinto de cero.
 2. **Given** que falta la clave del proveedor elegido, **When** se ejecuta, **Then** el mensaje nombra la variable de entorno que falta, nunca su valor.
 3. **Given** que la dependencia opcional del proveedor no está instalada, **When** se ejecuta, **Then** el mensaje indica el comando de instalación y no hay traza.
-4. **Given** que no hay `paths.workspace_root`, **When** se ejecuta, **Then** el harness arranca, avisa una vez de que las herramientas de archivos están desactivadas por falta de área y cualquier herramienta devuelve `[sin_area]`.
+4. **Given** que no hay `paths.workspace_root`, **When** se ejecuta, **Then** el harness arranca, avisa una vez de que las herramientas de archivos están desactivadas por falta de área y cualquier intento de usar una herramienta de archivos se deniega con motivo (el modelo recibe `[approval_required_unavailable]`, comprobado en la implementación).
 5. **Given** una base de datos con un esquema desconocido o ilegible, **When** se ejecuta, **Then** termina con un mensaje claro y sin modificarla.
 
 ---
@@ -111,7 +111,7 @@ Quien desarrolla puede ejecutar la misma composición en pruebas con un proveedo
 - `Ctrl-C` durante la espera de una tarea o durante un turno: el programa termina (no se cancela solo el turno), con la base cerrada, sin traza y con el código de interrupción.
 - El modelo falla con un error de proveedor (cuota, tiempo, servicio): se muestra con el mecanismo ya existente y la sesión sigue; no cierra el programa.
 - Dos ejecuciones simultáneas sobre la misma base: la segunda no corrompe la primera (el almacén ya lo gestiona); si no puede abrir, falla cerrada con mensaje.
-- El área de trabajo apunta a una carpeta que no existe: el área falla cerrada y las herramientas devuelven `[sin_area]`; se avisa al arrancar.
+- El área de trabajo apunta a una carpeta que no existe: el área falla cerrada, cualquier uso de una herramienta de archivos se deniega con motivo y se avisa al arrancar.
 - Una variable `HARNESS_CONFIG` apunta a un archivo inexistente: se muestra el error de HU-00-04 tal cual.
 - El terminal no puede codificar los caracteres de una respuesta: ya lo resuelve la CLI; la composición no lo reimplementa.
 
