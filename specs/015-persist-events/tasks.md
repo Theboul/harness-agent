@@ -143,7 +143,7 @@
   - **Estimación**: 35 min
   - **Verificación**: `__all__` incluye los tres errores nuevos y `attach_event_recorder` (prueba ampliada); `pytest tests/architecture` pasa sin cambiar las guardas (el módulo nuevo entra en `storage`); la guía documenta `save_event`, `load_session`, el orden por `seq`, la sesión previa obligatoria y la limitación de JSON; `arbol.md` (ambas copias idénticas) actualizado.
 
-- [ ] **T011** Verificación final y cierre del registro en `docs/PROGRESO.md` (FR-016, FR-017)
+- [x] **T011** Verificación final y cierre del registro en `docs/PROGRESO.md` (FR-016, FR-017)
   - **Archivos**: `docs/PROGRESO.md`
   - **Dependencias**: T010
   - **Criterios relacionados**: FR-012, FR-016, FR-017, Principio VIII, SC-005, SC-006
