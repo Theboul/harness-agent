@@ -49,7 +49,8 @@ harness-agent/
 │   │   └── mcp/            # (planeado: HU-08-01) cliente MCP por stdio y traducción a Tool
 │   ├── observability/      # (planeado: HU-05-05, HU-10-01, HU-10-02) auditoría, trazas, redacción
 │   ├── config.py           # load_config(), HarnessConfig, Secret (HU-00-04)
-│   ├── bootstrap.py        # (planeado) RAÍZ DE COMPOSICIÓN: único lugar que une núcleo y adaptadores
+│   ├── bootstrap.py        # RAÍZ DE COMPOSICIÓN: único lugar que une núcleo, adaptadores, CLI y configuración; compose(), run_session(), main() (HU-00-08)
+│   ├── __main__.py         # python -m harness_agent: llama a bootstrap.main
 │   └── cli/                # terminal: se suscribe al bus (HU-06-01)
 │       ├── app.py          # run_cli, attach_renderer, comandos /ayuda y /salir
 │       ├── render.py       # render_event: texto de cada evento, sanitizado y acotado

@@ -150,13 +150,13 @@
 
 ## Phase 6: Documentación y cierre
 
-- [ ] T010 Documentación de cierre: `CLAUDE.md`, skills (ambas copias) y `docs/PROGRESO.md`
+- [x] T010 Documentación de cierre: `CLAUDE.md`, skills (ambas copias) y `docs/PROGRESO.md`
   - **Archivos**: `CLAUDE.md`, `.claude/skills/estructura-carpetas-harness/references/arbol.md`, `.claude/skills/verificar-fronteras-hexagonales/SKILL.md`, sus copias idénticas en `.agents/skills/`, `docs/PROGRESO.md`
   - **Dependencias**: T007, T008, T009 (y, si es posible, la respuesta del PO en T002)
   - **Criterios relacionados**: Principio VIII; regla «las skills describen el código real»; PD-08
   - **Estimación**: 40 min
   - **Verificación**: `CLAUDE.md`: fila nueva en «Qué existe hoy» (`bootstrap.py`, `__main__.py`, comando), se retira «`bootstrap.py` aún no existe» y «raíz de composición ni punto de entrada ejecutable» de «Aún no hay», el diagrama de arquitectura pierde el «aún no existe», la numeración de specs pasa a «existen 001–018, falta 008; la siguiente es 019». `arbol.md` quita «(planeado)» de `bootstrap.py` y añade `__main__.py`; la skill de fronteras añade `test_bootstrap_boundaries.py` a la tabla de guardas. Las dos copias de cada skill quedan idénticas (`diff -r` sin diferencias). `PROGRESO.md`: fila → `En revisión` con archivos y evidencia reales, PD-08 marcada como resuelta (dueño C, historia propuesta), bloque de observaciones con los 9 hallazgos del plan y una línea por tarea en el Registro de cambios; tabla *Resumen* intacta.
-  - **Evidencia**:
+  - **Evidencia**: 2026-10-24: `CLAUDE.md` (fila de `bootstrap.py`/`__main__.py`/comando `harness`, comando de ejecución, numeración de specs 001–018 y siguiente 019, «Aún no hay» corregido, diagrama sin «aún no existe»); skills `arquitectura-hexagonal-clean`, `estructura-carpetas-harness` (con `arbol.md` y `recetas.md`) y `verificar-fronteras-hexagonales` en `.claude/skills/` y `.agents/skills/` (`diff -r` sin diferencias: tabla de guardas con `test_bootstrap_boundaries.py`, `bootstrap.py` y `__main__.py` ya no «planeados», fuera el «mientras no exista»). `PROGRESO.md`: fila `En revisión` con archivos y evidencia, PD-08 resuelta técnicamente, 7 observaciones nuevas (A: política sin área; C: Ctrl-C en el prompt; B: estado de la sesión y plantilla `fake/test`; submódulos autorizados; sin cambios en protegidos) y una línea por tarea en el Registro. Tabla *Resumen* intacta.
 
 - [ ] T011 Verificación final: puertas de calidad, archivos protegidos y lista de comprobación
   - **Archivos**: ninguno (verificación); `tasks.md` (marcas con evidencia)

@@ -45,8 +45,8 @@ Además, las skills `speckit-*` se ejecutan en el orden del flujo de abajo; ning
 
 Las skills describen el código real (v1.1, 2026-10-23): `core/interfaces/` para los puertos, `core/entities.py`, pruebas `ast` de `tests/architecture/` en lugar de `import-linter` y carpetas marcadas como «planeadas» hasta que llegue su historia. Si encuentras una diferencia entre una skill y el código, manda el código: corrige la skill (en `.claude/skills/` y `.agents/skills/`) en el mismo cambio y anótalo en `PROGRESO.md`.
 
-- `bootstrap.py` aún no existe: la conexión se hace a mano en las pruebas de integración (`make_rig`) y el plan anota qué deberá conectar la raíz de composición.
-- Los ejemplos de `arquitectura-hexagonal-clean/assets/` siguen los contratos reales, pero `adapter_litellm.py` y `bootstrap.py` son ilustrativos (usan piezas que aún no existen).
+- `bootstrap.py` existe (HU-00-08, historia propuesta): es la única raíz de composición y conecta proveedor, herramientas, política, almacén, bus y CLI. Las pruebas de integración antiguas conectan a mano (`make_rig`); las nuevas pueden usar `compose()`. Cada historia que añada una pieza nueva al arranque (shell, `Approver`, límites) la cablea ahí.
+- Los ejemplos de `arquitectura-hexagonal-clean/assets/` siguen los contratos reales, pero `adapter_litellm.py` y `bootstrap.py` son ilustrativos (el `bootstrap.py` real está en `src/harness_agent/`).
 - Cada módulo nuevo de `core/` trae su guarda en `tests/architecture/`, a partir de `verificar-fronteras-hexagonales/assets/test_module_boundaries.py`.
 
 ## Flujo Spec Kit (una historia = una spec)
@@ -56,7 +56,7 @@ Las skills describen el código real (v1.1, 2026-10-23): `core/interfaces/` para
 - En `/speckit-plan`, el *Constitution Check* incluye las *Hard Rules* de las tres skills del proyecto; una violación sin justificar detiene el plan.
 - En `/speckit-tasks`, cada tarea que crea un archivo indica su ruta según `estructura-carpetas-harness`, y hay una tarea de verificación de fronteras (`verificar-fronteras-hexagonales`).
 - En `/speckit-analyze` y `/speckit-converge`, se revisa además el cumplimiento de las skills (lista de comprobación de `capas-y-reglas.md`).
-- Carpeta `specs/NNN-slug/` con numeración secuencial (existen 001–017, falta 008; la siguiente es 018). `.specify/feature.json` apunta a la feature activa: actualízalo al cambiar de historia.
+- Carpeta `specs/NNN-slug/` con numeración secuencial (existen 001–018, falta 008; la siguiente es 019). `.specify/feature.json` apunta a la feature activa: actualízalo al cambiar de historia.
 - Tareas de **15–40 min** (máximo absoluto 60), cada una con pruebas primero: escribir la prueba, verla fallar **por la razón esperada**, implementar lo mínimo, pasar los cuatro comandos de calidad.
 - Cada `tasks.md` incluye: mapeo a tareas `SpN-xx` con presupuesto, lista de **archivos protegidos**, tareas humanas finales (revisión cruzada y CI remota) que Claude **no** marca como hechas.
 - `.claude/skills/` y `.agents/skills/` son copias para distintos agentes (Claude / Codex / agy); si modificas una skill propia del proyecto, actualiza ambas.
@@ -74,6 +74,7 @@ mypy src tests
 pytest --cov=harness_agent --cov-report=term-missing
 
 pytest tests/architecture          # fronteras hexagonales (rápido; correr al tocar core/ o cli/)
+python -m harness_agent            # o `harness` tras `pip install -e .`: sesión interactiva (necesita config.toml y la clave en el entorno)
 pytest tests/unit/core/permissions/test_policy.py -k nombre   # un test concreto
 ```
 
@@ -82,7 +83,7 @@ CI: GitHub Actions en `ubuntu-latest` y `windows-latest`, solo Python 3.12, en p
 ## Arquitectura (hexagonal) y reglas duras
 
 ```
-cli ──▶ core ◀── adapters        config.py ──▶ core      (bootstrap.py: raíz de composición, aún no existe)
+cli ──▶ core ◀── adapters        config.py ──▶ core      (bootstrap.py: raíz de composición, la única que las une)
 ```
 
 - `core/` importa **solo biblioteca estándar** y `harness_agent.core`. Nunca `adapters`, `cli`, `config`, `observability`, SDKs (`openai`, `anthropic`, `litellm`, `mcp`…) ni `sqlite3`. No lee archivos, entorno ni configuración; no usa `print`/`input`: **todo sale por el `EventBus`**.
@@ -96,7 +97,7 @@ cli ──▶ core ◀── adapters        config.py ──▶ core      (boot
 - Las fronteras se verifican con tests `ast` en `tests/architecture/` (no hay `import-linter`). Huecos conocidos (detalle en la skill `verificar-fronteras-hexagonales`): no hay lista blanca para todo `core/`, `forbidden_imports` deja pasar módulos estándar de E/S (`sqlite3`, `subprocess`) (`adapters/` ya está vigilado por `test_adapters_boundaries.py`: no importa `cli/` y `system/` y `tools/` solo usan stdlib y la API pública del núcleo).
 - Árbol completo, existente y planeado, con la tabla de puertos por archivo: `.claude/skills/estructura-carpetas-harness/references/arbol.md`.
 
-## Qué existe hoy (snapshot 2026-10-23; el estado real está en PROGRESO.md)
+## Qué existe hoy (snapshot 2026-10-24; el estado real está en PROGRESO.md)
 
 | Módulo | Historia | Notas clave |
 |---|---|---|
@@ -111,9 +112,10 @@ cli ──▶ core ◀── adapters        config.py ──▶ core      (boot
 | `core/interfaces/provider.py` — `ProviderError`, `QuotaExceeded`, `ProviderTimeout`, `ProviderUnavailable`; `tests/doubles/fake_provider.py` — `FakeProvider(script)` | HU-00-03 (B) | Los errores canónicos son la única jerarquía que lanzan los proveedores hacia el núcleo (los adaptadores reales traducirán a ellos; HU-07-04/05 la ampliarán). `FakeProvider` reproduce un guion de `ProviderResponse` y `ProviderError` (uno por llamada, copias, sin red, reloj ni espera), valida el guion al construirse y lanza `ScriptExhausted` al agotarse. Es el doble oficial de proveedor; `ScriptedProvider` y `DummyProvider` siguen disponibles |
 | `adapters/converters/` — OpenAI/Anthropic ↔ formato canónico, `ConversionEnvelope` + sidecar | HU-07-01 (A) | D-02. `from_openai_messages`/`from_anthropic_payload` están obsoletas: usar `to_*_envelope` + `restore_messages` |
 | `adapters/providers/litellm_provider.py` — `LiteLLMProvider(model, *, max_output_tokens, api_key=None, completion=None)`, `ERROR_TABLE`, `ProviderDependencyError` | HU-07-02 (B; la implementa C) | Un solo adaptador para cualquier `<proveedor>/<modelo>` de LiteLLM, sin ramas ni nombres de proveedor en el código. `litellm[mcp]` es dependencia **opcional** (extra `litellm` de `pyproject.toml`, fijada con sus directas en `requirements-dev.txt`) y se carga con `importlib` solo aquí. El tope por llamada es `limits.max_output_tokens` (4096); `is_error` viaja como etiqueta `[tool_error]` en el contenido; los argumentos ilegibles llegan como `{"arguments_not_valid_json": …}` y el bucle los rechaza con `[invalid_arguments]`; los fallos se traducen a `ProviderError` por nombre de clase a lo largo del MRO (`RateLimitError` → `QuotaExceeded`, provisional hasta HU-07-04); la clave se depura de todo texto que el adaptador construye. `config.py` ganó `gemini`, `groq`, `openrouter`, `ollama` y `Limits.max_output_tokens`. Guarda: `tests/architecture/test_providers_boundaries.py` |
+| `bootstrap.py` — `compose(config, *, provider_factory=None, clock=None, id_factory=None) -> Composition`, `run_session(...)`, `main(...) -> int`; `__main__.py`; comando `harness` | HU-00-08 (propuesta; C) | Única raíz de composición: proveedor (LiteLLM o el inyectado) → área y 4 herramientas → política → bus → almacén SQLite → sesión → registrador → bucle → `run_cli`. Solo conecta, no añade reglas. Fallos de arranque: una línea «No se pudo iniciar: …» y salida 2; Ctrl-C termina con 130; la salida 0/1 la decide la CLI. Sin área de trabajo, aviso y las herramientas de archivos quedan denegadas por la política. Importa solo la API pública salvo `core.loop` y `adapters.providers.litellm_provider` (sin vía pública); lo vigila `test_bootstrap_boundaries.py` |
 | `tests/spikes/` | SPK-01 (B), SPK-02 (A) | Base de D-01 (asyncio + cancelación) y hallazgos de LiteLLM (`docs/decisiones/SPK-01-…`); `tests/spikes/conftest.py` mantiene offline el spike de LiteLLM |
 
-Aún **no** hay: SQLite (HU-03-01/02), shell (HU-01-04), aprobación interactiva (HU-05-03), límites (HU-01-06), raíz de composición ni punto de entrada ejecutable.
+Aún **no** hay: shell (HU-01-04), aprobación interactiva (HU-05-03), límites (HU-01-06), reanudar una sesión (HU-03-04) ni cancelar solo un turno.
 
 ### Convenciones ya acordadas que las próximas historias deben respetar
 

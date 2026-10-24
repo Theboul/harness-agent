@@ -9,7 +9,7 @@ Cada receta asume pruebas primero: escribir la prueba, verla fallar por la razó
 3. El argumento de ruta se llama **`path`** (convención de `specs/007-permission-policy/contracts/path_argument_convention.md`): la política solo permite cuando `AuthorizedArea.contains(path)` es `True`.
 4. El esquema debe pasar `check_schema` de `core/tools/` (`InMemoryToolRegistry.register` lo valida); objetos libres declaran `additionalProperties: true`.
 5. Contenido leído de fuera se marca como externo (dato, no instrucción): `Message.is_external` en `core/entities.py`.
-6. Registrarla en `bootstrap.py` (o en la prueba de integración mientras no exista).
+6. Registrarla en `bootstrap.py` (`compose()`), con su prueba.
 7. Pruebas: `tests/unit/adapters/tools/test_<nombre>.py` (argumentos válidos, inválidos, error) y una integración con `AgentLoop` + `DefaultPermissionPolicy` en `tests/integration/`.
 8. No tocar `core/loop.py`.
 
@@ -57,5 +57,5 @@ Cada receta asume pruebas primero: escribir la prueba, verla fallar por la razó
 - ¿El archivo nuevo está en la carpeta que dice la tabla?
 - ¿Algún archivo de `core/` importa de `adapters/`, `cli/`, `config`, `observability/` o un SDK? (skill `verificar-fronteras-hexagonales`)
 - ¿Lo público está exportado en el `__init__.py` y los consumidores importan de `harness_agent.core`?
-- ¿Las implementaciones se conectan solo en `bootstrap.py` (o en la prueba de integración mientras no exista)?
+- ¿Las implementaciones se conectan solo en `bootstrap.py`?
 - ¿Hay prueba en la carpeta equivalente de `tests/`?
