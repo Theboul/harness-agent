@@ -15,8 +15,16 @@ from typing import Any
 import pytest
 
 from harness_agent import bootstrap
+from harness_agent.adapters.providers.litellm_provider import ProviderDependencyError
 from harness_agent.adapters.storage import SessionStoreError, SqliteSessionStore
-from harness_agent.bootstrap import NO_AREA_NOTICE, Composition, main, run_session
+from harness_agent.bootstrap import (
+    EXIT_INTERRUPTED,
+    EXIT_STARTUP,
+    NO_AREA_NOTICE,
+    Composition,
+    main,
+    run_session,
+)
 from harness_agent.config import HarnessConfig
 from harness_agent.core import (
     Event,
@@ -29,6 +37,7 @@ from harness_agent.core import (
 )
 from tests.doubles import FakeProvider
 from tests.unit.bootstrap_support import SENTINEL, build, make_config, scripted
+from tests.unit.config_support import SECRET_FIELD, toml_with_field
 
 EXIT_TEXT = "Sesión terminada."
 
@@ -167,16 +176,18 @@ class TestMainHappyPath:
             config_path=write_toml(tmp_path, workspace=tmp_path),
             input_stream=io.StringIO(text),
             output=output,
+            error=error,
             provider_factory=lambda _config: chosen,
             **kwargs,
         )
         return code, output.getvalue(), error.getvalue()
 
     def test_a_valid_configuration_and_slash_exit_return_zero(self, tmp_path: Path) -> None:
-        code, text, _error = self.run(tmp_path, "/salir\n")
+        code, text, error = self.run(tmp_path, "/salir\n")
 
         assert code == 0
         assert EXIT_TEXT in text
+        assert error == ""
 
     def test_the_session_and_its_events_are_saved(self, tmp_path: Path) -> None:
         code, _text, _error = self.run(tmp_path, "una tarea\n/salir\n")
@@ -227,3 +238,174 @@ class TestMainHappyPath:
         assert received[0].key_variable == "OPENAI_API_KEY"
         assert received[0].api_key is not None
         assert received[0].api_key.reveal() == SENTINEL
+
+
+PREFIX = "No se pudo iniciar: "
+
+
+class Startup:
+    """Run ``main`` to a startup failure and keep what it wrote."""
+
+    def __init__(self, tmp_path: Path) -> None:
+        self.tmp_path = tmp_path
+        self.output = io.StringIO()
+        self.error = io.StringIO()
+
+    def go(
+        self,
+        *,
+        toml: str | None = None,
+        environ: dict[str, str] | None = None,
+        factory: Any = None,
+        config_path: Path | None = None,
+    ) -> int:
+        if config_path is None:
+            config_path = self.tmp_path / "config.toml"
+            text = toml if toml is not None else 'model = "openai/modelo-de-prueba"\n'
+            config_path.write_text(text, encoding="utf-8", newline="")
+        return main(
+            environ={"OPENAI_API_KEY": SENTINEL} if environ is None else environ,
+            config_path=config_path,
+            input_stream=io.StringIO("una tarea\n/salir\n"),
+            output=self.output,
+            error=self.error,
+            provider_factory=factory if factory is not None else (lambda _c: scripted("x")),
+        )
+
+    def assert_clean_failure(self) -> str:
+        message = self.error.getvalue()
+        assert message.startswith(PREFIX)
+        assert message.endswith("\n") and message.count("\n") == 1
+        assert "Traceback" not in message
+        assert self.output.getvalue() == ""
+        assert SENTINEL not in message
+        return message
+
+
+class TestMainStartupFailures:
+    def test_a_missing_configuration_file_stops_before_any_prompt(self, tmp_path: Path) -> None:
+        startup = Startup(tmp_path)
+
+        code = startup.go(config_path=tmp_path / "no-existe.toml")
+
+        assert code == EXIT_STARTUP == 2
+        assert "config" in startup.assert_clean_failure().lower()
+
+    def test_an_invalid_field_is_reported_in_one_line(self, tmp_path: Path) -> None:
+        startup = Startup(tmp_path)
+
+        code = startup.go(toml='model = "openai/x"\n[limits]\nmax_turns = 0\n')
+
+        assert code == EXIT_STARTUP
+        assert "max_turns" in startup.assert_clean_failure()
+
+    def test_a_key_written_in_the_file_is_rejected_without_showing_its_value(
+        self, tmp_path: Path
+    ) -> None:
+        startup = Startup(tmp_path)
+
+        code = startup.go(toml='model = "openai/x"\n' + toml_with_field(SECRET_FIELD))
+
+        assert code == EXIT_STARTUP
+        startup.assert_clean_failure()
+
+    def test_a_missing_key_names_the_variable_never_a_value(self, tmp_path: Path) -> None:
+        startup = Startup(tmp_path)
+
+        code = startup.go(environ={})
+
+        assert code == EXIT_STARTUP
+        assert "OPENAI_API_KEY" in startup.assert_clean_failure()
+
+    def test_a_missing_provider_dependency_shows_the_install_command_on_one_line(
+        self, tmp_path: Path
+    ) -> None:
+        def factory(_config: HarnessConfig) -> Provider:
+            raise ProviderDependencyError('Falta la dependencia.\nInstálela con: pip install "x"')
+
+        startup = Startup(tmp_path)
+
+        code = startup.go(factory=factory)
+
+        assert code == EXIT_STARTUP
+        assert "Falta la dependencia. Instálela con: pip install" in startup.assert_clean_failure()
+
+    def test_a_database_that_is_not_a_database_is_reported_and_left_untouched(
+        self, tmp_path: Path
+    ) -> None:
+        database = tmp_path / "sesiones.db"
+        database.write_bytes(b"esto no es una base de datos de SQLite")
+        toml = f'model = "openai/x"\n[paths]\nsessions_db = "{database.as_posix()}"\n'
+        startup = Startup(tmp_path)
+
+        code = startup.go(toml=toml)
+
+        assert code == EXIT_STARTUP
+        startup.assert_clean_failure()
+        assert database.read_bytes() == b"esto no es una base de datos de SQLite"
+
+    def test_an_unexpected_error_is_reduced_to_its_type(self, tmp_path: Path) -> None:
+        def factory(_config: HarnessConfig) -> Provider:
+            raise RuntimeError(SENTINEL)
+
+        startup = Startup(tmp_path)
+
+        code = startup.go(factory=factory)
+
+        assert code == EXIT_STARTUP
+        assert startup.assert_clean_failure() == PREFIX + "error inesperado (RuntimeError).\n"
+
+    def test_the_default_error_stream_is_standard_error(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        code = main(
+            environ={},
+            config_path=tmp_path / "no-existe.toml",
+            input_stream=io.StringIO(""),
+            output=io.StringIO(),
+        )
+
+        assert code == EXIT_STARTUP
+        assert capsys.readouterr().err.startswith(PREFIX)
+
+
+class TestMainInterruption:
+    def test_an_interruption_while_starting_returns_130_without_a_trace(
+        self, tmp_path: Path
+    ) -> None:
+        def factory(_config: HarnessConfig) -> Provider:
+            raise KeyboardInterrupt
+
+        startup = Startup(tmp_path)
+
+        code = startup.go(factory=factory)
+
+        assert code == EXIT_INTERRUPTED == 130
+        assert startup.error.getvalue() == ""
+
+    def test_an_interruption_during_a_turn_returns_130_and_closes_the_store(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        stores: list[SqliteSessionStore] = []
+
+        class RecordingStore(SqliteSessionStore):
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
+                super().__init__(*args, **kwargs)
+                stores.append(self)
+
+        class Interrupted(Provider):
+            async def complete(self, messages: Any, tools: Any = None) -> ProviderResponse:
+                raise KeyboardInterrupt
+
+        monkeypatch.setattr(bootstrap, "SqliteSessionStore", RecordingStore)
+        startup = Startup(tmp_path)
+
+        code = startup.go(factory=lambda _config: Interrupted())
+
+        assert code == EXIT_INTERRUPTED
+        assert startup.error.getvalue() == ""
+        with pytest.raises(SessionStoreError):
+            stores[0].get_session("lo-que-sea")
+
+    def test_the_four_exit_codes_are_different(self) -> None:
+        assert len({0, 1, EXIT_STARTUP, EXIT_INTERRUPTED}) == 4

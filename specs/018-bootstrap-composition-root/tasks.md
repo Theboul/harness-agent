@@ -114,7 +114,7 @@
 
 ## Phase 4: User Story 3 — Errores de arranque claros (P2) [AC-P3]
 
-- [ ] T007 [US3] Errores de arranque y códigos 2 y 130 en `main()` (`src/harness_agent/bootstrap.py`, `tests/unit/test_bootstrap_main.py`)
+- [x] T007 [US3] Errores de arranque y códigos 2 y 130 en `main()` (`src/harness_agent/bootstrap.py`, `tests/unit/test_bootstrap_main.py`)
   - **Archivos**: `src/harness_agent/bootstrap.py`, `tests/unit/test_bootstrap_main.py`
   - **Dependencias**: T005
   - **Criterios relacionados**: FR-002, FR-008, FR-009, FR-010; AC-P3; SC-003, SC-007
@@ -122,7 +122,7 @@
   - **Pruebas primero** (cada caso verifica: código 2, **una sola línea** en el flujo de errores, prefijo «No se pudo iniciar: », ninguna traza y que el centinela no aparece en ninguna salida): (1) archivo de configuración inexistente; (2) campo inválido; (3) clave escrita en el archivo; (4) falta la variable de la clave (el mensaje nombra la variable, no su valor); (5) `provider_factory` que lanza `ProviderDependencyError` (el mensaje incluye el comando de instalación); (6) base de datos inutilizable (`sessions_db` apunta a un archivo que no es una base, o a un esquema desconocido) → mensaje del almacén y la base no se modifica; (7) excepción no prevista en `compose` → «error inesperado (Tipo).» sin el texto de la excepción (se usa un mensaje con el centinela y se comprueba que no sale); (8) `KeyboardInterrupt` lanzado por el proveedor/entrada → código 130, almacén cerrado, sin traza (no pasa por la cancelación del bucle, así que **no** produce `INTERRUPTED`; la cadena completa señal → cancelación → `INTERRUPTED` → 130 se verifica a mano en T015); (9) **FR-009**: los cuatro códigos (0, 1, 2, 130) son distintos entre sí. Deben fallar porque `main` aún deja subir las excepciones.
   - **Implementación**: `EXIT_STARTUP = 2`, `EXIT_INTERRUPTED = 130`, función `_one_line(text)`, captura de `ConfigError`, `ProviderDependencyError`, `SessionStoreError` y `Exception` genérica **solo** en la fase de arranque (no dentro de la sesión), y de `KeyboardInterrupt` alrededor de `asyncio.run`.
   - **Verificación**: las pruebas pasan; **`bootstrap.py` y `__main__.py` al 100 % de líneas y ramas** (`--cov-report=term-missing`); cuatro puertas en 0.
-  - **Evidencia**:
+  - **Evidencia**: 2026-10-24: rojo por `ImportError: cannot import name 'EXIT_INTERRUPTED'`; verde con el manejo de errores de `main()` (`EXIT_STARTUP = 2`, `EXIT_INTERRUPTED = 130`, prefijo «No se pudo iniciar: », una línea, tipo del error inesperado sin su texto, interrupción con almacén cerrado) y `TestMainStartupFailures` (8), `TestMainInterruption` (3) en `tests/unit/test_bootstrap_main.py`. **`bootstrap.py` (97 líneas, 14 ramas) y `__main__.py` al 100 %.** Los cuatro códigos son distintos (0, 1, 2, 130). Nota: sin salida al flujo de errores en la interrupción (decisión: ningún mensaje).
 
 ---
 

@@ -22,12 +22,19 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, TextIO
 
-from harness_agent.adapters.providers.litellm_provider import LiteLLMProvider
-from harness_agent.adapters.storage import SqliteSessionStore, attach_event_recorder
+from harness_agent.adapters.providers.litellm_provider import (
+    LiteLLMProvider,
+    ProviderDependencyError,
+)
+from harness_agent.adapters.storage import (
+    SessionStoreError,
+    SqliteSessionStore,
+    attach_event_recorder,
+)
 from harness_agent.adapters.system import WorkspaceArea
 from harness_agent.adapters.tools import ListFilesTool, ReadFileTool, SearchTextTool, WriteFileTool
 from harness_agent.cli import run_cli
-from harness_agent.config import HarnessConfig, load_config
+from harness_agent.config import ConfigError, HarnessConfig, load_config
 from harness_agent.core import (
     AuthorizedArea,
     DefaultPermissionPolicy,
@@ -47,6 +54,10 @@ AREA_NOT_A_FOLDER_NOTICE = (
     "Aviso: el área de trabajo configurada no es una carpeta; "
     "las herramientas de archivos están desactivadas."
 )
+
+EXIT_STARTUP = 2
+EXIT_INTERRUPTED = 130
+STARTUP_FAILURE_PREFIX = "No se pudo iniciar: "
 
 ProviderFactory = Callable[[HarnessConfig], Provider]
 
@@ -179,12 +190,19 @@ async def run_session(
     return await run_cli(composition.bus, run_turn, input_stream=input_stream, output=stream)
 
 
+def _report_startup_failure(error: TextIO, text: str) -> int:
+    """Write one line (prefix plus ``text`` on a single line) and return the startup exit code."""
+    _write_notice(error, STARTUP_FAILURE_PREFIX + " ".join(text.split()))
+    return EXIT_STARTUP
+
+
 def main(
     *,
     environ: Mapping[str, str] | None = None,
     config_path: str | os.PathLike[str] | None = None,
     input_stream: TextIO | None = None,
     output: TextIO | None = None,
+    error: TextIO | None = None,
     provider_factory: ProviderFactory | None = None,
     clock: Callable[[], datetime] | None = None,
     id_factory: Callable[[], str] | None = None,
@@ -194,14 +212,31 @@ def main(
     This is the function behind ``python -m harness_agent`` and the ``harness`` command. Every
     parameter is ``None`` in real use; tests inject the environment, the streams and the provider.
 
+    A startup failure is written as one line in Spanish on ``error`` and never shows a trace or the
+    text of an unexpected exception (it could hold a secret). A keyboard interrupt ends the whole
+    program, with the store closed.
+
     Returns:
-        The exit code: 0 after ``/salir`` or the end of the input, 1 if a turn failed.
+        0 after ``/salir`` or the end of the input, 1 if a turn failed (decided by the CLI),
+        ``EXIT_STARTUP`` (2) if the system could not start, ``EXIT_INTERRUPTED`` (130) after a
+        keyboard interrupt.
     """
-    config = load_config(config_path, environ=environ)
-    composition = compose(
-        config, provider_factory=provider_factory, clock=clock, id_factory=id_factory
-    )
+    failures = sys.stderr if error is None else error
+    composition: Composition | None = None
     try:
+        try:
+            config = load_config(config_path, environ=environ)
+            composition = compose(
+                config, provider_factory=provider_factory, clock=clock, id_factory=id_factory
+            )
+        except (ConfigError, ProviderDependencyError, SessionStoreError) as problem:
+            return _report_startup_failure(failures, str(problem))
+        except Exception as problem:
+            kind = type(problem).__name__
+            return _report_startup_failure(failures, f"error inesperado ({kind}).")
         return asyncio.run(run_session(composition, input_stream=input_stream, output=output))
+    except KeyboardInterrupt:
+        return EXIT_INTERRUPTED
     finally:
-        composition.close()
+        if composition is not None:
+            composition.close()
