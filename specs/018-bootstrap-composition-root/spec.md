@@ -155,7 +155,7 @@ Quien desarrolla puede ejecutar la misma composición en pruebas con un proveedo
 - **SC-003**: Cada uno de los fallos de arranque listados en la Historia 3 produce exactamente **una línea** de mensaje en español, un código de salida distinto de cero y **cero** apariciones del valor de la clave en la salida.
 - **SC-004**: Con proveedor simulado, 20 ejecuciones consecutivas de la misma sesión producen la misma salida y los mismos eventos guardados; **cero** conexiones de red.
 - **SC-005**: **Cero** archivos creados fuera del área de trabajo en todas las pruebas de la composición, incluidos los intentos de escape.
-- **SC-006**: El arranque (hasta mostrar el prompt, sin contar la espera del modelo) tarda menos de 2 segundos en el equipo de referencia.
+- **SC-006**: El arranque (hasta mostrar el prompt) tarda menos de 2 segundos en el equipo de referencia **sin contar la carga de la biblioteca del proveedor**, que HU-07-02 midió en unos 4 segundos y se paga una sola vez antes del prompt (corregido en `/speckit-plan`; la redacción original no lo distinguía).
 - **SC-007**: Las cuatro puertas de calidad y `pytest tests/architecture` siguen en verde en Windows y Linux, con la cobertura del módulo nuevo en 100 % de líneas y ramas.
 
 ## Assumptions
