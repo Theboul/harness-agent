@@ -267,13 +267,13 @@ Funciones y clases **reales** hoy (`adapters/converters/`):
 | Grupo | Elemento real | Acción propuesta |
 |---|---|---|
 | **A. Canónico → payload** | `to_openai_messages`, `to_openai_tools`, `to_anthropic_payload`, `OpenAIConverter.to_provider_payload`, `AnthropicConverter.to_provider_payload` | **Sin cambios.** Siguen siendo la ruta de producción (HU-07-02) |
-| **B. Restauración exacta** | no existe | **Nuevo (propuesto)**: `to_provider_envelope(messages, tools=None, *, partial_window=False)` en cada conversor y `restore_messages(envelope)` |
+| **B. Restauración exacta** | no existe | **Implementado**: `to_openai_envelope` y `to_anthropic_envelope` (funciones de módulo; el método `to_provider_envelope(messages, tools=None, *, partial_window=False)` de cada conversor del Protocolo `EnvelopeConverter` las expone) y `restore_messages(envelope)` |
 | **C. Respuestas nuevas del proveedor** | `from_openai_response`, `from_anthropic_response`, `OpenAIConverter.to_canonical_response`, `AnthropicConverter.to_canonical_response` | **Sin cambios.** Nunca reciben ni consultan un envelope |
 | **Interpretación solo del payload** | `from_openai_messages`, `from_anthropic_payload` (exportadas en `__init__.py`) | **Decisión pendiente**, ver abajo |
 
 No existe una función `from_provider_response`. Y la versión 1 de este documento proponía exigir un parámetro `sidecar` en `from_*_messages`, lo que habría roto a cualquier consumidor existente; **esa propuesta se retira**. La restauración exacta es una función nueva, no una variante de las existentes.
 
-El Protocolo `ProviderMessageConverter` (`base.py`) hoy declara `to_provider_payload` y `to_canonical_response`. Añadirle `to_provider_envelope` obligaría a cualquier implementación externa a actualizarse. Se propone un Protocolo adicional (propuesto, `EnvelopeConverter`) y dejar el existente intacto.
+El Protocolo `ProviderMessageConverter` (`base.py`) hoy declara `to_provider_payload` y `to_canonical_response`. Añadirle `to_provider_envelope` obligaría a cualquier implementación externa a actualizarse. Se resolvió con un Protocolo adicional, `EnvelopeConverter` (implementado en `base.py`), dejando el existente intacto.
 
 **Consumidores reales de `from_openai_messages` y `from_anthropic_payload`** (búsqueda en el repositorio): solo las pruebas (`tests/adapters/test_converters.py`, `tests/adapters/test_converters_regressions.py`) y las exportaciones de `__init__.py`. No hay código de producción que las use todavía (HU-07-02 no está implementada).
 
@@ -437,10 +437,10 @@ Caminos de decisión para el Product Owner y para A, B y C (cualquiera requiere 
 |---|---|
 | `core/entities.py` (`Message`, `ToolResult`) | **Sin cambios** |
 | `core/interfaces/provider.py` (`Provider`, `ProviderResponse`, `Provider.complete`) | **Sin cambios** |
-| `adapters/converters/envelope.py` (propuesto) | Nuevo: `WireRef`, `MessageMeta`, `ConversionEnvelope`, instantánea JSON y huellas |
+| `adapters/converters/sidecar.py` (implementado; el diseño lo llamaba `envelope.py`) | Nuevo: `WireRef`, `MessageMeta`, `ConversionEnvelope`, instantánea JSON y huellas |
 | `adapters/converters/base.py` | Sin cambios en `ProviderMessageConverter`; Protocolo adicional propuesto `EnvelopeConverter` |
 | `adapters/converters/openai_converter.py`, `anthropic_converter.py` | Nueva ruta de envelope y restauración; las funciones existentes se conservan |
-| `adapters/converters/__init__.py` | Exportaciones nuevas (`to_provider_envelope` por conversor, `restore_messages`, `ConversionEnvelope`) |
+| `adapters/converters/__init__.py` | Exportaciones nuevas (`to_openai_envelope`, `to_anthropic_envelope`, `restore_messages`, `ConversionEnvelope`) |
 | `from_openai_messages`, `from_anthropic_payload` | Según la decisión de §4.4 (opción 2 recomendada: `DeprecationWarning`) |
 | `tests/adapters/` | Pruebas nuevas; las `test_pending_d1_*` y `test_pending_d2_*` se transforman en pruebas de preservación |
 | `specs/004-.../` y `docs/PROGRESO.md` | Actualización tras la implementación |

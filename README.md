@@ -13,7 +13,7 @@
 
 **harness-agent** es un harness de agente en terminal: la aplicación que rodea a un modelo de lenguaje y lo conecta con el mundo mediante un bucle razonar–actuar–observar, herramientas, permisos, contexto, memoria y sesiones. El núcleo es reutilizable y está desacoplado de la interfaz.
 
-> **Estado:** en inicialización. Aún no hay código en `src/`; este README describe el diseño acordado. El contexto completo está en [`docs/00-indice.md`](docs/00-indice.md).
+> **Estado:** en desarrollo (Sprint 1). Ya existen el núcleo (`core/`), la configuración, la CLI básica, los conversores y las herramientas de archivos; aún no hay adaptador de proveedor real, SQLite, raíz de composición ni punto de entrada ejecutable. El estado de cada historia está en [`docs/PROGRESO.md`](docs/PROGRESO.md) y el contexto completo en [`docs/00-indice.md`](docs/00-indice.md).
 
 ## Decisiones principales
 
@@ -59,9 +59,9 @@ bootstrap ──▶ (ambos)
 | `src/harness_agent/observability/` | Trazas, auditoría, redacción de secretos |
 | `src/harness_agent/cli/` | Terminal; se suscribe al bus de eventos |
 | `src/harness_agent/bootstrap.py` | Raíz de composición: único lugar que une núcleo y adaptadores |
-| `tests/` | `unit`, `integration`, `failures`, `contract`, `architecture` |
+| `tests/` | `adapters`, `architecture`, `contracts`, `core`, `doubles`, `integration`, `spikes`, `unit` |
 
-La frontera se verifica con `import-linter` y un test con `ast`; ambos corren en la integración continua.
+La frontera se verifica con tests basados en `ast` en `tests/architecture/` (no se usa `import-linter`); corren en la integración continua junto al resto de la suite.
 
 ## Skills del proyecto
 
@@ -92,12 +92,16 @@ Entorno de desarrollo (Python 3.12.x):
 
 ```bash
 python -m venv .venv
-pip install -e ".[dev]"   # incluye pytest, pytest-asyncio y mypy
-pytest
+pip install -e ".[dev]"   # incluye pytest, pytest-asyncio, pytest-cov, mypy y ruff
+
+# Las cuatro puertas de calidad de la CI (todas deben dar exit 0)
+ruff format --check .
+ruff check .
 mypy src tests
+pytest --cov=harness_agent --cov-report=term-missing
 ```
 
-El uso de la CLI, `.env.example` y `config.example.toml` se documentarán al cerrar HU-00-04 (configuración).
+La configuración de ejemplo está en `config.example.toml`; copiarla a `config.toml` (ignorado por Git) y poner las claves solo en variables de entorno. `.env.example` lista las variables de entorno. El uso de la CLI se documentará cuando exista un punto de entrada ejecutable.
 
 ## Documentación
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -71,3 +72,21 @@ def test_authorized_area_double_contains_and_rejects_escape(tmp_path: Path) -> N
     assert area.root == tmp_path.resolve()
     assert area.contains("sub/file.txt")
     assert not area.contains("../outside.txt")
+
+
+def test_event_coerces_string_type_to_enum() -> None:
+    event = Event(id="e1", session_id="s1", type="user_message")  # type: ignore[arg-type]
+    assert event.type is EventType.USER_MESSAGE
+
+
+def test_event_naive_timestamp_becomes_utc() -> None:
+    naive = datetime(2026, 10, 23, 12, 0, 0)
+    event = Event(id="e1", session_id="s1", type=EventType.USER_MESSAGE, timestamp=naive)
+    assert event.timestamp.tzinfo is timezone.utc
+    assert event.timestamp.replace(tzinfo=None) == naive
+
+
+def test_event_aware_timestamp_is_preserved() -> None:
+    aware = datetime(2026, 10, 23, 12, 0, 0, tzinfo=timezone.utc)
+    event = Event(id="e1", session_id="s1", type=EventType.USER_MESSAGE, timestamp=aware)
+    assert event.timestamp == aware

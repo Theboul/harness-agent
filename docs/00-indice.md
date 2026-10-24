@@ -19,6 +19,10 @@
 | [05-trazabilidad.md](05-trazabilidad.md) | Requisito → historia y cómo empezar | §11, §12 |
 | [06-historial-planificacion.md](06-historial-planificacion.md) | Auditoría, decisiones PD-01 a PD-06, capacidad y consolidación v2.5 | §13 |
 | [PROGRESO.md](PROGRESO.md) | **Qué se hizo y dónde está** | nuevo |
+| [guia-contratos-desarrollo.md](guia-contratos-desarrollo.md) | Guía de uso de los contratos del núcleo para A, B y C | nuevo |
+| [decisiones/](decisiones/) | Decisiones técnicas: D-01 (asyncio y cancelación), D-02 (metadatos en la conversión) y la revisión conjunta | nuevo |
+| [../CLAUDE.md](../CLAUDE.md) | Contexto base para cada sesión que implementa una historia | nuevo |
+| [../specs/](../specs/) | Artefactos Spec Kit de cada historia trabajada (`specs/NNN-slug/`) | nuevo |
 
 ## Dónde está cada ID
 

@@ -167,3 +167,20 @@ def test_event_bus_contract_with_dummy() -> None:
 
     assert len(received_events) == 1
     assert received_events[0].id == event1.id
+
+
+def test_message_coerces_string_role_to_enum() -> None:
+    message = Message(role="assistant", content="hola")  # type: ignore[arg-type]
+    assert message.role is Role.ASSISTANT
+
+
+def test_message_converts_tool_calls_list_to_tuple() -> None:
+    call = ToolCall(id="c1", name="read_file", arguments={"path": "a.txt"})
+    message = Message(role=Role.ASSISTANT, tool_calls=[call])  # type: ignore[arg-type]
+    assert isinstance(message.tool_calls, tuple)
+    assert message.tool_calls == (call,)
+
+
+def test_message_rejects_unknown_string_role() -> None:
+    with pytest.raises(ValueError):
+        Message(role="not-a-role")  # type: ignore[arg-type]

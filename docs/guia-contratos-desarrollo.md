@@ -67,6 +67,44 @@ class SqliteSessionStore(SessionStore):
         ...
 ```
 
+#### Sesiones en SQLite (HU-03-01):
+
+`SqliteSessionStore` (en `harness_agent.adapters.storage`) crea el esquema (tablas `sessions` y `events`, versión 1) al abrirse y crea sesiones. Desde HU-03-02 hereda de `SessionStore` (ver más abajo). El puerto no tiene `create_session`, así que esa operación es del adaptador (hallazgo para A, B y C en `PROGRESO.md`).
+
+```python
+from harness_agent.adapters.storage import SqliteSessionStore
+
+with SqliteSessionStore(config.paths.sessions_db) as store:   # el directorio se crea si falta
+    parent = store.create_session(model="fake/test", goal="Arreglar el ticket 42")
+    child = store.create_session(parent_id=parent.id)         # sesión de subagente
+    assert child.parent_id == parent.id and child.status == "active"
+    store.list_sessions()                                      # list[SessionSummary], más antigua primero
+```
+
+- El reloj y el generador de identificadores se pueden inyectar (`clock=`, `id_factory=`) para pruebas deterministas; por defecto UTC y `uuid4`.
+- Errores: `SessionStoreError` (base), `SchemaVersionError` (versión de esquema desconocida; la base no se modifica) y `ParentSessionNotFound`. Los mensajes no reproducen datos de entrada ni rutas.
+- La raíz de composición (`bootstrap.py`, aún inexistente) deberá construirlo con `config.paths.sessions_db`.
+
+#### Persistir eventos (HU-03-02):
+
+`SqliteSessionStore` implementa `save_event` y `load_session`. Cada evento se guarda en su propia transacción durable (`BEGIN IMMEDIATE`, `PRAGMA synchronous = FULL`): un evento confirmado sobrevive a un cierre abrupto del proceso y una escritura cortada no deja la base corrupta.
+
+```python
+from harness_agent.adapters.storage import SqliteSessionStore, attach_event_recorder
+
+with SqliteSessionStore(config.paths.sessions_db) as store:
+    session = store.create_session(goal="Arreglar el ticket 42")   # la sesión debe existir antes del primer evento
+    attach_event_recorder(bus, store)                                # los 17 tipos de evento se guardan al emitirse
+    ...
+    events = store.load_session(session.id)                          # en el orden en que se guardaron
+```
+
+- **Orden**: `load_session` devuelve los eventos por su orden de guardado (`seq` consecutivo por sesión), no por fecha. Una sesión desconocida o sin eventos devuelve `[]`.
+- **Sesión previa obligatoria**: guardar un evento de una sesión inexistente lanza `SessionNotFound` (a diferencia de `InMemorySessionStore`, que la crea al vuelo). Un identificador de evento repetido lanza `DuplicateEvent`.
+- **Contenido JSON**: el `payload` se guarda como JSON. Los tipos no representables (objetos, `bytes`, `NaN`, referencias circulares) lanzan `EventSerializationError` sin tocar la base; las tuplas vuelven como listas.
+- **Errores del bus**: `attach_event_recorder` usa solo los puertos `EventBus` y `SessionStore`. Si el almacén falla, el emisor recibe `EventDeliveryError` con la causa original.
+- **Secretos**: el contenido se guarda sin redactar hasta HU-10-02 (riesgo abierto PD-10 en `PROGRESO.md`).
+
 #### Usar dobles en pruebas de B sin levantar SQLite ni proveedores reales:
 ```python
 from tests.doubles import InMemorySessionStore, InMemoryMemoryStore, DummyProvider
@@ -135,9 +173,9 @@ class LeerArchivoTool(Tool):
         return {
             "type": "object",
             "properties": {
-                "ruta": {"type": "string", "description": "Ruta relativa del archivo"}
+                "path": {"type": "string", "description": "Ruta relativa del archivo"}
             },
-            "required": ["ruta"]
+            "required": ["path"]
         }
 
     @property
@@ -153,11 +191,11 @@ class LeerArchivoTool(Tool):
 ```python
 import pytest
 from tests.doubles import DummyTool, DummyApprover
-from harness_agent.core import ToolCall, ApprovalAction
+from harness_agent.core import ApprovalAction, RiskLevel, ToolCall
 
 @pytest.mark.asyncio
 async def test_politica_con_dobles():
-    tool = DummyTool(name="shell", risk="high")
+    tool = DummyTool(name="shell", risk=RiskLevel.HIGH)
     approver = DummyApprover(default_action=ApprovalAction.APPROVE_ONCE)
 
     call = ToolCall(id="c1", name="shell", arguments={"cmd": "pytest"})
@@ -201,11 +239,13 @@ policy = DefaultPermissionPolicy(registry, area, PermissionRules())
 
 ## 4. Reglas Obligatorias de Diseño y Pureza
 
-1. **Firmas asíncronas (propuesta SPK-02 / D-01, pendiente de aprobación)**: `Provider.complete`, `Tool.run` y `Approver.request` son corutinas (`async def`) y siguen siendo provisionales hasta que A, B y C aprueben D-01 y HU-00-01 (T016). El spike midió en Windows una cancelación con retorno de control de 1.0 a 2.4 ms (límite de AC-01: 500 ms); la evidencia en Linux está pendiente. Todas las demás interfaces (`SessionStore`, `MemoryStore`, `ContextManager`, `AuthorizedArea`) son síncronas (`def`).
+1. **Firmas asíncronas (propuesta SPK-02 / D-01, pendiente de aprobación)**: `Provider.complete`, `Tool.run` y `Approver.request` son corutinas (`async def`) y siguen siendo provisionales hasta que A, B y C aprueben D-01 y HU-00-01 (T016). El spike midió en Windows una cancelación con retorno de control de 1.0 a 2.4 ms (límite de AC-01: 500 ms); la evidencia en Linux existe en WSL2 Ubuntu local (0.7 a 1.4 ms; escalamiento `SIGTERM` → `SIGKILL` con un hijo real, véase `docs/decisiones/D-01-asyncio-cancelacion.md` y SPK-02 en `docs/PROGRESO.md`), pero no es un runner de GitHub Actions: aún no hay una ejecución registrada en la CI de `ubuntu-latest` para el spike. Todas las demás interfaces (`SessionStore`, `MemoryStore`, `ContextManager`, `AuthorizedArea`) son síncronas (`def`).
 2. **Pureza del Núcleo (AC-02)**: Ningún módulo bajo `src/harness_agent/core/` puede importar SDKs de proveedores (`openai`, `anthropic`, `litellm`, `google-genai`). Las implementaciones concretas residen en `src/harness_agent/adapters/`.
 3. **Inmutabilidad**: `Message`, `ToolCall`, `ToolResult`, `TokenUsage` y `Event` son `@dataclass(frozen=True)`. No intentar mutar sus atributos en tiempo de ejecución.
 4. **Verificación Continua**: Antes de abrir un PR, ejecutar:
    ```powershell
-   pytest tests/
-   mypy src/ tests/
+   ruff format --check .
+   ruff check .
+   mypy src tests
+   pytest
    ```

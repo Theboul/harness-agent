@@ -43,7 +43,7 @@ harness-agent/
 │   ├── adapters/           # implementaciones de los puertos
 │   │   ├── converters/     # formato canónico <-> OpenAI/Anthropic, ConversionEnvelope (HU-07-01)
 │   │   ├── providers/      # (planeado: HU-07-02 litellm_provider; el FakeProvider de HU-00-03 vive en tests/doubles/fake_provider.py)
-│   │   ├── storage/        # (planeado: HU-03-01) SQLite: esquema, sesiones, eventos
+│   │   ├── storage/        # SqliteSessionStore: esquema sessions/events, creación de sesión (HU-03-01), save_event/load_session y attach_event_recorder (HU-03-02)
 │   │   ├── tools/          # leer_archivo, escribir_archivo, listar_archivos, buscar_texto (HU-01-03); planeado: shell (HU-01-04), …
 │   │   ├── system/         # WorkspaceArea: AuthorizedArea real (rutas reales, «..», enlaces, reglas de Windows) (HU-01-03)
 │   │   └── mcp/            # (planeado: HU-08-01) cliente MCP por stdio y traducción a Tool
@@ -86,7 +86,7 @@ Todos se reexportan en `core/interfaces/__init__.py` y en `core/__init__.py`.
 | Área | Dueño de |
 |---|---|
 | A (Núcleo) | `core/loop.py`, `core/limits.py`, `core/subagents/`, `adapters/converters/`, segundo proveedor y conmutación (HU-07-03 a HU-07-05) |
-| B (Estado) | `adapters/storage/`, `core/context/`, `core/in_memory_event_bus.py`, `config.py`, `observability/`, `adapters/providers/` (FakeProvider HU-00-03, LiteLLM HU-07-02) |
+| B (Estado) | `adapters/storage/`, `core/context/`, `core/in_memory_event_bus.py`, `config.py`, `observability/`, `adapters/providers/` (LiteLLM HU-07-02; el FakeProvider de HU-00-03 vive en `tests/doubles/fake_provider.py`) |
 | C (Control y conexiones) | `core/permissions/`, `core/tools/`, `adapters/tools/`, `adapters/system/`, `adapters/mcp/`, `cli/` |
 | A, B y C juntos | `core/interfaces/`, `core/entities.py`, `core/events.py` (contratos de HU-00-01) |
 
