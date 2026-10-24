@@ -40,6 +40,7 @@ READ_FILE = ToolDefinition(
     },
 )
 USER = Message(Role.USER, "lee README.md")
+KEY = Secret(SENTINEL)
 
 
 def request_of(
@@ -84,7 +85,7 @@ class TestConstruction:
             assert provider.model == model
 
     def test_the_representation_hides_the_key_and_shows_model_and_cap(self) -> None:
-        provider, _ = make_provider(api_key=Secret(SENTINEL))
+        provider, _ = make_provider(api_key=KEY)
 
         for text in (repr(provider), str(provider), f"{provider}", format(provider, "")):
             assert SENTINEL not in text
@@ -133,7 +134,7 @@ class TestTheCall:
 
     def test_the_key_is_sent_only_when_there_is_one(self) -> None:
         assert "api_key" not in request_of([USER])
-        assert request_of([USER], api_key=Secret(SENTINEL))["api_key"] == SENTINEL
+        assert request_of([USER], api_key=KEY)["api_key"] == SENTINEL
 
     def test_the_messages_come_from_the_converter_with_no_extra_fields(self) -> None:
         messages = tool_round("call_A", "contenido", is_error=False)

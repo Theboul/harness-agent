@@ -3,9 +3,8 @@
 ``bootstrap.py`` does not exist yet, so the system is composed by hand: a ``WorkspaceArea`` over a
 temporary folder, the file tools and a recording tool in the real ``InMemoryToolRegistry``, the
 real ``DefaultPermissionPolicy``, a recording bus and ``LiteLLMProvider`` fed by an injected
-completion function (no network, no key, no library). What ``bootstrap.py`` will connect is
-``LiteLLMProvider(config.model, max_output_tokens=config.limits.max_output_tokens,
-api_key=config.api_key)``.
+completion function (no network, no key, no library). ``bootstrap.py`` will build the adapter
+from ``config.model``, ``config.limits.max_output_tokens`` and the key of the configuration.
 """
 
 from __future__ import annotations

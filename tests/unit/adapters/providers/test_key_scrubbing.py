@@ -14,6 +14,7 @@ from harness_agent.core import Message, ProviderError, QuotaExceeded, Role, Tool
 from tests.unit.adapters.providers.support import SENTINEL, make_provider, reply, wire_call
 
 HIDDEN = "<secreto oculto>"
+KEY = Secret(SENTINEL)
 MARKER = "arguments_not_valid_json"
 USER = [Message(Role.USER, "haz algo")]
 
@@ -26,7 +27,7 @@ def texts_of(error: BaseException) -> list[str]:
 
 
 async def failure_with_key(error: BaseException) -> ProviderError:
-    provider, _ = make_provider(error, api_key=Secret(SENTINEL))
+    provider, _ = make_provider(error, api_key=KEY)
     with pytest.raises(ProviderError) as raised:
         await provider.complete(list(USER))
     return raised.value
@@ -72,7 +73,7 @@ class TestAnErrorThatRepeatsTheKey:
 class TestUnreadableArgumentsThatRepeatTheKey:
     async def test_the_text_kept_in_the_marker_is_cleaned(self) -> None:
         raw = "{roto " + SENTINEL
-        provider, _ = make_provider(reply("", [wire_call("c", "t", raw)]), api_key=Secret(SENTINEL))
+        provider, _ = make_provider(reply("", [wire_call("c", "t", raw)]), api_key=KEY)
 
         response = await provider.complete(list(USER))
 
@@ -83,9 +84,7 @@ class TestUnreadableArgumentsThatRepeatTheKey:
 
     async def test_the_message_about_a_free_form_tool_is_cleaned_too(self) -> None:
         tool = ToolDefinition(SENTINEL, "d", {"type": "object", "additionalProperties": True})
-        provider, _ = make_provider(
-            reply("", [wire_call("c", SENTINEL, "{roto")]), api_key=Secret(SENTINEL)
-        )
+        provider, _ = make_provider(reply("", [wire_call("c", SENTINEL, "{roto")]), api_key=KEY)
 
         with pytest.raises(ProviderError) as raised:
             await provider.complete(list(USER), [tool])
@@ -103,7 +102,7 @@ class TestUnreadableArgumentsThatRepeatTheKey:
 
 class TestTheKeyIsNeverAnArtifactOfTheAdapter:
     async def test_the_representation_of_the_adapter_hides_it(self) -> None:
-        provider, _ = make_provider(api_key=Secret(SENTINEL))
+        provider, _ = make_provider(api_key=KEY)
 
         assert SENTINEL not in repr(provider)
         assert SENTINEL not in str(provider)
