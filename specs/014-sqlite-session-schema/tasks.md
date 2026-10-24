@@ -157,7 +157,7 @@
   - **Estimación**: 30 min
   - **Verificación**: `__init__.py` exporta `SqliteSessionStore`, `StoredSession`, `SessionStoreError`, `SchemaVersionError`, `ParentSessionNotFound`, `SCHEMA_VERSION` en `__all__` y una prueba lo comprueba; la guía explica cómo crear una sesión y que el puerto aún no tiene `create_session`; `arbol.md` (ambas copias idénticas) marca `adapters/storage/` como existente.
 
-- [ ] **T011** Cerrar el registro en `docs/PROGRESO.md` (Principio VIII)
+- [x] **T011** Cerrar el registro en `docs/PROGRESO.md` (Principio VIII)
   - **Archivos**: `docs/PROGRESO.md`
   - **Dependencias**: T010
   - **Criterios relacionados**: FR-017, Principio VIII
@@ -165,7 +165,7 @@
   - **Estimación**: 35 min
   - **Verificación**: Fila de HU-03-01 en `En revisión` (nunca `Hecha`) con *Archivos* y *Evidencia* (comandos y resultados reales de T012); una línea por tarea en *Registro de cambios*; el bloque **Observaciones de HU-03-01** lista: `create_session` fuera del puerto, herencia diferida a HU-03-02, PD-09 sin cerrar, ruta por defecto por confirmar con B, estados limitados, y lo que la raíz de composición deberá conectar. La tabla *Resumen* no cambia.
 
-- [ ] **T012** Verificación final: cuatro puertas, fronteras y archivos protegidos
+- [x] **T012** Verificación final: cuatro puertas, fronteras y archivos protegidos
   - **Archivos**: ninguno (solo ejecución)
   - **Dependencias**: T010
   - **Criterios relacionados**: FR-014, FR-016, SC-005, SC-006
