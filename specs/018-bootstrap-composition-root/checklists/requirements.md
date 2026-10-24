@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No quedan marcadores [NEEDS CLARIFICATION] (queda **uno**: Q1, sprint y responsable, decisión del PO)
+- [x] No quedan marcadores [NEEDS CLARIFICATION] (Q1 resuelta por el PO: Sprint 1, área C)
 - [x] Los requisitos son comprobables y sin ambigüedad
 - [x] Los criterios de éxito son medibles
 - [x] Los criterios de éxito no dependen de la tecnología
@@ -32,4 +32,4 @@
 ## Notes
 
 - Los criterios AC-P1 a AC-P3 son **propuestos**: no existe ficha oficial; el PO debe ratificarlos o sustituirlos (Principio V).
-- El único marcador abierto (Q1) no bloquea `/speckit-clarify` ni `/speckit-plan`, pero sí la asignación al sprint; ver PD-08.
+- Q1 resuelta el 2026-10-24: Sprint 1, área C (cierra PD-08).

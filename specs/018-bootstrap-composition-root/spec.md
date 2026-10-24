@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Proyecto**: HARNESS v2.5 | **Sprint**: por decidir por el PO (ver Aclaraciones) | **Historia**: **propuesta, sin ficha en `docs/04x`**; el ID provisional es `HU-00-08` y el PO lo formaliza o lo renombra | **Responsable**: por decidir por el PO (PD-08) | **Requisitos**: RF-1.1 (bucle completo de extremo a extremo), RF-6.1 | **Depende de**: [HU-01-01](../../docs/04a-historias-fundacion.md#hu-01-01), [HU-01-03](../../docs/04a-historias-fundacion.md#hu-01-03), [HU-00-04](../../docs/04a-historias-fundacion.md#hu-00-04), [HU-03-01](../../docs/04b-historias-estado.md#hu-03-01), [HU-03-02](../../docs/04b-historias-estado.md#hu-03-02), [HU-05-01](../../docs/04c-historias-control.md#hu-05-01), [HU-06-01](../../docs/04c-historias-control.md#hu-06-01), [HU-07-02](../../docs/04d-historias-conexiones.md#hu-07-02)
+**Proyecto**: HARNESS v2.5 | **Sprint**: 1 (decisión del PO, 2026-10-24) | **Historia**: **propuesta, sin ficha en `docs/04x`**; el ID provisional es `HU-00-08` y el PO lo formaliza o lo renombra | **Responsable**: C — Control y conexiones (decisión del PO, cierra PD-08) | **Requisitos**: RF-1.1 (bucle completo de extremo a extremo), RF-6.1 | **Depende de**: [HU-01-01](../../docs/04a-historias-fundacion.md#hu-01-01), [HU-01-03](../../docs/04a-historias-fundacion.md#hu-01-03), [HU-00-04](../../docs/04a-historias-fundacion.md#hu-00-04), [HU-03-01](../../docs/04b-historias-estado.md#hu-03-01), [HU-03-02](../../docs/04b-historias-estado.md#hu-03-02), [HU-05-01](../../docs/04c-historias-control.md#hu-05-01), [HU-06-01](../../docs/04c-historias-control.md#hu-06-01), [HU-07-02](../../docs/04d-historias-conexiones.md#hu-07-02)
 
 **Input**: User description: "Raíz de composición `bootstrap.py` y punto de entrada ejecutable del harness: conecta el proveedor LiteLLM real, las herramientas de archivos con el área de trabajo, la política de permisos, el almacén SQLite con el registrador de eventos, el bus de eventos y la CLI, y expone un comando ejecutable. Historia propuesta, sin ficha en los documentos; el PO debe formalizarla."
 
@@ -22,9 +22,11 @@ Decisiones tomadas por el responsable antes de redactar (no son preguntas abiert
 - Las acciones que hoy piden aprobación se siguen denegando con motivo hasta que llegue HU-05-03; esta historia no construye aprobación interactiva.
 - Fuera de alcance: límites de turnos/tiempo/costo (HU-01-06), reanudar una sesión (HU-03-04), shell (HU-01-04), contexto y compactación, MCP, subagentes, el flujo de ticket del Coding Harness, redacción de secretos en eventos (HU-10-02) y empaquetado/instalador.
 
-Preguntas abiertas (máximo 3; solo las que el PO debe decidir):
+Respuestas del PO (2026-10-24):
 
-- Q1: [NEEDS CLARIFICATION: ¿en qué sprint y a cuál área se asigna esta historia? Hoy consume ~3 h de la capacidad del Sprint 1 (ya sobrecargado, R-22) o entra al Sprint 2 como prerrequisito del flujo vertical del Coding Harness.]
+- Q: ¿En qué sprint y a cuál área se asigna esta historia? → A: **Sprint 1, área C — Control y conexiones.** Cierra el hito del Sprint 1 (modelo real y sesión guardada en SQLite) y PD-08. Suma unas 3 h a un sprint ya sobrecargado (R-22); el PO asume esa carga.
+
+No quedan preguntas abiertas en la spec.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -164,4 +166,4 @@ Quien desarrolla puede ejecutar la misma composición en pruebas con un proveedo
 - La redacción de secretos antes de persistir (PD-10) no existe aún; esta historia no la añade ni la oculta.
 - La prueba real contra un modelo con clave es manual y se omite sin clave, como la de HU-07-02; no entra en la CI.
 - Un solo usuario y una sola sesión por ejecución; no hay modo no interactivo ni opciones de línea de comandos más allá de las que ya admite la configuración.
-- Esta spec no fija el sprint ni el responsable: depende de la respuesta a Q1.
+- La capacidad de C en el Sprint 1 ya está excedida (R-22); el PO asume esa carga y el exceso se anota como aviso de capacidad en `PROGRESO.md` al implementar.
