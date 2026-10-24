@@ -13,8 +13,10 @@ provider, authorized area and tools, policy, bus, session store, session, event 
 
 from __future__ import annotations
 
+import asyncio
+import os
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -25,7 +27,7 @@ from harness_agent.adapters.storage import SqliteSessionStore, attach_event_reco
 from harness_agent.adapters.system import WorkspaceArea
 from harness_agent.adapters.tools import ListFilesTool, ReadFileTool, SearchTextTool, WriteFileTool
 from harness_agent.cli import run_cli
-from harness_agent.config import HarnessConfig
+from harness_agent.config import HarnessConfig, load_config
 from harness_agent.core import (
     AuthorizedArea,
     DefaultPermissionPolicy,
@@ -175,3 +177,31 @@ async def run_session(
         )
 
     return await run_cli(composition.bus, run_turn, input_stream=input_stream, output=stream)
+
+
+def main(
+    *,
+    environ: Mapping[str, str] | None = None,
+    config_path: str | os.PathLike[str] | None = None,
+    input_stream: TextIO | None = None,
+    output: TextIO | None = None,
+    provider_factory: ProviderFactory | None = None,
+    clock: Callable[[], datetime] | None = None,
+    id_factory: Callable[[], str] | None = None,
+) -> int:
+    """Load the configuration, compose the system, run the session and close the store.
+
+    This is the function behind ``python -m harness_agent`` and the ``harness`` command. Every
+    parameter is ``None`` in real use; tests inject the environment, the streams and the provider.
+
+    Returns:
+        The exit code: 0 after ``/salir`` or the end of the input, 1 if a turn failed.
+    """
+    config = load_config(config_path, environ=environ)
+    composition = compose(
+        config, provider_factory=provider_factory, clock=clock, id_factory=id_factory
+    )
+    try:
+        return asyncio.run(run_session(composition, input_stream=input_stream, output=output))
+    finally:
+        composition.close()

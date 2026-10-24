@@ -91,7 +91,7 @@
   - **Verificación**: las pruebas pasan; `cli/` no se modifica (`git diff` limpio).
   - **Evidencia**: 2026-10-24: rojo por `ImportError: cannot import name 'run_session'`; verde con `run_session` en `bootstrap.py` y `TestRunSession` (7 pruebas) en `tests/unit/test_bootstrap_main.py`; los ayudantes comunes pasaron a `tests/unit/bootstrap_support.py`. `bootstrap.py` al 100 % (72 líneas, 14 ramas). El turno que lanza una excepción ordinaria se provoca con un suscriptor que falla (`EventDeliveryError`): el bucle absorbe las excepciones del proveedor como `PROVIDER_ERROR`, así que `ScriptExhausted` no produce código 1. `cli/` sin cambios.
 
-- [ ] T005 [US1] `main()` en el camino feliz, `__main__.py` y el comando `harness` (`src/harness_agent/bootstrap.py`, `src/harness_agent/__main__.py`, `pyproject.toml`, `tests/unit/test_entry_point.py`)
+- [x] T005 [US1] `main()` en el camino feliz, `__main__.py` y el comando `harness` (`src/harness_agent/bootstrap.py`, `src/harness_agent/__main__.py`, `pyproject.toml`, `tests/unit/test_entry_point.py`)
   - **Archivos**: `src/harness_agent/bootstrap.py`, `src/harness_agent/__main__.py` (nuevo), `pyproject.toml` (solo `[project.scripts]`), `tests/unit/test_entry_point.py` (nuevo), ampliación de `tests/unit/test_bootstrap_main.py`
   - **Dependencias**: T004
   - **Criterios relacionados**: FR-001, FR-002, FR-009; AC-P1; Historia 1 (escenario 5)
@@ -99,7 +99,7 @@
   - **Pruebas primero**: (1) `main(environ=…, config_path=<archivo en tmp_path>, input_stream=…, output=…, provider_factory=…)` con configuración válida y `/salir` devuelve 0 y cierra el almacén; (2) `main` carga la configuración con el `environ` recibido (la clave de un entorno falso llega al proveedor sin tocar `os.environ`); (3) `runpy.run_module("harness_agent", run_name="__main__")` con `main` sustituido por un doble llama a `main()` sin argumentos y termina con su código; (4) `pyproject.toml` declara `harness = "harness_agent.bootstrap:main"` (se lee con `tomllib` en la prueba) y la función existe y es invocable. Deben fallar por `main` inexistente y por el script no declarado.
   - **Implementación**: `main(...)` con los valores por omisión reales (`sys.stdin`, `sys.stdout`, `sys.stderr`), `load_config(config_path, environ=environ)`, `compose`, `asyncio.run(run_session(...))`, `close()` en `finally`. `__main__.py`: `from harness_agent.bootstrap import main` / `raise SystemExit(main())` bajo `if __name__ == "__main__":` (o sin guarda, de modo que `runpy` lo ejecute). `[project.scripts]` en `pyproject.toml`.
   - **Verificación**: las pruebas pasan; `pip install -e . --no-deps` no se rompe (mismo `pyproject.toml` válido); cuatro puertas en 0.
-  - **Evidencia**:
+  - **Evidencia**: 2026-10-24: rojo por `ImportError: cannot import name 'main'`; verde con `main()` en `bootstrap.py`, `src/harness_agent/__main__.py`, `[project.scripts]` en `pyproject.toml`, `TestMainHappyPath` (4) en `tests/unit/test_bootstrap_main.py` y `tests/unit/test_entry_point.py` (3). `bootstrap.py` y `__main__.py` al 100 %. Comprobado en un entorno limpio de Python 3.12: `pip install --no-deps .` crea el comando `harness` y arranca. `main` aún no traduce errores (T007); sin configuración muestra la traza de `ConfigFileNotFoundError`.
 
 - [ ] T006 [US1] [US2] Integración con el `AgentLoop` real en `tests/integration/test_bootstrap_session.py`
   - **Archivos**: `tests/integration/test_bootstrap_session.py` (nuevo)

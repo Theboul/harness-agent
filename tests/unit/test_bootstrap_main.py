@@ -10,13 +10,25 @@ from __future__ import annotations
 import io
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 import pytest
 
-from harness_agent.bootstrap import NO_AREA_NOTICE, Composition, run_session
-from harness_agent.core import Event, EventType, PermissionRules, ProviderResponse, Role, ToolCall
+from harness_agent import bootstrap
+from harness_agent.adapters.storage import SessionStoreError, SqliteSessionStore
+from harness_agent.bootstrap import NO_AREA_NOTICE, Composition, main, run_session
+from harness_agent.config import HarnessConfig
+from harness_agent.core import (
+    Event,
+    EventType,
+    PermissionRules,
+    Provider,
+    ProviderResponse,
+    Role,
+    ToolCall,
+)
 from tests.doubles import FakeProvider
-from tests.unit.bootstrap_support import build, make_config, scripted
+from tests.unit.bootstrap_support import SENTINEL, build, make_config, scripted
 
 EXIT_TEXT = "Sesión terminada."
 
@@ -132,3 +144,86 @@ class TestRunSession:
 
         assert code == 0
         assert composition.store.load_session(composition.session_id) == []
+
+
+def write_toml(tmp_path: Path, workspace: Path | None = None) -> Path:
+    lines = ['model = "openai/modelo-de-prueba"', "", "[paths]"]
+    lines.append(f'sessions_db = "{(tmp_path / "datos" / "sesiones.db").as_posix()}"')
+    if workspace is not None:
+        lines.append(f'workspace_root = "{workspace.as_posix()}"')
+    target = tmp_path / "config.toml"
+    target.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="")
+    return target
+
+
+class TestMainHappyPath:
+    def run(
+        self, tmp_path: Path, text: str, provider: Provider | None = None, **kwargs: Any
+    ) -> tuple[int, str, str]:
+        output, error = io.StringIO(), io.StringIO()
+        chosen = provider if provider is not None else scripted("listo")
+        code = main(
+            environ=kwargs.pop("environ", {"OPENAI_API_KEY": SENTINEL}),
+            config_path=write_toml(tmp_path, workspace=tmp_path),
+            input_stream=io.StringIO(text),
+            output=output,
+            provider_factory=lambda _config: chosen,
+            **kwargs,
+        )
+        return code, output.getvalue(), error.getvalue()
+
+    def test_a_valid_configuration_and_slash_exit_return_zero(self, tmp_path: Path) -> None:
+        code, text, _error = self.run(tmp_path, "/salir\n")
+
+        assert code == 0
+        assert EXIT_TEXT in text
+
+    def test_the_session_and_its_events_are_saved(self, tmp_path: Path) -> None:
+        code, _text, _error = self.run(tmp_path, "una tarea\n/salir\n")
+
+        assert code == 0
+        with SqliteSessionStore(tmp_path / "datos" / "sesiones.db") as store:
+            sessions = store.list_sessions()
+            assert len(sessions) == 1
+            assert store.load_session(sessions[0].id) != []
+
+    def test_the_store_is_closed_when_the_command_ends(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        stores: list[SqliteSessionStore] = []
+
+        class RecordingStore(SqliteSessionStore):
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
+                super().__init__(*args, **kwargs)
+                stores.append(self)
+
+        monkeypatch.setattr(bootstrap, "SqliteSessionStore", RecordingStore)
+
+        self.run(tmp_path, "/salir\n")
+
+        assert len(stores) == 1
+        with pytest.raises(SessionStoreError):
+            stores[0].get_session("lo-que-sea")
+
+    def test_the_key_comes_from_the_injected_environment_not_from_the_real_one(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        received: list[HarnessConfig] = []
+
+        def factory(config: HarnessConfig) -> Provider:
+            received.append(config)
+            return scripted("listo")
+
+        code = main(
+            environ={"OPENAI_API_KEY": SENTINEL},
+            config_path=write_toml(tmp_path, workspace=tmp_path),
+            input_stream=io.StringIO("/salir\n"),
+            output=io.StringIO(),
+            provider_factory=factory,
+        )
+
+        assert code == 0
+        assert received[0].key_variable == "OPENAI_API_KEY"
+        assert received[0].api_key is not None
+        assert received[0].api_key.reveal() == SENTINEL
