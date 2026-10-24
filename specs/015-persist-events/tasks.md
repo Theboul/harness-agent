@@ -135,7 +135,7 @@
 
 ## Phase 6: Fronteras, documentación y cierre
 
-- [ ] **T010** API pública, fronteras y documentación (FR-012, FR-017)
+- [x] **T010** API pública, fronteras y documentación (FR-012, FR-017)
   - **Archivos**: `src/harness_agent/adapters/storage/__init__.py`, `tests/unit/adapters/storage/test_public_api.py`, `docs/guia-contratos-desarrollo.md`, `.claude/skills/estructura-carpetas-harness/references/arbol.md`, `.agents/skills/estructura-carpetas-harness/references/arbol.md`
   - **Dependencias**: T009
   - **Criterios relacionados**: FR-012, plan (Project Structure)

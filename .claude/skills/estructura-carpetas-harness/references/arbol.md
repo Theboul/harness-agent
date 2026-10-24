@@ -43,7 +43,7 @@ harness-agent/
 │   ├── adapters/           # implementaciones de los puertos
 │   │   ├── converters/     # formato canónico <-> OpenAI/Anthropic, ConversionEnvelope (HU-07-01)
 │   │   ├── providers/      # (planeado: HU-07-02 litellm_provider; el FakeProvider de HU-00-03 vive en tests/doubles/fake_provider.py)
-│   │   ├── storage/        # SqliteSessionStore: esquema sessions/events y creación de sesión (HU-03-01); planeado: save_event/load_session (HU-03-02)
+│   │   ├── storage/        # SqliteSessionStore: esquema sessions/events, creación de sesión (HU-03-01), save_event/load_session y attach_event_recorder (HU-03-02)
 │   │   ├── tools/          # leer_archivo, escribir_archivo, listar_archivos, buscar_texto (HU-01-03); planeado: shell (HU-01-04), …
 │   │   ├── system/         # WorkspaceArea: AuthorizedArea real (rutas reales, «..», enlaces, reglas de Windows) (HU-01-03)
 │   │   └── mcp/            # (planeado: HU-08-01) cliente MCP por stdio y traducción a Tool

@@ -1,4 +1,4 @@
-"""Public API of ``harness_agent.adapters.storage`` (HU-03-01 / T010)."""
+"""Public API of ``harness_agent.adapters.storage`` (HU-03-01 / T010, HU-03-02 / T010)."""
 
 from __future__ import annotations
 
@@ -6,11 +6,15 @@ import harness_agent.adapters.storage as storage
 
 EXPECTED = {
     "SCHEMA_VERSION",
+    "DuplicateEvent",
+    "EventSerializationError",
     "ParentSessionNotFound",
     "SchemaVersionError",
+    "SessionNotFound",
     "SessionStoreError",
     "SqliteSessionStore",
     "StoredSession",
+    "attach_event_recorder",
 }
 
 

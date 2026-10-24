@@ -69,7 +69,7 @@ class SqliteSessionStore(SessionStore):
 
 #### Sesiones en SQLite (HU-03-01):
 
-`SqliteSessionStore` (en `harness_agent.adapters.storage`) crea el esquema (tablas `sessions` y `events`, versión 1) al abrirse y crea sesiones. **Todavía no hereda de `SessionStore`**: `save_event` y `load_session` llegan con HU-03-02. El puerto tampoco tiene `create_session`, así que esa operación es del adaptador (hallazgo para A, B y C en `PROGRESO.md`).
+`SqliteSessionStore` (en `harness_agent.adapters.storage`) crea el esquema (tablas `sessions` y `events`, versión 1) al abrirse y crea sesiones. Desde HU-03-02 hereda de `SessionStore` (ver más abajo). El puerto no tiene `create_session`, así que esa operación es del adaptador (hallazgo para A, B y C en `PROGRESO.md`).
 
 ```python
 from harness_agent.adapters.storage import SqliteSessionStore
@@ -84,6 +84,26 @@ with SqliteSessionStore(config.paths.sessions_db) as store:   # el directorio se
 - El reloj y el generador de identificadores se pueden inyectar (`clock=`, `id_factory=`) para pruebas deterministas; por defecto UTC y `uuid4`.
 - Errores: `SessionStoreError` (base), `SchemaVersionError` (versión de esquema desconocida; la base no se modifica) y `ParentSessionNotFound`. Los mensajes no reproducen datos de entrada ni rutas.
 - La raíz de composición (`bootstrap.py`, aún inexistente) deberá construirlo con `config.paths.sessions_db`.
+
+#### Persistir eventos (HU-03-02):
+
+`SqliteSessionStore` implementa `save_event` y `load_session`. Cada evento se guarda en su propia transacción durable (`BEGIN IMMEDIATE`, `PRAGMA synchronous = FULL`): un evento confirmado sobrevive a un cierre abrupto del proceso y una escritura cortada no deja la base corrupta.
+
+```python
+from harness_agent.adapters.storage import SqliteSessionStore, attach_event_recorder
+
+with SqliteSessionStore(config.paths.sessions_db) as store:
+    session = store.create_session(goal="Arreglar el ticket 42")   # la sesión debe existir antes del primer evento
+    attach_event_recorder(bus, store)                                # los 17 tipos de evento se guardan al emitirse
+    ...
+    events = store.load_session(session.id)                          # en el orden en que se guardaron
+```
+
+- **Orden**: `load_session` devuelve los eventos por su orden de guardado (`seq` consecutivo por sesión), no por fecha. Una sesión desconocida o sin eventos devuelve `[]`.
+- **Sesión previa obligatoria**: guardar un evento de una sesión inexistente lanza `SessionNotFound` (a diferencia de `InMemorySessionStore`, que la crea al vuelo). Un identificador de evento repetido lanza `DuplicateEvent`.
+- **Contenido JSON**: el `payload` se guarda como JSON. Los tipos no representables (objetos, `bytes`, `NaN`, referencias circulares) lanzan `EventSerializationError` sin tocar la base; las tuplas vuelven como listas.
+- **Errores del bus**: `attach_event_recorder` usa solo los puertos `EventBus` y `SessionStore`. Si el almacén falla, el emisor recibe `EventDeliveryError` con la causa original.
+- **Secretos**: el contenido se guarda sin redactar hasta HU-10-02 (riesgo abierto PD-10 en `PROGRESO.md`).
 
 #### Usar dobles en pruebas de B sin levantar SQLite ni proveedores reales:
 ```python
