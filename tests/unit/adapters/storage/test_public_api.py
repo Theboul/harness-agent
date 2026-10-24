@@ -1,0 +1,23 @@
+"""Public API of ``harness_agent.adapters.storage`` (HU-03-01 / T010)."""
+
+from __future__ import annotations
+
+import harness_agent.adapters.storage as storage
+
+EXPECTED = {
+    "SCHEMA_VERSION",
+    "ParentSessionNotFound",
+    "SchemaVersionError",
+    "SessionStoreError",
+    "SqliteSessionStore",
+    "StoredSession",
+}
+
+
+def test_all_lists_exactly_the_public_names() -> None:
+    assert set(storage.__all__) == EXPECTED
+
+
+def test_every_public_name_is_importable_from_the_package() -> None:
+    for name in EXPECTED:
+        assert hasattr(storage, name), name

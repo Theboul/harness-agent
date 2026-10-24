@@ -23,7 +23,7 @@ from tests.architecture.test_core_reads_no_config import find_config_reads
 
 ADAPTERS_DIR = Path(__file__).resolve().parents[2] / "src" / "harness_agent" / "adapters"
 ROOT_PACKAGE = "harness_agent.adapters"
-GUARDED = ("system", "tools")
+GUARDED = ("system", "tools", "storage")
 STDLIB = set(sys.stdlib_module_names) | {"__future__"}
 CORE_API = "harness_agent.core"
 
@@ -211,3 +211,55 @@ def test_mutation_a_forbidden_import_added_to_a_copy_of_the_real_package_is_caug
 
 def test_the_real_sources_were_not_edited_by_the_mutation() -> None:
     assert "harness_agent.cli" not in (ADAPTERS_DIR / "tools" / "read_file.py").read_text("utf-8")
+
+
+# --- storage (HU-03-01 / T009) -------------------------------------------------------------------
+
+STORAGE_PKG = "harness_agent.adapters.storage"
+CORE_DIR = ADAPTERS_DIR.parent / "core"
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "import sqlite3\n",
+        "import uuid\n",
+        "from harness_agent.core import SessionSummary\n",
+        "from harness_agent.adapters.storage.errors import SessionStoreError\n",
+        "from .errors import SessionStoreError\n",
+    ],
+)
+def test_storage_may_use_sqlite_the_core_api_and_its_own_package(source: str) -> None:
+    assert guarded_imports(source, STORAGE_PKG) == []
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "from harness_agent.adapters.tools import ReadFileTool\n",
+        "from harness_agent.adapters.system import WorkspaceArea\n",
+        "from harness_agent.config import load_config\n",
+        "from harness_agent.core.interfaces.storage import SessionStore\n",
+    ],
+)
+def test_storage_may_not_reach_other_adapters_config_or_core_internals(source: str) -> None:
+    assert guarded_imports(source, STORAGE_PKG) != []
+
+
+def test_storage_does_not_depend_on_the_other_adapters() -> None:
+    for path in (ADAPTERS_DIR / "storage").rglob("*.py"):
+        modules = [m for m, _ in imported_modules(path.read_text("utf-8"), STORAGE_PKG)]
+        others = (f"{ROOT_PACKAGE}.tools", f"{ROOT_PACKAGE}.system", f"{ROOT_PACKAGE}.converters")
+        assert not [m for m in modules if m.startswith(others)], path.name
+
+
+def test_the_core_does_not_import_sqlite3() -> None:
+    """Closes the known gap for the one stdlib I/O module the storage adapter owns."""
+    offenders = [
+        f"{path.relative_to(CORE_DIR)}: {module} at line {line}"
+        for path in sorted(CORE_DIR.rglob("*.py"))
+        for module, line in imported_modules(path.read_text("utf-8"), "harness_agent.core")
+        if module.split(".")[0] == "sqlite3"
+    ]
+
+    assert offenders == []

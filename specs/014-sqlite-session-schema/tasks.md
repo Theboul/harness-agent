@@ -141,7 +141,7 @@
 
 ## Phase 7: Fronteras, documentación y cierre
 
-- [ ] **T009** Guarda de fronteras para `adapters/storage/` (FR-014, FR-015)
+- [x] **T009** Guarda de fronteras para `adapters/storage/` (FR-014, FR-015)
   - **Archivos**: `tests/architecture/test_adapters_boundaries.py`
   - **Dependencias**: T008
   - **Criterios relacionados**: FR-014, FR-015, skill `verificar-fronteras-hexagonales`
@@ -149,7 +149,7 @@
   - **Estimación**: 30 min
   - **Verificación**: `GUARDED` pasa a `("system", "tools", "storage")`; `pytest tests/architecture` pasa; una autoprueba sintética confirma que `sqlite3` es aceptado en `storage` (biblioteca estándar) pero `import harness_agent.config` o `harness_agent.adapters.tools` no; `core/` sigue sin importar `sqlite3` (guarda existente). No se añade ninguna excepción.
 
-- [ ] **T010** API pública del paquete y documentación (FR-014)
+- [x] **T010** API pública del paquete y documentación (FR-014)
   - **Archivos**: `src/harness_agent/adapters/storage/__init__.py`, `docs/guia-contratos-desarrollo.md`, `.claude/skills/estructura-carpetas-harness/references/arbol.md`, `.agents/skills/estructura-carpetas-harness/references/arbol.md`
   - **Dependencias**: T009
   - **Criterios relacionados**: FR-014, plan (Project Structure), CLAUDE.md (skills)

@@ -67,6 +67,24 @@ class SqliteSessionStore(SessionStore):
         ...
 ```
 
+#### Sesiones en SQLite (HU-03-01):
+
+`SqliteSessionStore` (en `harness_agent.adapters.storage`) crea el esquema (tablas `sessions` y `events`, versión 1) al abrirse y crea sesiones. **Todavía no hereda de `SessionStore`**: `save_event` y `load_session` llegan con HU-03-02. El puerto tampoco tiene `create_session`, así que esa operación es del adaptador (hallazgo para A, B y C en `PROGRESO.md`).
+
+```python
+from harness_agent.adapters.storage import SqliteSessionStore
+
+with SqliteSessionStore(config.paths.sessions_db) as store:   # el directorio se crea si falta
+    parent = store.create_session(model="fake/test", goal="Arreglar el ticket 42")
+    child = store.create_session(parent_id=parent.id)         # sesión de subagente
+    assert child.parent_id == parent.id and child.status == "active"
+    store.list_sessions()                                      # list[SessionSummary], más antigua primero
+```
+
+- El reloj y el generador de identificadores se pueden inyectar (`clock=`, `id_factory=`) para pruebas deterministas; por defecto UTC y `uuid4`.
+- Errores: `SessionStoreError` (base), `SchemaVersionError` (versión de esquema desconocida; la base no se modifica) y `ParentSessionNotFound`. Los mensajes no reproducen datos de entrada ni rutas.
+- La raíz de composición (`bootstrap.py`, aún inexistente) deberá construirlo con `config.paths.sessions_db`.
+
 #### Usar dobles en pruebas de B sin levantar SQLite ni proveedores reales:
 ```python
 from tests.doubles import InMemorySessionStore, InMemoryMemoryStore, DummyProvider
