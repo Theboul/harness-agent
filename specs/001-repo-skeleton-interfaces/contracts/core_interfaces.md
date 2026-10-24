@@ -18,6 +18,7 @@ Todas las interfaces del núcleo se definen como Clases Base Abstractas (`abc.AB
     - `tools`: Lista opcional de esquemas de herramientas declaradas en formato canónico.
   - **Salida**: `ProviderResponse` conteniendo `content: str`, `tool_calls: list[ToolCall]` y `usage: TokenUsage`.
   - **Notas**: *[PROVISIONAL - SPK-02]* Firma asíncrona provisional.
+  - **Errores** *(ampliación aditiva de HU-00-03, pendiente del visto bueno de A)*: `ProviderError(Exception)` es la base de los fallos que un proveedor comunica al núcleo, con tres tipos concretos: `QuotaExceeded` (cuota agotada), `ProviderTimeout` (tiempo agotado) y `ProviderUnavailable` (servicio no disponible). Se exportan desde `harness_agent.core`. Los adaptadores reales traducen a ellos los errores de su biblioteca y el núcleo nunca ve una excepción de un SDK; la firma de `complete` no cambia.
 
 ---
 

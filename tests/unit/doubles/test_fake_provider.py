@@ -150,21 +150,34 @@ class TestToolCallIds:
             ProviderResponse(tool_calls=[_call("c1")]),
             ProviderResponse(tool_calls=[_call("c1")]),
         ]
-        with pytest.raises(ValueError, match="c1"):
+        with pytest.raises(ValueError, match=r"paso 1.*repite el id") as raised:
             FakeProvider(script)
+        assert "c1" not in str(raised.value)  # the message does not echo the received value
 
     def test_a_repeated_id_inside_one_step_is_rejected(self) -> None:
-        with pytest.raises(ValueError, match="c1"):
+        with pytest.raises(ValueError, match=r"paso 0.*repite el id") as raised:
             FakeProvider([ProviderResponse(tool_calls=[_call("c1"), _call("c1")])])
+        assert "c1" not in str(raised.value)
 
     def test_an_empty_id_is_rejected(self) -> None:
-        with pytest.raises(ValueError, match="id"):
+        with pytest.raises(ValueError, match="sin id"):
             FakeProvider([ProviderResponse(tool_calls=[_call("")])])
 
     def test_the_message_names_the_step_index(self) -> None:
         script = [_text("a"), ProviderResponse(tool_calls=[_call("")])]
-        with pytest.raises(ValueError, match="step 1"):
+        with pytest.raises(ValueError, match="paso 1"):
             FakeProvider(script)
+
+    def test_validation_messages_are_in_spanish(self) -> None:
+        with pytest.raises(ValueError) as empty_script:
+            FakeProvider([])
+        with pytest.raises(ValueError) as bad_step:
+            FakeProvider([None])  # type: ignore[list-item]
+
+        for raised in (empty_script, bad_step):
+            text = str(raised.value)
+            assert "script" not in text.lower()
+            assert "step" not in text.lower()
 
 
 FAILURES = (QuotaExceeded, ProviderTimeout, ProviderUnavailable)
@@ -263,7 +276,7 @@ class TestFailureSteps:
             QuotaExceeded("cuota"),
             ProviderResponse(tool_calls=[_call("c1")]),
         ]
-        with pytest.raises(ValueError, match="c1"):
+        with pytest.raises(ValueError, match=r"paso 2.*repite el id"):
             FakeProvider(script)
 
     async def test_the_received_arguments_are_recorded_for_a_failed_call(self) -> None:
@@ -282,7 +295,7 @@ class TestExhaustedScript:
         await provider.complete([USER])
         await provider.complete([USER])
         assert provider.exhausted is False
-        with pytest.raises(ScriptExhausted, match="call 3"):
+        with pytest.raises(ScriptExhausted, match="llamada 3"):
             await provider.complete([USER])
 
         assert provider.exhausted is True
@@ -318,7 +331,7 @@ class TestExhaustedScript:
 
 class TestInvalidScript:
     def test_an_empty_script_is_rejected(self) -> None:
-        with pytest.raises(ValueError, match="empty"):
+        with pytest.raises(ValueError, match="vacío"):
             FakeProvider([])
 
     @pytest.mark.parametrize(
@@ -339,7 +352,7 @@ class TestInvalidScript:
     ) -> None:
         script = [_text("ok"), bad_step]
 
-        with pytest.raises(ValueError, match=rf"step 1.*{kind}"):
+        with pytest.raises(ValueError, match=rf"paso 1.*{kind}"):
             FakeProvider(script)  # type: ignore[arg-type]
 
     def test_a_base_provider_error_instance_is_accepted(self) -> None:

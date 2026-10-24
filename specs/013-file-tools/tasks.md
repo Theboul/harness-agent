@@ -263,3 +263,17 @@ T001..T015 → T016 → T017 → T018
 | **Total de tareas de trabajo** | **545** |
 
 Dentro del presupuesto por 235 min; las dos tareas humanas (T017, T018) no se cuentan.
+
+---
+
+## Phase 9: Convergence
+
+**Origen**: `/speckit-converge` del 2026-10-23 sobre `main` (`84fd559`). Trabajo que quedó sin cubrir respecto a la spec, el plan y las reglas de `CLAUDE.md`. Cada tarea sigue las reglas de arriba (pruebas primero cuando toca código, cuatro comandos de calidad en 0, registro en `docs/PROGRESO.md`).
+
+- [x] T019 Añadir `tests/integration/test_sprint1_scripted_file_task.py`: con `FakeProvider` (HU-00-03), las cuatro herramientas, `DefaultPermissionPolicy`, el registro real y el bucle, una tarea guionizada de tres pasos (leer, escribir y releer un archivo del área) termina igual en 20 ejecuciones, con la red externa bloqueada y la escritura fuera del área denegada, per criterio de demostración 1 del Sprint 1 (`docs/03-plan-sprints.md`) y los supuestos de la spec («`FakeProvider` … las pruebas podrán migrar») (missing)
+  - **Archivos**: `tests/integration/test_sprint1_scripted_file_task.py`
+  - **Estimación**: 35 min
+  - **Nota**: sin código de producción nuevo; reutiliza la fixture de red bloqueada de `tests/integration/test_fake_provider_agent_loop.py` sin editarla (se copia o se importa)
+- [x] T020 Añadir al *Constitution Check* de `plan.md` las filas de las *Hard Rules* de `arquitectura-hexagonal-clean`, `estructura-carpetas-harness` y `verificar-fronteras-hexagonales`, con su evidencia (hoy se cubren en «Verificación contra las skills») per `CLAUDE.md` «Flujo Spec Kit» (partial)
+  - **Archivos**: `specs/013-file-tools/plan.md`
+  - **Estimación**: 20 min

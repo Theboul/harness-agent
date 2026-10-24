@@ -63,6 +63,9 @@ El resto es verificación: pruebas unitarias, de contrato y de integración con 
 | VIII. Registro en `docs/PROGRESO.md` | `En curso` y `En revisión` con registro | Pasa | Pasa | Primera y última tarea |
 | IX. Definition of Done estricta | Revisión cruzada y CI | Pasa | Pasa | Tareas humanas: visto bueno de A al puerto y CI en ambos sistemas; HU-00-01 pendiente |
 | X. Inmutabilidad de `docs/archivo/` | No se toca | Pasa | Pasa | `git diff` de cierre |
+| Skill `arquitectura-hexagonal-clean` (Hard Rules) | Dependencias hacia el núcleo; `core/` solo con biblioteca estándar; puertos `ABC` con tipos y errores del dominio; errores externos traducidos a errores de dominio; inyección por constructor; falla cerrada | Pasa | Pasa | Las cuatro excepciones viven en el puerto sin importaciones nuevas; `FakeProvider` recibe el guion por constructor y no toca red ni disco; `Provider.complete` no cambia (sección «Verificación contra las skills», lista de comprobación) |
+| Skill `estructura-carpetas-harness` (Hard Rules) | Cada archivo en la carpeta de su fila; lo público exportado en `core/__init__.py`; pruebas en la carpeta equivalente de `tests/`; dobles solo si la spec lo justifica | Pasa | Pasa | Errores en `core/interfaces/provider.py` con su exportación; doble en `tests/doubles/` (la spec lo justifica); pruebas en `tests/unit`, `tests/contracts`, `tests/integration` y `tests/architecture` (tabla «Ruta elegida») |
+| Skill `verificar-fronteras-hexagonales` (Hard Rules) | Guardas `ast` en `tests/architecture/`; ninguna excepción ni lista blanca para que una violación pase; `core/` sin `adapters`, `cli`, `config` ni terceros | Pasa | Pasa | `tests/architecture/test_provider_errors_boundaries.py` (T009) y `pytest tests/architecture` en verde; ninguna guarda se relajó |
 
 No hay violaciones; la sección de complejidad no aplica.
 

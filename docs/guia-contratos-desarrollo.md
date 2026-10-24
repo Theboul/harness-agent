@@ -22,6 +22,10 @@ from harness_agent.core import (
     # Contratos abstractos
     Provider,
     ProviderResponse,
+    ProviderError,        # fallos de proveedor: base de los tres siguientes
+    QuotaExceeded,
+    ProviderTimeout,
+    ProviderUnavailable,
     Tool,
     ToolRegistry,
     RiskLevel,
