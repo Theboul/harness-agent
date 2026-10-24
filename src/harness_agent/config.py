@@ -30,13 +30,23 @@ ENV_CONFIG_LOCATION = "HARNESS_CONFIG"
 DEFAULT_CONFIG_FILE = "config.toml"
 
 # Provider -> environment variable that holds its API key (``None``: the provider needs none).
-# Provisional: HU-07-02 and HU-07-03 will extend it. A provider that is not here is rejected.
+# This is the only place that knows provider names. HU-07-02 added the providers with a free tier
+# or a local server (``gemini``, ``groq``, ``openrouter``, ``ollama``); HU-07-03 may extend it. A
+# provider that is not here is rejected.
 PROVIDER_KEY_VARIABLES: Mapping[str, str | None] = MappingProxyType(
-    {"anthropic": "ANTHROPIC_API_KEY", "fake": None, "openai": "OPENAI_API_KEY"}
+    {
+        "anthropic": "ANTHROPIC_API_KEY",
+        "fake": None,
+        "openai": "OPENAI_API_KEY",
+        "gemini": "GEMINI_API_KEY",
+        "groq": "GROQ_API_KEY",
+        "openrouter": "OPENROUTER_API_KEY",
+        "ollama": None,
+    }
 )
 
 _DEFAULT_SESSIONS_DB = Path(".harness") / "sessions.db"
-_LIMIT_FIELDS = ("max_turns", "max_seconds", "max_tokens")
+_LIMIT_FIELDS = ("max_turns", "max_seconds", "max_tokens", "max_output_tokens")
 _PATH_FIELDS = ("workspace_root", "sessions_db")
 _PERMISSION_FIELDS = ("deny", "ask")
 _MISSING_FIELD = "falta el campo obligatorio."
@@ -257,11 +267,17 @@ class MissingKeyError(ConfigError):
 
 @dataclass(frozen=True, slots=True)
 class Limits:
-    """Limits per session (reserved for HU-01-06): turns, seconds and tokens."""
+    """Limits per session (reserved for HU-01-06): turns, seconds and tokens.
+
+    ``max_tokens`` is the token budget of the whole run. ``max_output_tokens`` (HU-07-02) is the
+    cap of the tokens the model may generate in one call; the default is low enough for providers
+    with a small cap, such as free tiers. They are independent: one is never used as the other.
+    """
 
     max_turns: int = 30
     max_seconds: int = 600
     max_tokens: int = 200000
+    max_output_tokens: int = 4096
 
 
 @dataclass(frozen=True, slots=True)

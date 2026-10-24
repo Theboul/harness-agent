@@ -6,8 +6,10 @@
 # Este archivo NO lleva claves de API: las claves se definen solo en variables de entorno
 # (vea .env.example). Un campo con aspecto de clave o de secreto se rechaza al arrancar.
 
-# Modelo en uso, con la forma <proveedor>/<modelo>. Proveedores admitidos: anthropic, fake y openai.
-# "fake/test" es el proveedor simulado: no necesita clave ni red.
+# Modelo en uso, con la forma <proveedor>/<modelo>. Proveedores admitidos: anthropic, fake, gemini,
+# groq, ollama, openai y openrouter.
+# "fake/test" es el proveedor simulado: no necesita clave ni red. "ollama/..." usa un servidor local
+# y tampoco necesita clave.
 model = "fake/test"
 
 [limits]
@@ -17,6 +19,10 @@ max_turns = 30
 max_seconds = 600
 # Máximo de tokens de una ejecución (entero mayor que 0).
 max_tokens = 200000
+# Máximo de tokens que el modelo puede generar en UNA llamada (entero mayor que 0; por defecto 4096,
+# válido también para proveedores de tope bajo). No es lo mismo que max_tokens, que es el
+# presupuesto de toda la ejecución. Descomente y ajuste la línea para cambiarlo.
+# max_output_tokens = 4096
 
 [paths]
 # Ruta de la base de datos de sesiones. Una ruta relativa se interpreta respecto a la carpeta de

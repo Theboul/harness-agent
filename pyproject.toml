@@ -23,6 +23,9 @@ dev = [
     "mypy>=1.9.0",
     "ruff>=0.9.0",
 ]
+# Model provider adapter (HU-07-02). Optional: the harness runs without it. The same version is
+# pinned in requirements-dev.txt, which is what the CI installs.
+litellm = ["litellm[mcp]==1.106.2"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
