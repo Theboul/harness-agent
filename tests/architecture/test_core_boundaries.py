@@ -8,6 +8,7 @@ heavy agent frameworks (RNF-12, AC-02, SC-002, Principio III).
 from __future__ import annotations
 
 import ast
+import sys
 from pathlib import Path
 
 FORBIDDEN_PACKAGES = {
@@ -21,6 +22,8 @@ FORBIDDEN_PACKAGES = {
     "llama_index",
     "cohere",
     "mistralai",
+    "mcp",
+    "sqlite3",
 }
 
 
@@ -64,11 +67,12 @@ def test_core_does_not_import_vendor_sdks() -> None:
 
 
 def test_core_dependencies_are_standard_library_only() -> None:
-    """Verify that core modules only import from standard library or sibling core packages."""
+    """Whitelist: every absolute import in core/ is stdlib, harness_agent or __future__."""
     core_dir = Path(__file__).resolve().parents[2] / "src" / "harness_agent" / "core"
     python_files = list(core_dir.rglob("*.py"))
+    assert python_files, f"No core Python files found at {core_dir}"
 
-    allowed_roots = {"harness_agent", "__future__"}
+    allowed_roots = set(sys.stdlib_module_names) | {"harness_agent", "__future__"}
 
     disallowed_external: list[str] = []
 
@@ -78,14 +82,15 @@ def test_core_dependencies_are_standard_library_only() -> None:
             if isinstance(node, ast.Import):
                 for alias in node.names:
                     root = alias.name.split(".")[0]
-                    if root not in allowed_roots and root in FORBIDDEN_PACKAGES:
+                    if root not in allowed_roots:
                         disallowed_external.append(
                             f"{file_path.name}:{node.lineno} -> {alias.name}"
                         )
             elif isinstance(node, ast.ImportFrom):
-                if node.module:
+                # Relative imports (level > 0) stay inside the package.
+                if node.level == 0 and node.module:
                     root = node.module.split(".")[0]
-                    if root not in allowed_roots and root in FORBIDDEN_PACKAGES:
+                    if root not in allowed_roots:
                         disallowed_external.append(
                             f"{file_path.name}:{node.lineno} -> {node.module}"
                         )
