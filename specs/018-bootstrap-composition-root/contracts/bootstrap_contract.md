@@ -49,6 +49,10 @@ def main(
 
 Los valores `None` significan «el real»: `sys.stdin`, `sys.stdout`, `sys.stderr`, `os.environ` (vía `load_config`), reloj UTC e identificadores `uuid4` (vía el almacén), `LiteLLMProvider` para el proveedor.
 
+## Imports permitidos de `bootstrap.py`
+
+Solo biblioteca estándar, `harness_agent.core` (nombres de `__all__`), `harness_agent.config`, `harness_agent.cli` y la API pública de `harness_agent.adapters.storage`, `.system` y `.tools`. Dos submódulos están **autorizados de forma explícita** porque no existe vía pública: `harness_agent.core.loop` (`AgentLoop`) y `harness_agent.adapters.providers.litellm_provider` (`LiteLLMProvider`, `ProviderDependencyError`). La guarda `test_bootstrap_boundaries.py` rechaza cualquier otro submódulo.
+
 ## Comando
 
 | Forma | Efecto |

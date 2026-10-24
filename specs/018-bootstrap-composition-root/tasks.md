@@ -16,7 +16,7 @@
 
 **Reglas que valen para todas las tareas:**
 - **Archivos protegidos**: no modificar `src/harness_agent/core/interfaces/`, `core/events.py`, `core/loop.py`, `core/in_memory_event_bus.py`, `cli/`, `tests/doubles/`, ninguna prueba existente ni `docs/archivo/`. Tampoco `.github/workflows/ci.yml`. Los únicos archivos existentes que se tocan son `pyproject.toml` (solo `[project.scripts]`), `CLAUDE.md`, las skills (ambas copias) y `docs/PROGRESO.md`.
-- `core/` no se toca. `bootstrap.py` es el único módulo que conoce a la vez núcleo, adaptadores, CLI y configuración; importa de los paquetes públicos (`harness_agent.core`, `harness_agent.adapters.providers`, `.storage`, `.system`, `.tools`, `harness_agent.cli`, `harness_agent.config`), nunca de submódulos. No lee `os.environ`, no usa `print`, `input` ni `sys.stdout` directamente: escribe en los flujos inyectados (el valor por omisión `sys.stdout`/`sys.stderr` se resuelve en `main`). Python 3.12, `mypy --strict`, `ruff` a 100 columnas. Identificadores y docstrings en inglés; mensajes al usuario en español.
+- `core/` no se toca. `bootstrap.py` es el único módulo que conoce a la vez núcleo, adaptadores, CLI y configuración; importa de la API pública (`harness_agent.core`, `harness_agent.adapters.storage`, `.system`, `.tools`, `harness_agent.cli`, `harness_agent.config`) y, **solo estos dos submódulos autorizados** por no tener vía pública, de `harness_agent.core.loop` (`AgentLoop`) y `harness_agent.adapters.providers.litellm_provider` (`LiteLLMProvider`, `ProviderDependencyError`). Cualquier otro submódulo es una violación. No lee `os.environ`, no usa `print`, `input` ni `sys.stdout` directamente: escribe en los flujos inyectados (el valor por omisión `sys.stdout`/`sys.stderr` se resuelve en `main`). Python 3.12, `mypy --strict`, `ruff` a 100 columnas. Identificadores y docstrings en inglés; mensajes al usuario en español.
 - Contratos y decisiones: [contracts/bootstrap_contract.md](contracts/bootstrap_contract.md), [data-model.md](data-model.md), [research.md](research.md) y [plan.md](plan.md).
 - **Aislamiento**: ninguna prueba usa red ni claves reales. Las de integración importan la fixture `blocked_network` de `tests/integration/test_fake_provider_agent_loop.py` (con `# noqa: F401`, como `test_sprint1_scripted_file_task.py`). El proveedor de prueba entra por `provider_factory` con `FakeProvider` o una clase mínima local; la base es `:memory:` o `tmp_path`.
 - **Sin literales detectables**: usar `VALOR-DE-PRUEBA-123` como centinela de la clave; no asignar valores largos a nombres tipo `secret`, `token`, `password` (`tests/architecture/test_no_secrets_in_repo.py`).
@@ -54,7 +54,7 @@
   - **Dependencias**: T001
   - **Criterios relacionados**: Principio V
   - **Estimación**: fuera del presupuesto de Claude
-  - **Verificación**: El PO acepta o reemplaza los tres criterios y asigna un ID de historia (o decide dejarla como tarea técnica); se anota fecha y decisión. **No bloquea** T003 a T011; **bloquea** pasar de `En revisión` a `Hecha`.
+  - **Verificación**: El PO acepta o reemplaza los tres criterios y asigna un ID de historia (o decide dejarla como tarea técnica); se anota fecha y decisión. **No bloquea** T003 a T009; conviene tenerla **antes de T010**: si el PO aún no respondió, T010 deja los AC marcados como «propuestos» y T011 lo informa. **Bloquea** pasar de `En revisión` a `Hecha`.
   - **Evidencia**:
 
 ---
@@ -86,7 +86,7 @@
   - **Dependencias**: T003
   - **Criterios relacionados**: FR-006, FR-007, FR-013; Historia 1 (escenarios 2, 4 y 5)
   - **Estimación**: 30 min
-  - **Pruebas primero**: con `StringIO` de entrada y salida y un proveedor que registra los mensajes que recibe: (1) los avisos de `notices` se escriben **antes** del primer prompt; (2) la segunda tarea llega al proveedor con el historial de la primera (el historial crece entre líneas); (3) `/salir` y fin de entrada devuelven 0; (4) un turno que lanza una excepción ordinaria devuelve 1 (lo decide `run_cli`); (5) una acción que pide aprobación se deniega con `[approval_required_unavailable]` en lo que recibe el modelo. Deben fallar con `AttributeError`/`ImportError` de `run_session`.
+  - **Pruebas primero**: con `StringIO` de entrada y salida y un proveedor que registra los mensajes que recibe: (1) los avisos de `notices` se escriben **antes** del primer prompt; (2) la segunda tarea llega al proveedor con el historial de la primera (el historial crece entre líneas); (3) `/salir` y fin de entrada devuelven 0; (4) un turno que lanza una excepción ordinaria devuelve 1 (lo decide `run_cli`); (5) una acción que pide aprobación se deniega con `[approval_required_unavailable]` en lo que recibe el modelo (se provoca con `config.permissions.ask = ("leer_archivo",)`, sin tocar la política); (6) la entrada se cierra antes de la primera tarea → código 0 y ningún evento guardado en la sesión. Deben fallar con `AttributeError`/`ImportError` de `run_session`.
   - **Implementación**: `run_session(composition, *, input_stream=None, output=None)`: lista `history` propia de la sesión, `run_turn(task)` que llama a `composition.loop.run_turn(session_id=…, task=…, history=history)`, escritura de avisos y `return await run_cli(composition.bus, run_turn, input_stream=…, output=…)`.
   - **Verificación**: las pruebas pasan; `cli/` no se modifica (`git diff` limpio).
   - **Evidencia**:
@@ -106,7 +106,7 @@
   - **Dependencias**: T005
   - **Criterios relacionados**: AC-P1, AC-P2; Historia 1 (escenarios 1 a 4), Historia 2 (escenarios 1 y 2); SC-002, SC-005
   - **Estimación**: 40 min
-  - **Pruebas primero** (la composición real con `FakeProvider`, `blocked_network` y base en `tmp_path`; fallan mientras falte algún cableado): (1) tarea «crea `notas.txt`» → el archivo existe dentro del área, la salida contiene la solicitud y el resultado de la herramienta y el código es 0; (2) **SC-002**: los eventos guardados en la base (en orden y con un solo `session_id`) coinciden en número y tipos con los que se mostraron; (3) segunda tarea que usa lo de la primera → el historial se conserva; (4) escritura fuera del área → denegada y el archivo no existe (**SC-005**); (5) acción que pide aprobación → denegada con motivo; (6) `QuotaExceeded` a mitad de tarea → la sesión sigue y el error se muestra; (7) interrupción: la tarea de `run_session` se cancela con una llamada al proveedor en espera → el evento `INTERRUPTED` queda guardado y la base se puede cerrar; (8) sin `workspace_root` → aviso y `[sin_area]` al intentar escribir.
+  - **Pruebas primero** (la composición real con `FakeProvider`, `blocked_network` y base en `tmp_path`; fallan mientras falte algún cableado): (1) tarea «crea `notas.txt`» → el archivo existe dentro del área, la salida contiene la solicitud y el resultado de la herramienta y el código es 0; (2) **SC-002**: los eventos guardados en la base (en orden y con un solo `session_id`) coinciden en número y tipos con los que se mostraron; (3) segunda tarea que usa lo de la primera → el historial se conserva; (4) escritura fuera del área → denegada y el archivo no existe (**SC-005**); (5) acción que pide aprobación (con `config.permissions.ask = ("leer_archivo",)`) → denegada con motivo; (6) `QuotaExceeded` a mitad de tarea → la sesión sigue y el error se muestra; (7) interrupción: la tarea de `run_session` se cancela con una llamada al proveedor en espera → el evento `INTERRUPTED` queda guardado y la base se puede cerrar (esta es la ruta de cancelación que produce una señal real; la señal en sí solo se ve a mano en T015); (8) sin `workspace_root` → aviso y `[sin_area]` al intentar escribir.
   - **Verificación**: pasan sin cambios en `src/`; `rm -f .coverage*` antes de confirmar.
   - **Evidencia**:
 
@@ -119,7 +119,7 @@
   - **Dependencias**: T005
   - **Criterios relacionados**: FR-002, FR-008, FR-009, FR-010; AC-P3; SC-003, SC-007
   - **Estimación**: 40 min
-  - **Pruebas primero** (cada caso verifica: código 2, **una sola línea** en el flujo de errores, prefijo «No se pudo iniciar: », ninguna traza y que el centinela no aparece en ninguna salida): (1) archivo de configuración inexistente; (2) campo inválido; (3) clave escrita en el archivo; (4) falta la variable de la clave (el mensaje nombra la variable, no su valor); (5) `provider_factory` que lanza `ProviderDependencyError` (el mensaje incluye el comando de instalación); (6) base de datos inutilizable (`sessions_db` apunta a un archivo que no es una base, o a un esquema desconocido) → mensaje del almacén y la base no se modifica; (7) excepción no prevista en `compose` → «error inesperado (Tipo).» sin el texto de la excepción (se usa un mensaje con el centinela y se comprueba que no sale); (8) `KeyboardInterrupt` lanzado por el proveedor/entrada → código 130, almacén cerrado, sin traza; (9) **FR-009**: los cuatro códigos (0, 1, 2, 130) son distintos entre sí. Deben fallar porque `main` aún deja subir las excepciones.
+  - **Pruebas primero** (cada caso verifica: código 2, **una sola línea** en el flujo de errores, prefijo «No se pudo iniciar: », ninguna traza y que el centinela no aparece en ninguna salida): (1) archivo de configuración inexistente; (2) campo inválido; (3) clave escrita en el archivo; (4) falta la variable de la clave (el mensaje nombra la variable, no su valor); (5) `provider_factory` que lanza `ProviderDependencyError` (el mensaje incluye el comando de instalación); (6) base de datos inutilizable (`sessions_db` apunta a un archivo que no es una base, o a un esquema desconocido) → mensaje del almacén y la base no se modifica; (7) excepción no prevista en `compose` → «error inesperado (Tipo).» sin el texto de la excepción (se usa un mensaje con el centinela y se comprueba que no sale); (8) `KeyboardInterrupt` lanzado por el proveedor/entrada → código 130, almacén cerrado, sin traza (no pasa por la cancelación del bucle, así que **no** produce `INTERRUPTED`; la cadena completa señal → cancelación → `INTERRUPTED` → 130 se verifica a mano en T015); (9) **FR-009**: los cuatro códigos (0, 1, 2, 130) son distintos entre sí. Deben fallar porque `main` aún deja subir las excepciones.
   - **Implementación**: `EXIT_STARTUP = 2`, `EXIT_INTERRUPTED = 130`, función `_one_line(text)`, captura de `ConfigError`, `ProviderDependencyError`, `SessionStoreError` y `Exception` genérica **solo** en la fase de arranque (no dentro de la sesión), y de `KeyboardInterrupt` alrededor de `asyncio.run`.
   - **Verificación**: las pruebas pasan; **`bootstrap.py` y `__main__.py` al 100 % de líneas y ramas** (`--cov-report=term-missing`); cuatro puertas en 0.
   - **Evidencia**:
@@ -142,7 +142,7 @@
   - **Dependencias**: T005 (necesita `bootstrap.py` y `__main__.py`)
   - **Criterios relacionados**: FR-011, FR-014; Historia 4 (escenario 2)
   - **Estimación**: 40 min
-  - **Pruebas primero** (autopruebas con fragmentos sintéticos y prueba de mutación sobre copias en `tmp_path`, como `test_cli_boundaries.py`; reutilizar `forbidden_imports`/`find_config_reads`/`terminal_uses`, no copiarlos): (a) nada en `core/`, `cli/`, `adapters/` ni `config.py` importa `harness_agent.bootstrap` ni `harness_agent.__main__`; (b) `bootstrap.py` solo importa stdlib, `harness_agent.core`, `harness_agent.config`, `harness_agent.cli` y la API pública de cada paquete de `adapters` (nunca un submódulo, y los nombres existen en `__all__`); (c) `bootstrap.py` no lee `os.environ`/`os.getenv` ni usa `print`/`input`/`sys.stdout` como llamada directa; (d) `__main__.py` solo importa `bootstrap` (y `sys` si lo necesita); (e) `bootstrap.py` es el único módulo de `src/` que importa a la vez `core`, `adapters`, `cli` y `config`.
+  - **Pruebas primero** (autopruebas con fragmentos sintéticos y prueba de mutación sobre copias en `tmp_path`, como `test_cli_boundaries.py`; reutilizar `forbidden_imports`/`find_config_reads`/`terminal_uses`, no copiarlos): (a) `config.py` no importa `harness_agent.bootstrap` y nada importa `harness_agent.__main__` (que `core/`, `cli/` y `adapters/` no importen `bootstrap` ya lo vigilan las guardas existentes: no se duplica); (b) `bootstrap.py` solo importa stdlib, `harness_agent.core` (nombres de `__all__`), `harness_agent.config`, `harness_agent.cli` y la API pública (`__all__`) de `adapters.storage`, `.system` y `.tools`, **más solo los dos submódulos autorizados** `harness_agent.core.loop` y `harness_agent.adapters.providers.litellm_provider`; cualquier otro submódulo falla (con autoprueba que lo demuestra); (c) `bootstrap.py` no lee `os.environ`/`os.getenv` ni usa `print`/`input`/`sys.stdout` como llamada directa; (d) `__main__.py` solo importa `bootstrap` (y `sys` si lo necesita); (e) `bootstrap.py` es el único módulo de `src/` que importa a la vez `core`, `adapters`, `cli` y `config`.
   - **Verificación**: `pytest tests/architecture` en verde con la guarda nueva; se informa qué reglas cubre, ningún archivo viola una regla y no se añadió ninguna excepción a las guardas existentes.
   - **Evidencia**:
 
@@ -152,7 +152,7 @@
 
 - [ ] T010 Documentación de cierre: `CLAUDE.md`, skills (ambas copias) y `docs/PROGRESO.md`
   - **Archivos**: `CLAUDE.md`, `.claude/skills/estructura-carpetas-harness/references/arbol.md`, `.claude/skills/verificar-fronteras-hexagonales/SKILL.md`, sus copias idénticas en `.agents/skills/`, `docs/PROGRESO.md`
-  - **Dependencias**: T007, T008, T009
+  - **Dependencias**: T007, T008, T009 (y, si es posible, la respuesta del PO en T002)
   - **Criterios relacionados**: Principio VIII; regla «las skills describen el código real»; PD-08
   - **Estimación**: 40 min
   - **Verificación**: `CLAUDE.md`: fila nueva en «Qué existe hoy» (`bootstrap.py`, `__main__.py`, comando), se retira «`bootstrap.py` aún no existe» y «raíz de composición ni punto de entrada ejecutable» de «Aún no hay», el diagrama de arquitectura pierde el «aún no existe», la numeración de specs pasa a «existen 001–018, falta 008; la siguiente es 019». `arbol.md` quita «(planeado)» de `bootstrap.py` y añade `__main__.py`; la skill de fronteras añade `test_bootstrap_boundaries.py` a la tabla de guardas. Las dos copias de cada skill quedan idénticas (`diff -r` sin diferencias). `PROGRESO.md`: fila → `En revisión` con archivos y evidencia reales, PD-08 marcada como resuelta (dueño C, historia propuesta), bloque de observaciones con los 9 hallazgos del plan y una línea por tarea en el Registro de cambios; tabla *Resumen* intacta.
@@ -199,7 +199,7 @@ T002 (humana) puede ocurrir en cualquier momento; bloquea solo `Hecha`
 | **Total de Claude** | **340 min (≈ 5,7 h)** |
 | Presupuesto asignado por el PO | 180 min (3 h) |
 
-La estimación es **1,9 veces** el presupuesto (el patrón se repite en HU-00-03, HU-01-03 y HU-06-01). Para volver a 3 h habría que quitar la prueba de interrupción de T006 (20 min) y fusionar T008 con T006 (20 min), sin llegar. Se avisa a C y al PO en `PROGRESO.md` (T001) en lugar de recortar pruebas que protegen AC-P2 y AC-P3.
+La estimación es **1,9 veces** el presupuesto (el plan lo repite en «Scale/Scope») (el patrón se repite en HU-00-03, HU-01-03 y HU-06-01). Para volver a 3 h habría que quitar la prueba de interrupción de T006 (20 min) y fusionar T008 con T006 (20 min), sin llegar. Se avisa a C y al PO en `PROGRESO.md` (T001) en lugar de recortar pruebas que protegen AC-P2 y AC-P3.
 
 ## Cobertura de los requisitos
 
@@ -219,6 +219,9 @@ La estimación es **1,9 veces** el presupuesto (el patrón se repite en HU-00-03
 | FR-012 todo inyectable | T003, T005, T008 |
 | FR-013 aprobación denegada con motivo | T004, T006 |
 | FR-014 único importador de las cuatro capas | T009 |
+| Caso límite: entrada cerrada antes de la primera tarea | T004 |
+| Caso límite: dos ejecuciones sobre la misma base | fuera de esta historia: lo cubre HU-03-02 (almacén) |
+| Caso límite: terminal que no codifica los caracteres | fuera de esta historia: lo cubre HU-06-01 (`cli/`) |
 | SC-001 un solo comando | T005, T015 |
 | SC-002 eventos guardados = mostrados | T006 |
 | SC-003 una línea, código ≠ 0, sin clave | T007 |

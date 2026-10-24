@@ -12,7 +12,7 @@ Un único módulo, `src/harness_agent/bootstrap.py`, une las piezas que ya exist
 
 **Language/Version**: Python 3.12 (`>=3.12,<3.13`), tipado estricto (`mypy --strict`)
 
-**Primary Dependencies**: biblioteca estándar, `harness_agent.core`, `harness_agent.config`, `harness_agent.cli` y los paquetes públicos de `harness_agent.adapters` (`providers`, `storage`, `system`, `tools`); **sin dependencias nuevas** (`litellm` sigue siendo el extra opcional de HU-07-02)
+**Primary Dependencies**: biblioteca estándar, `harness_agent.core`, `harness_agent.config`, `harness_agent.cli` y la API pública de `harness_agent.adapters.storage`, `.system` y `.tools`; dos imports de submódulo, **autorizados de forma explícita** porque no tienen otra vía pública: `harness_agent.core.loop` (`AgentLoop` no está en `core.__all__`) y `harness_agent.adapters.providers.litellm_provider` (`providers/__init__.py` solo tiene docstring por regla de `test_providers_boundaries.py`); **sin dependencias nuevas** (`litellm` sigue siendo el extra opcional de HU-07-02)
 
 **Storage**: la base SQLite de HU-03-01/02 (ruta de `paths.sessions_db`); esta historia no cambia el esquema
 
@@ -26,7 +26,7 @@ Un único módulo, `src/harness_agent/bootstrap.py`, une las piezas que ya exist
 
 **Constraints**: no cambiar `core/interfaces/`, `core/events.py`, `core/loop.py`, `core/in_memory_event_bus.py`, `cli/` ni `tests/doubles/`; la clave llega solo de `Secret` y nunca se imprime; `bootstrap.py` no lee `os.environ` por su cuenta (lo recibe); ningún mensaje de arranque reproduce valores recibidos
 
-**Scale/Scope**: 2 módulos nuevos (`bootstrap.py` ≈ 200 líneas, `__main__.py` 3 líneas), 1 cambio de `pyproject.toml` (`[project.scripts]`), 1 guarda de arquitectura, ≈ 5 archivos de prueba; 3 h de presupuesto (decisión del PO, Sprint 1, área C)
+**Scale/Scope**: 2 módulos nuevos (`bootstrap.py` ≈ 200 líneas, `__main__.py` 3 líneas), 1 cambio de `pyproject.toml` (`[project.scripts]`), 1 guarda de arquitectura, ≈ 5 archivos de prueba; 3 h de presupuesto (decisión del PO, Sprint 1, área C). **La estimación de `tasks.md` es 340 min (≈ 5,7 h, 1,9 veces el presupuesto)**: el PO acepta el exceso o recorta alcance al implementar (aviso de capacidad en `PROGRESO.md`)
 
 ## Constitution Check
 
@@ -35,7 +35,7 @@ Un único módulo, `src/harness_agent/bootstrap.py`, une las piezas que ya exist
 | Principio / regla | Cumplimiento |
 |---|---|
 | I — una historia por spec | una sola historia propuesta (`HU-00-08` provisional); `specs/018-…` |
-| II — microtareas de 15–40 min | ver «Descomposición prevista» (9 tareas, ninguna > 40 min) |
+| II — microtareas de 15–40 min | `tasks.md`: 15 tareas (7 con código), ninguna > 40 min |
 | III — Python 3.12, modular, tipado | funciones pequeñas con dependencias por parámetro, `mypy --strict`, docstrings en inglés |
 | IV — pruebas, calidad y CI en dos SO | cuatro puertas + `pytest tests/architecture`; `ci.yml` no cambia |
 | V — criterios inmutables | no se toca ningún criterio existente; AC-P1 a AC-P3 son nuevos y quedan marcados «propuestos» hasta que el PO los ratifique |
@@ -108,7 +108,7 @@ specs/018-bootstrap-composition-root/
 | `src/harness_agent/__main__.py` (nuevo) | «Unir piezas…» (entrada del paquete; delega todo en `bootstrap.main`) | 3 líneas, sin lógica |
 | `pyproject.toml` (cambio) | Tocar `pyproject.toml` activa la skill de fronteras | `[project.scripts] harness = "harness_agent.bootstrap:main"`; sin dependencias nuevas |
 | `tests/unit/test_bootstrap_compose.py` (nuevo) | «Pruebas» de `arbol.md`: módulos de la raíz del paquete van en `tests/unit/` (como `test_config_*`) | cableado, orden, fallos que cierran el almacén |
-| `tests/unit/test_bootstrap_main.py` (nuevo) | idem | errores de arranque, códigos de salida, interrupción, secretos |
+| `tests/unit/test_bootstrap_main.py` (nuevo) | idem | `run_session` (historial, avisos), `main()` feliz, errores de arranque, códigos de salida, interrupción, secretos |
 | `tests/unit/test_entry_point.py` (nuevo) | idem | `__main__` y el comando declarado en `pyproject.toml` |
 | `tests/integration/test_bootstrap_session.py` (nuevo) | «integración con el `AgentLoop` real» | historias 1, 2 y 4; 20 ejecuciones idénticas; guardia de red |
 | `tests/architecture/test_bootstrap_boundaries.py` (nuevo) | guarda `ast` de la frontera nueva (skill de fronteras) | ver «Diseño» §6 |
@@ -124,7 +124,7 @@ No se crea ninguna carpeta nueva, ningún puerto ni ningún adaptador. **Archivo
 3. **`run_session(composition, *, input_stream, output) -> int`**: crea el `history` de la sesión, define `run_turn(task)` que llama a `loop.run_turn(session_id=…, task=…, history=history)` (el historial se conserva entre líneas, FR-006), escribe los avisos y delega en `run_cli`. Devuelve su código (0 o 1).
 4. **`main(*, environ=None, config_path=None, input_stream=None, output=None, error=None, provider_factory=None, clock=None, id_factory=None) -> int`**: `load_config` → `compose` → `asyncio.run(run_session(...))` → `close()`. Traduce a una línea en `error` los fallos de arranque conocidos (`ConfigError` y subclases, `ProviderDependencyError`, `SessionStoreError`) con código **2**; cualquier otra excepción de arranque se reduce a «error inesperado (Tipo)». `KeyboardInterrupt` → **130**, base cerrada, sin traza. El comando `harness` y `python -m harness_agent` llaman a `main()` sin argumentos.
 5. **Proveedor por defecto**: `LiteLLMProvider(config.model, max_output_tokens=config.limits.max_output_tokens, api_key=config.api_key)`. `FakeProvider` vive en `tests/doubles/` y **no** se importa desde `src/`; un modelo `fake/…` no tiene tratamiento especial (se documenta como hallazgo).
-6. **Guarda de fronteras**: (a) nada en `core/`, `cli/`, `adapters/` ni `config.py` importa `harness_agent.bootstrap` ni `__main__`; (b) `bootstrap.py` solo importa stdlib, `harness_agent.core` (nombres públicos), `harness_agent.config`, `harness_agent.cli` y la API pública de cada paquete de `adapters` (nunca submódulos); (c) `bootstrap.py` no lee `os.environ`/`os.getenv`, no usa `print`/`input` ni `sys.stdout`; (d) `__main__.py` solo importa `bootstrap` y `sys`; (e) es el único módulo de `src/` que importa a la vez `core`, `adapters`, `cli` y `config` (FR-014). Detectores reutilizados de las guardas existentes, con autoprueba sobre fragmentos sintéticos.
+6. **Guarda de fronteras**: (a) `config.py` no importa `bootstrap` y nada importa `__main__` (que `core/`, `cli/` y `adapters/` no importan `bootstrap` ya lo vigilan `test_core_no_terminal.py`, `test_cli_boundaries.py`, `test_adapters_boundaries.py` y `test_providers_boundaries.py`; no se duplica); (b) `bootstrap.py` solo importa stdlib, `harness_agent.core` (nombres de `__all__`), `harness_agent.config`, `harness_agent.cli` y la API pública (`__all__`) de `adapters.storage`, `.system` y `.tools`, **más exactamente dos submódulos autorizados por no tener vía pública**: `harness_agent.core.loop` y `harness_agent.adapters.providers.litellm_provider`; cualquier otro submódulo es una violación; (c) `bootstrap.py` no lee `os.environ`/`os.getenv`, no usa `print`/`input` ni `sys.stdout`; (d) `__main__.py` solo importa `bootstrap` y `sys`; (e) es el único módulo de `src/` que importa a la vez `core`, `adapters`, `cli` y `config` (FR-014). Detectores reutilizados de las guardas existentes, con autoprueba sobre fragmentos sintéticos.
 7. **Interrupción**: se deja el comportamiento de `asyncio.run` (el primer Ctrl-C cancela la tarea principal y el bucle publica `INTERRUPTED`; ver `research.md` §4 para la limitación en el prompt). La composición no instala manejadores de señal.
 
 ## Hallazgos y notas para `PROGRESO.md` al cerrar (tarea de cierre)
@@ -139,7 +139,7 @@ No se crea ninguna carpeta nueva, ningún puerto ni ningún adaptador. **Archivo
 8. PD-09 (la base de sesiones queda dentro del árbol del área si `workspace_root` contiene `.harness/`) sigue abierta y se hace visible con este comando.
 9. Prueba manual con un modelo real: tarea humana, omitida sin clave (como Sp1-45).
 
-## Descomposición prevista (la fija `/speckit-tasks`; regla RITMO: 8–10 tareas de ≤ 40 min, pruebas e implementación agrupadas)
+## Descomposición prevista (resumen; la versión vigente es `tasks.md`: 15 tareas, 7 con código)
 
 1. Inicio (humana): ratificación de los AC propuestos y línea base de las cuatro puertas.
 2. `compose()` + `Composition`: pruebas con dobles y construcción (cableado, orden, área ausente o inválida, cierre del almacén ante fallo) (≈ 40 min).
@@ -158,6 +158,7 @@ No hay violaciones de la constitución ni de las skills. Decisiones de interpret
 
 | Decisión | Por qué | Alternativa descartada |
 |---|---|---|
+| Dos imports de submódulo autorizados (`core.loop`, `providers.litellm_provider`) | no existe otra vía pública: `AgentLoop` no está en `core.__all__` y `providers/__init__.py` solo puede tener docstring | exportar `AgentLoop` en `core/__init__.py` (cambio aditivo del núcleo que necesita el visto bueno de A) o relajar la guarda de `providers/` |
 | Ctrl-C termina el programa (no solo el turno) | Lo decidió el PO en `/speckit-clarify`; V-11 completa (devolver el resultado al modelo en el turno siguiente) exige cancelar un turno y seguir, que es otra historia | Cancelar solo el turno: requiere decidir qué queda en el historial y tocar `cli/` o el bucle |
 | Sin manejador de señal propio | `asyncio.run` ya cancela la tarea principal y el bucle publica `INTERRUPTED`; un manejador propio duplicaría esa lógica | Instalar `signal.signal`: cambia la semántica de la cancelación y no se puede probar igual en Windows |
 | `main()` sin argumentos de línea de comandos | La spec no pide opciones; menos superficie y nada que validar | `argparse` con `--config`: fuera de alcance (la ruta ya se elige con `HARNESS_CONFIG`) |
