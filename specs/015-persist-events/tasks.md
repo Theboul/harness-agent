@@ -51,7 +51,7 @@
 
 ## Phase 2: Foundational — errores y herencia del puerto (Sp1-30)
 
-- [ ] **T002** Errores de dominio nuevos (FR-005, FR-006, FR-007)
+- [x] **T002** Errores de dominio nuevos (FR-005, FR-006, FR-007)
   - **Archivos**: `tests/unit/adapters/storage/test_errors.py`, `src/harness_agent/adapters/storage/errors.py`
   - **Dependencias**: T001
   - **Criterios relacionados**: FR-005, FR-006, FR-007, contrato (Errores)
@@ -65,7 +65,7 @@
 
 **Prueba independiente**: tres eventos guardados en una sesión se cargan iguales y en orden.
 
-- [ ] **T003** [US1] `save_event` y herencia de `SessionStore` (FR-001, FR-002, FR-005 a FR-008, FR-011, FR-015)
+- [x] **T003** [US1] `save_event` y herencia de `SessionStore` (FR-001, FR-002, FR-005 a FR-008, FR-011, FR-015)
   - **Archivos**: `tests/unit/adapters/storage/test_sqlite_event_store.py`, `src/harness_agent/adapters/storage/sqlite_session_store.py`
   - **Dependencias**: T002
   - **Criterios relacionados**: Historia 1 (escenarios 4 a 6), FR-001, FR-002, FR-005, FR-006, FR-007, FR-008, FR-011, FR-015, plan D1 a D4
@@ -73,7 +73,7 @@
   - **Estimación**: 40 min
   - **Verificación**: Pruebas primero (con una sesión creada por `create_session`): el almacén es instancia de `SessionStore`; guardar un evento lo inserta con `seq` 1 y el siguiente con 2, independiente por sesión; sesión inexistente lanza `SessionNotFound` y no guarda; id repetido lanza `DuplicateEvent` y el original queda; contenido no serializable (objeto, `NaN`, referencia circular) lanza `EventSerializationError` sin reproducir el contenido (centinela) y sin abrir transacción (`in_transaction` falso); un fallo del motor revierte, lanza `SessionStoreError` sin el centinela, y el siguiente guardado usa el `seq` correcto (sin huecos); almacén cerrado lanza `SessionStoreError`.
 
-- [ ] **T004** [US1] `load_session` (FR-004, FR-008)
+- [x] **T004** [US1] `load_session` (FR-004, FR-008)
   - **Archivos**: `tests/unit/adapters/storage/test_sqlite_event_store.py`, `src/harness_agent/adapters/storage/sqlite_session_store.py`
   - **Dependencias**: T003
   - **Criterios relacionados**: Historia 1 (escenarios 1 a 3), FR-004, FR-008, plan D5, SC-003

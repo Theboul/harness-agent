@@ -1,13 +1,14 @@
-"""SQLite session store: schema bootstrap and session creation (HU-03-01).
+"""SQLite session store: schema bootstrap, sessions and events (HU-03-01, HU-03-02).
 
-This adapter owns the ``sessions`` and ``events`` tables. It does not subclass the
-``SessionStore`` port yet: persisting and loading events (``save_event`` / ``load_session``)
-arrives with HU-03-02. Creating a session is an adapter operation because the port has no
-``create_session``.
+This adapter owns the ``sessions`` and ``events`` tables and implements the ``SessionStore``
+port: every event is saved in its own durable transaction (``save_event``) and read back in
+saving order (``load_session``). Creating a session is an adapter operation because the port has
+no ``create_session``; a session must exist before its first event.
 """
 
 from __future__ import annotations
 
+import json
 import os
 import sqlite3
 import uuid
@@ -20,17 +21,24 @@ from typing import Self
 
 from harness_agent.adapters.storage._schema import ensure_schema
 from harness_agent.adapters.storage.errors import (
+    DuplicateEvent,
+    EventSerializationError,
     ParentSessionNotFound,
     SchemaVersionError,
+    SessionNotFound,
     SessionStoreError,
 )
-from harness_agent.core import SessionSummary
+from harness_agent.core import Event, EventType, SessionStore, SessionSummary
 
 _IN_MEMORY = ":memory:"
 _ENGINE_ERROR = "Error del almacén de sesiones."
 _OPEN_ERROR = "No se pudo abrir el almacén de sesiones."
 _CLOSED_ERROR = "El almacén de sesiones está cerrado."
 _PARENT_ERROR = "La sesión padre indicada no existe."
+_SESSION_ERROR = "La sesión indicada no existe."
+_DUPLICATE_ERROR = "Ya existe un evento con ese identificador."
+_SERIALIZATION_ERROR = "El contenido del evento no se puede guardar como JSON."
+_CORRUPT_ERROR = "Un evento guardado está dañado y no se puede leer."
 _ACTIVE = "active"
 
 _SESSION_COLUMNS = "id, status, created_at, model, goal, parent_id"
@@ -83,7 +91,30 @@ def _stored_session(row: tuple[str, str, str, str | None, str | None, str | None
     )
 
 
-class SqliteSessionStore:
+def _serialize_payload(payload: dict[str, object]) -> str:
+    try:
+        return json.dumps(payload, ensure_ascii=False, allow_nan=False)
+    except (TypeError, ValueError, RecursionError):
+        raise EventSerializationError(_SERIALIZATION_ERROR) from None
+
+
+def _event_from_row(row: tuple[str, str, str, str, str]) -> Event:
+    try:
+        payload = json.loads(row[3])
+        if not isinstance(payload, dict):
+            raise ValueError
+        return Event(
+            id=row[0],
+            session_id=row[1],
+            type=EventType(row[2]),
+            timestamp=datetime.fromisoformat(row[4]),
+            payload=payload,
+        )
+    except ValueError:
+        raise SessionStoreError(_CORRUPT_ERROR) from None
+
+
+class SqliteSessionStore(SessionStore):
     """Sessions and event tables on a SQLite file (or ``:memory:``).
 
     Args:
@@ -114,6 +145,7 @@ class SqliteSessionStore:
         except (OSError, sqlite3.Error):
             raise SessionStoreError(_OPEN_ERROR) from None
         try:
+            conn.execute("PRAGMA synchronous = FULL")
             ensure_schema(conn)
         except SchemaVersionError:
             conn.close()
@@ -177,6 +209,74 @@ class SqliteSessionStore:
         except sqlite3.Error:
             raise SessionStoreError(_ENGINE_ERROR) from None
         return None if row is None else _stored_session(row)
+
+    def save_event(self, event: Event) -> None:
+        """Save one event in its own durable transaction.
+
+        The event gets the next order number of its session; either the whole write is
+        committed or nothing is.
+
+        Raises:
+            EventSerializationError: The payload cannot be represented as JSON.
+            SessionNotFound: The event's session does not exist.
+            DuplicateEvent: An event with the same identifier is already saved.
+            SessionStoreError: The store is closed or the engine failed.
+        """
+        conn = self._connection()
+        content = _serialize_payload(event.payload)
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            if (
+                conn.execute("SELECT 1 FROM sessions WHERE id = ?", (event.session_id,)).fetchone()
+                is None
+            ):
+                raise SessionNotFound(_SESSION_ERROR)
+            if (
+                conn.execute("SELECT 1 FROM events WHERE id = ?", (event.id,)).fetchone()
+                is not None
+            ):
+                raise DuplicateEvent(_DUPLICATE_ERROR)
+            seq = conn.execute(
+                "SELECT COALESCE(MAX(seq), 0) + 1 FROM events WHERE session_id = ?",
+                (event.session_id,),
+            ).fetchone()[0]
+            conn.execute(
+                "INSERT INTO events (id, session_id, seq, type, content, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (
+                    event.id,
+                    event.session_id,
+                    seq,
+                    event.type.value,
+                    content,
+                    _to_utc(event.timestamp).isoformat(),
+                ),
+            )
+            conn.commit()
+        except sqlite3.Error:
+            conn.rollback()
+            raise SessionStoreError(_ENGINE_ERROR) from None
+        except BaseException:
+            conn.rollback()
+            raise
+
+    def load_session(self, session_id: str) -> list[Event]:
+        """Return the events of a session in saving order (empty if there are none).
+
+        Raises:
+            SessionStoreError: The store is closed, the engine failed or a stored event is
+                damaged.
+        """
+        conn = self._connection()
+        try:
+            rows = conn.execute(
+                "SELECT id, session_id, type, content, created_at FROM events "
+                "WHERE session_id = ? ORDER BY seq",
+                (session_id,),
+            ).fetchall()
+        except sqlite3.Error:
+            raise SessionStoreError(_ENGINE_ERROR) from None
+        return [_event_from_row(row) for row in rows]
 
     def list_sessions(self) -> list[SessionSummary]:
         """Return every session, oldest first."""

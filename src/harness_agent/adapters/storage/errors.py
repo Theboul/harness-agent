@@ -17,3 +17,15 @@ class SchemaVersionError(SessionStoreError):
 
 class ParentSessionNotFound(SessionStoreError):
     """A session was created with a parent that does not exist."""
+
+
+class SessionNotFound(SessionStoreError):
+    """An event was saved for a session that does not exist."""
+
+
+class DuplicateEvent(SessionStoreError):
+    """An event with the same identifier was already saved."""
+
+
+class EventSerializationError(SessionStoreError):
+    """The payload of an event cannot be represented as JSON."""
