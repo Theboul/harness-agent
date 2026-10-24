@@ -55,7 +55,7 @@
 
 **Propósito**: Los errores de dominio del adaptador y el esquema versionado. Bloquea todas las historias de usuario.
 
-- [ ] **T002** Errores de dominio del adaptador (FR-011)
+- [x] **T002** Errores de dominio del adaptador (FR-011)
   - **Archivos**: `tests/unit/adapters/storage/__init__.py`, `tests/unit/adapters/storage/test_errors.py`, `src/harness_agent/adapters/storage/__init__.py`, `src/harness_agent/adapters/storage/errors.py`
   - **Dependencias**: T001
   - **Criterios relacionados**: FR-011, contrato (Errores), plan D6
@@ -63,7 +63,7 @@
   - **Estimación**: 15 min
   - **Verificación**: Prueba primero: `SchemaVersionError` y `ParentSessionNotFound` son subclases de `SessionStoreError`, que es subclase de `Exception`; cada una conserva su mensaje; fallan por `ImportError` antes de implementar. `__init__.py` del paquete existe con docstring.
 
-- [ ] **T003** [US3] Esquema versionado: DDL, `SCHEMA_VERSION` y `ensure_schema` (FR-001 a FR-004)
+- [x] **T003** [US3] Esquema versionado: DDL, `SCHEMA_VERSION` y `ensure_schema` (FR-001 a FR-004)
   - **Archivos**: `tests/unit/adapters/storage/test_schema.py`, `src/harness_agent/adapters/storage/_schema.py`
   - **Dependencias**: T002
   - **Criterios relacionados**: FR-001, FR-002, FR-003, FR-004, historia 3 (escenarios 2 a 5), data-model, research (versión de esquema), plan D3, D4
