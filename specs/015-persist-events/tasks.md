@@ -81,7 +81,7 @@
   - **Estimación**: 35 min
   - **Verificación**: Pruebas primero: tres eventos de tipos distintos vuelven iguales (id, sesión, `EventType`, fecha UTC, contenido) y en orden de guardado aunque tengan la misma fecha; dos sesiones intercaladas no se mezclan; sesión desconocida o sin eventos devuelve `[]`; Unicode y contenido grande intactos; tuplas vuelven como listas; una fila con tipo desconocido o JSON inválido (insertada a mano) lanza `SessionStoreError`; 1 000 eventos se guardan y cargan sin pérdida; almacén cerrado lanza `SessionStoreError`.
 
-- [ ] **T005** [US1] Contrato compartido con el doble en memoria (FR-014)
+- [x] **T005** [US1] Contrato compartido con el doble en memoria (FR-014)
   - **Archivos**: `tests/contracts/test_session_store_contract.py`
   - **Dependencias**: T004
   - **Criterios relacionados**: Historia 1 (escenario 7), FR-014, plan D8
