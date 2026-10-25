@@ -257,6 +257,7 @@ La clase base `Tool` y la interfaz `ToolRegistry` ya existen desde HU-00-01. En 
   - **Verificación**: Un integrante de otra área (A o B) revisa el cambio contra la lista de comprobación de `arquitectura-hexagonal-clean` y confirma que `core/interfaces/` no cambió. Su resultado se anota en `docs/PROGRESO.md`. Esta tarea es humana: no se marca como completada sin esa confirmación. Queda registrado, además, que HU-00-01 sigue `Pendiente de aprobación técnica` (Sp1-03): la ratificación de `Tool` y `ToolRegistry` por el integrante C, que firma en la fila C del [§7.1 de `docs/decisiones/revision-conjunta-abc.md`](../../docs/decisiones/revision-conjunta-abc.md#71-hu-00-01--contratos-t016--sp1-03), debe producirse antes de pasar HU-01-02 a `Hecha`. También queda registrado que la revalidación de AC-01 y AC-02 con el bucle real queda pendiente de HU-01-01.
 
 - [ ] **T023** Confirmar la ejecución de la CI en Linux y Windows y registrar la evidencia (Sp1-15, Sp1-16, Sp1-17)
+  - **Evidencia disponible (2026-10-25)**: CI en verde en Linux y Windows en `main` c12c4cb (workflow CI, run n.º 47, `quality (ubuntu-latest, py3.12)` y `quality (windows-latest, py3.12)`), https://github.com/Theboul/harness-agent/actions/runs/40149368199; falta que una persona la confirme y marque la tarea.
   - **Archivos**: `docs/PROGRESO.md`
   - **Dependencias**: T021
   - **Criterios relacionados**: SC-006, Principio IV, Principio IX, DoD (1)

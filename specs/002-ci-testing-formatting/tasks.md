@@ -90,6 +90,7 @@
 **Propósito**: Separar rigurosamente la validación automatizada de las acciones que requieren credenciales o acceso administrativo al repositorio remoto de GitHub.
 
 - [ ] **T008** [US2] Documentar y verificar la ejecución real del workflow en GitHub Actions para Linux y Windows (AC-02 / Evidencia B)
+  - **Evidencia disponible (2026-10-25)**: CI en verde en Linux y Windows en `main` c12c4cb (workflow CI, run n.º 47, `quality (ubuntu-latest, py3.12)` y `quality (windows-latest, py3.12)`), https://github.com/Theboul/harness-agent/actions/runs/40149368199; falta que una persona la confirme y marque la tarea.
   - **Archivos**: `docs/PROGRESO.md`
   - **Dependencias**: T003, T004, T005, T006, T007
   - **Criterios relacionados**: AC-02, SC-001, SC-003, Sp1-04

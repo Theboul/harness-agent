@@ -143,6 +143,7 @@
   - **Verificación**: Un integrante del **área A** (la DoD exige un área distinta de quien implementa; el bucle es de A) revisa el cambio contra la lista de comprobación de `arquitectura-hexagonal-clean`, confirma que `core/interfaces/`, `core/events.py`, `core/loop.py` y `tests/doubles/` no cambiaron, que el bus no añade dependencias y que ningún mensaje de error reproduce la carga de un evento. Su resultado se anota en `docs/PROGRESO.md`, junto con el recordatorio de que HU-00-01 sigue `Pendiente de aprobación técnica` y debe ratificarse antes de pasar HU-01-05 a `Hecha`. **Esta tarea es humana: no se marca como completada sin esa confirmación.**
 
 - [ ] **T009** Confirmar la ejecución de la CI en Linux y Windows y registrar la evidencia (Sp1-24, Sp1-25)
+  - **Evidencia disponible (2026-10-25)**: CI en verde en Linux y Windows en `main` c12c4cb (workflow CI, run n.º 47, `quality (ubuntu-latest, py3.12)` y `quality (windows-latest, py3.12)`), https://github.com/Theboul/harness-agent/actions/runs/40149368199; falta que una persona la confirme y marque la tarea.
   - **Archivos**: `docs/PROGRESO.md`
   - **Dependencias**: T007
   - **Criterios relacionados**: SC-006, Principio IV, Principio VIII, Principio IX, DoD (1)

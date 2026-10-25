@@ -291,6 +291,7 @@
   - **Verificación**: Un integrante del **área A** (la DoD exige un área distinta de quien implementa) revisa el cambio contra la lista de comprobación de `arquitectura-hexagonal-clean`, confirma que `core/interfaces/` y `core/` no cambiaron, y revisa que ningún mensaje, `repr` ni plantilla pueda exponer una clave. Su resultado se anota en `docs/PROGRESO.md`, junto con el recordatorio de que HU-00-01 sigue `Pendiente de aprobación técnica` y debe ratificarse antes de pasar HU-00-04 a `Hecha`. **Esta tarea es humana: no se marca como completada sin esa confirmación.**
 
 - [ ] **T027** Confirmar la ejecución de la CI en Linux y Windows y registrar la evidencia (Sp1-09, Sp1-10, Sp1-11)
+  - **Evidencia disponible (2026-10-25)**: CI en verde en Linux y Windows en `main` c12c4cb (workflow CI, run n.º 47, `quality (ubuntu-latest, py3.12)` y `quality (windows-latest, py3.12)`), https://github.com/Theboul/harness-agent/actions/runs/40149368199; falta que una persona la confirme y marque la tarea.
   - **Archivos**: `docs/PROGRESO.md`
   - **Dependencias**: T025
   - **Criterios relacionados**: SC-006, FR-022 (segunda frase), Principio IV, Principio VIII, Principio IX, DoD (1)

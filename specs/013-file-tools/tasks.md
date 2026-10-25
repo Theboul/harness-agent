@@ -229,6 +229,7 @@
   - **Verificación**: Un integrante de otra área revisa el PR; el PO confirma la regla de lectura de HU-05-01 y los dos puntos «por confirmar» (motivo genérico del bucle para AC-03 y AC-04 sin carpeta de sesión); se ratifica que `editar_archivo` queda fuera y que D-ARCH resuelve la pregunta de `docs/01`. HU-00-01 sigue `Pendiente de aprobación técnica` y debe ratificarse antes de pasar a `Hecha`.
 
 - [ ] **T018** *(humana)* Ejecución de la CI en Linux y Windows y relleno de Commit/PR
+  - **Evidencia disponible (2026-10-25)**: CI en verde en Linux y Windows en `main` c12c4cb (workflow CI, run n.º 47, `quality (ubuntu-latest, py3.12)` y `quality (windows-latest, py3.12)`), https://github.com/Theboul/harness-agent/actions/runs/40149368199; solo cubre la parte de CI. El resto de la tarea sigue pendiente de una persona (no se marca).
   - **Archivos**: `docs/PROGRESO.md`
   - **Dependencias**: T017
   - **Criterios relacionados**: Principio IX
