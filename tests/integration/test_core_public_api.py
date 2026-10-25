@@ -31,6 +31,13 @@ TOOLS_API = {
     "Violation",
     "check_schema",
     "validate_arguments",
+    # HU-02-02: general limit for the output of tools.
+    "TruncatingTool",
+    "DEFAULT_MAX_OUTPUT_CHARS",
+    "MIN_MAX_OUTPUT_CHARS",
+    "check_max_output_chars",
+    "omission_notice",
+    "truncate_output",
 }
 CORE_REEXPORTS = TOOLS_API - {"check_schema", "validate_arguments"}
 

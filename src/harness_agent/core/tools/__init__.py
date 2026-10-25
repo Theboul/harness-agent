@@ -13,11 +13,25 @@ from harness_agent.core.tools.errors import (
     UnknownToolError,
     Violation,
 )
+from harness_agent.core.tools.output_limit import (
+    DEFAULT_MAX_OUTPUT_CHARS,
+    MIN_MAX_OUTPUT_CHARS,
+    TruncatingTool,
+    check_max_output_chars,
+    omission_notice,
+    truncate_output,
+)
 from harness_agent.core.tools.registry import InMemoryToolRegistry
 from harness_agent.core.tools.schema_validator import check_schema, validate_arguments
 
 __all__ = [
     "InMemoryToolRegistry",
+    "TruncatingTool",
+    "DEFAULT_MAX_OUTPUT_CHARS",
+    "MIN_MAX_OUTPUT_CHARS",
+    "check_max_output_chars",
+    "omission_notice",
+    "truncate_output",
     "ToolRegistryError",
     "InvalidToolDefinitionError",
     "DuplicateToolError",
