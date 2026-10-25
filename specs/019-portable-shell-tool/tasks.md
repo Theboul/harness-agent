@@ -57,7 +57,7 @@
 
 **Propósito**: Las piezas puras o casi puras que comparten las dos implementaciones. Bloquean todas las historias.
 
-- [ ] **T002** Constantes, error de arranque y `OutputCollector` con sus pruebas (FR-006, FR-013, FR-014)
+- [x] **T002** Constantes, error de arranque y `OutputCollector` con sus pruebas (FR-006, FR-013, FR-014)
   - **Archivos**: `src/harness_agent/adapters/system/shell_limits.py`, `src/harness_agent/adapters/system/shell_errors.py`, `src/harness_agent/adapters/system/shell_output.py`, `tests/unit/adapters/system/test_shell_output.py`
   - **Dependencias**: T001
   - **Criterios relacionados**: FR-006, FR-013, FR-014, SC-002, contrato §1 (aviso), data-model (OutputCollector), research R4 y R11, plan D5
@@ -65,7 +65,7 @@
   - **Estimación**: 35 min (20 min impl + 10 min check + 5 min registro)
   - **Verificación**: Pruebas primero: salida corta llega completa y sin aviso; exactamente en el máximo sin aviso; un carácter más recorta; el resultado nunca supera `max_output_chars`; conserva cabeza y cola; el aviso dice el número exacto de caracteres omitidos; bytes UTF-8 partidos entre lecturas se reconstruyen; bytes inválidos se sustituyen sin lanzar; un millón de caracteres en trozos mantiene la memoria retenida acotada (`len(head)+len(tail)`); parámetros inválidos (`max` ≤ reserva) → `ValueError`. `ShellStartError` es subclase de `OSError`.
 
-- [ ] **T003** [P] `child_environment`: copia del entorno sin las claves de proveedores (FR-010c)
+- [x] **T003** [P] `child_environment`: copia del entorno sin las claves de proveedores (FR-010c)
   - **Archivos**: `src/harness_agent/adapters/system/shell_environment.py`, `tests/unit/adapters/system/test_shell_environment.py`
   - **Dependencias**: T001
   - **Criterios relacionados**: FR-010c, data-model (funciones puras), research R7, plan D15
@@ -73,7 +73,7 @@
   - **Estimación**: 25 min (15 min impl + 5 min check + 5 min registro)
   - **Verificación**: Pruebas primero: quita exactamente los nombres indicados y deja el resto intacto; no muta la entrada; con `windows=True` compara sin distinguir mayúsculas; con `windows=False` distingue; nombres vacíos o ausentes no fallan; devuelve un `dict` nuevo. Los nombres y valores de prueba son sintéticos y la guarda de secretos sigue en verde.
 
-- [ ] **T004** `ProcessControl`, `PosixProcessControl` y `WindowsProcessControl` con sus pruebas (FR-002, FR-003)
+- [x] **T004** `ProcessControl`, `PosixProcessControl` y `WindowsProcessControl` con sus pruebas (FR-002, FR-003)
   - **Archivos**: `src/harness_agent/adapters/system/process_control.py`, `tests/unit/adapters/system/test_process_control.py`
   - **Dependencias**: T002
   - **Criterios relacionados**: AC-01, FR-002, FR-003, data-model (ProcessControl), research R3, plan D6
@@ -81,7 +81,7 @@
   - **Estimación**: 35 min (20 min impl + 10 min check + 5 min registro)
   - **Verificación**: Pruebas primero con un proceso falso (registra llamadas) para ambas clases en cualquier sistema (módulos `os`/`signal`/ejecutor de `taskkill` inyectables): POSIX → `popen_options` con `start_new_session`, `request_stop` envía `SIGTERM` al grupo, `force_stop` `SIGKILL`, tolera `ProcessLookupError`; Windows → `creationflags`, `CTRL_BREAK_EVENT`, `taskkill /PID n /T /F`, tolera el fallo del ejecutor; `default_process_control(windows)` elige la correcta. Prueba real marcada por plataforma: POSIX (grupo con un nieto que muere) y Windows (`taskkill /T` mata al nieto), cada una con su `skipif` y motivo.
 
-- [ ] **T005** `SubprocessShell`: arranque, lectura, espera, resultado y `terminate_running`, con pruebas reales (FR-001, FR-004, FR-005, FR-018)
+- [x] **T005** `SubprocessShell`: arranque, lectura, espera, resultado y `terminate_running`, con pruebas reales (FR-001, FR-004, FR-005, FR-018)
   - **Archivos**: `src/harness_agent/adapters/system/subprocess_shell.py`, `tests/unit/adapters/system/test_subprocess_shell.py`
   - **Dependencias**: T002, T003, T004
   - **Criterios relacionados**: FR-001, FR-004, FR-005, FR-006, data-model (SubprocessShell), research R4 y R6, plan D1, D3, D4
@@ -97,7 +97,7 @@
 
 **Prueba independiente**: un `sleep` más largo que el plazo vuelve marcado como tiempo agotado poco después del plazo, sin procesos vivos.
 
-- [ ] **T006** [US1] Tiempo agotado, terminación en dos pasos y árbol de procesos con procesos reales (FR-002, FR-003, SC-001)
+- [x] **T006** [US1] Tiempo agotado, terminación en dos pasos y árbol de procesos con procesos reales (FR-002, FR-003, SC-001)
   - **Archivos**: `tests/unit/adapters/system/test_subprocess_shell.py`, `src/harness_agent/adapters/system/subprocess_shell.py`
   - **Dependencias**: T005
   - **Criterios relacionados**: AC-01, US1-1 a US1-6, FR-002, FR-003, SC-001, research R3

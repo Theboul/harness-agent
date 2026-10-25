@@ -132,6 +132,16 @@ class TestWindows:
 
 
 class TestSystemKillpg:
+    def test_with_os_killpg_the_posix_control_uses_it(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        calls: list[tuple[int, int]] = []
+        monkeypatch.setattr(
+            os, "killpg", lambda group, number: calls.append((group, number)), raising=False
+        )
+        PosixProcessControl(force_signal=9).force_stop(FakeProcess(pid=5))  # type: ignore[arg-type]
+        assert calls == [(5, 9)]
+
     def test_without_os_killpg_the_posix_control_cannot_be_built(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
