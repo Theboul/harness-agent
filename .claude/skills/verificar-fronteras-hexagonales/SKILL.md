@@ -38,6 +38,7 @@ Cargar al:
 | `test_core_no_terminal.py` | Todo `core/`: no imprime ni usa la terminal (`terminal_uses`); el bus en memoria no define eventos |
 | `test_loop_boundaries.py` | `core/loop.py`: solo stdlib y núcleo (`forbidden_imports`), sin consola, sin eventos de límite/aprobación, sin ciclos |
 | `test_core_tools_stdlib_only.py` | `core/tools/`: lista blanca stdlib + núcleo |
+| `test_output_limit_boundaries.py` | `core/tools/output_limit.py` (HU-02-02): solo stdlib y la API del núcleo (`entities`, `interfaces.tool`), sin E/S (ni `os`), sin config ni terminal, sin importar adaptadores |
 | `test_permissions_boundaries.py` | `core/permissions/`: lista blanca, sin E/S, todo «permitir» protegido por `AuthorizedArea.contains` |
 | `test_adapters_boundaries.py` | `adapters/`: ninguno importa `cli`; `adapters/system/`, `adapters/tools/` y `adapters/storage/` solo stdlib, API pública del núcleo y su paquete, sin config ni terminal ni otro adaptador (HU-01-03, HU-03-01); `core/` no importa `sqlite3` (HU-03-01) |
 | `test_providers_boundaries.py` | `adapters/providers/` (HU-07-02): ningún SDK importado en `src/` (`litellm` solo con `importlib` dentro de una función de `providers/`, nunca a nivel de módulo), imports permitidos (stdlib, API pública del núcleo y de `adapters.converters`, su paquete), sin entorno ni archivos ni terminal, sin nombres de proveedor en literales (se leen de `PROVIDER_KEY_VARIABLES`) y `__init__.py` solo con docstring |
