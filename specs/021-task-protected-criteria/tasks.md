@@ -54,7 +54,7 @@
 
 **Independent test**: con un `runner` simulado, el issue produce la misma tarea que un archivo; los fallos no dejan efectos.
 
-- [ ] T009 [US2] (Sp2-41) `adapters/tasks/{__init__,task_source,errors}.py`: `read_task_file(path)` (UTF-8, tamaño acotado) y `fetch_issue_task(number, runner=...)` (número positivo, `gh issue view N --json title,body`, `shell=False`, tiempo límite, título como respaldo); pruebas en `tests/unit/adapters/tasks/` (archivo ausente/enorme/binario, `gh` ausente, salida no JSON, sin eco de la salida de `gh`, número inválido sin lanzar proceso).
+- [x] T009 [US2] (Sp2-41) `adapters/tasks/{__init__,task_source,errors}.py`: `read_task_file(path)` (UTF-8, tamaño acotado) y `fetch_issue_task(number, runner=...)` (número positivo, `gh issue view N --json title,body`, `shell=False`, tiempo límite, título como respaldo); pruebas en `tests/unit/adapters/tasks/` (archivo ausente/enorme/binario, `gh` ausente, salida no JSON, sin eco de la salida de `gh`, número inválido sin lanzar proceso).
 
 ## Phase 6: Cableado e integración · Sp2-42
 
