@@ -49,11 +49,14 @@ class ShellTool(Tool):
 
     @property
     def description(self) -> str:
+        interpreter = (
+            "el intérprete del sistema" if self._shell is None else self._shell.interpreter_name
+        )
         return (
-            "Ejecuta un comando en el intérprete del sistema, empezando en la raíz del área de "
-            "trabajo. Cada llamada es independiente. Devuelve el código de salida y la salida "
-            "(estándar y de errores juntas, recortada si es muy larga). Si supera el tiempo "
-            "máximo, el comando se termina."
+            f"Ejecuta un comando con {interpreter}, empezando en la raíz del área de trabajo. "
+            "Cada llamada es independiente: no se conservan la carpeta actual ni las variables. "
+            "Devuelve el código de salida y la salida (estándar y de errores juntas, recortada si "
+            "es muy larga). Si supera el tiempo máximo, el comando se termina."
         )
 
     @property

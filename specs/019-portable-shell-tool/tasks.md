@@ -213,7 +213,7 @@
 
 ## Phase 8: Fronteras y cierre de calidad (Sp2-05)
 
-- [ ] **T016** Verificación de fronteras hexagonales (skill `verificar-fronteras-hexagonales`)
+- [x] **T016** Verificación de fronteras hexagonales (skill `verificar-fronteras-hexagonales`)
   - **Archivos**: `tests/architecture/test_adapters_boundaries.py`
   - **Dependencias**: T014
   - **Criterios relacionados**: FR-020, FR-021, Principio III, skill `verificar-fronteras-hexagonales`
@@ -221,7 +221,7 @@
   - **Estimación**: 25 min (10 min impl + 10 min check + 5 min registro)
   - **Verificación**: `pytest tests/architecture` en verde con los módulos nuevos; autoprueba nueva: `adapters/tools/shell.py` no importa `harness_agent.adapters.system` (el detector marca un fuente sintético que sí lo hace); `system/` puede usar `subprocess`, `threading`, `signal`, `codecs` (stdlib) sin romper la guarda; ningún módulo nuevo lee `os.environ`/`getenv` ni imprime. Se anota en el registro la lista de archivos que violarían una regla (esperado: ninguno).
 
-- [ ] **T017** [P] Documentación: guía de contratos y árbol de las skills (FR-027)
+- [x] **T017** [P] Documentación: guía de contratos y árbol de las skills (FR-027)
   - **Archivos**: `docs/guia-contratos-desarrollo.md`, `.claude/skills/estructura-carpetas-harness/references/arbol.md`, `.agents/skills/estructura-carpetas-harness/references/arbol.md`
   - **Dependencias**: T014
   - **Criterios relacionados**: FR-027, CLAUDE.md («Si encuentras una diferencia entre una skill y el código…»)

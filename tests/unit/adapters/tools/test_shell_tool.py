@@ -70,6 +70,16 @@ class TestDefinition:
         assert tool.name == "shell"
         assert tool.risk is RiskLevel.HIGH
 
+    def test_the_description_names_the_interpreter_and_says_each_call_is_independent(
+        self, area: FakeArea
+    ) -> None:
+        text = tool_for(ScriptedShell(), area).description
+        assert "bash" in text
+        assert "independiente" in text
+
+    def test_the_description_without_a_shell_is_generic(self, area: FakeArea) -> None:
+        assert "intérprete del sistema" in ShellTool(None, area).description
+
     def test_the_schema_is_valid_and_has_no_path(self, area: FakeArea) -> None:
         schema = tool_for(ScriptedShell(), area).schema
         check_schema(schema)

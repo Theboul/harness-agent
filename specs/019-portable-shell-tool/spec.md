@@ -228,7 +228,7 @@ Como equipo de desarrollo, quiero que el mismo conjunto de pruebas del shell cor
 
 **Calidad y fronteras (Sp2-05)**
 
-- **FR-020**: `core/`, el bucle, los puertos, el catálogo de eventos, la política, el registro, la CLI, la configuración y los dobles existentes MUST NOT modificarse; solo se añaden archivos, el cableado en `bootstrap.py` y la documentación.
+- **FR-020**: `core/`, el bucle, los puertos, el catálogo de eventos, la política, el registro, la CLI, la configuración y los dobles existentes MUST NOT modificarse; solo se añaden archivos, el cableado en `bootstrap.py` y la documentación. Desviación aceptada al implementar (2026-10-25): `bootstrap.py` no puede leer `os.environ` (lo prohíbe su guarda), así que se añade a `config.py` la función aditiva `process_environment()` y se ajustan solo 4 aserciones de pruebas existentes que fijaban el historial vacío o la lista de herramientas.
 - **FR-021**: La guarda de arquitectura de `adapters/` MUST seguir en verde: las piezas nuevas de `adapters/system/` y `adapters/tools/` usan solo biblioteca estándar y la API pública de `harness_agent.core`, sin `config`, `cli` ni terceros, y sin `print` ni `input`.
 - **FR-022**: MUST existir una batería de contrato común que corre contra ambas implementaciones (la nativa del sistema en cada ejecución y la otra con dobles) y verifica el mismo `ShellResult` para los casos comunes.
 - **FR-023**: MUST existir pruebas con procesos reales que corran en Linux y en Windows sin cambios (éxito, código de salida, salida combinada, no ASCII, tiempo agotado, árbol de procesos, salida enorme), y pruebas marcadas por plataforma, con motivo escrito, para lo exclusivo de una.

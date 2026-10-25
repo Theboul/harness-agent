@@ -235,6 +235,43 @@ policy = DefaultPermissionPolicy(registry, area, PermissionRules())
 - Ninguna lanza: todo error es un `ToolResult` con `is_error=True`, una etiqueta (`[no_existe]`, `[no_es_archivo]`, `[no_es_carpeta]`, `[demasiado_grande]`, `[no_es_texto]`, `[contenido_invalido]`, `[consulta_invalida]`, `[sin_area]`, `[fuera_del_area]`, `[error_de_archivo]`), la causa y una sugerencia en español.
 - Hoy una escritura fuera del área se pregunta y, sin aprobador, el bucle la deniega con un texto genérico; la causa específica llega con HU-05-03.
 
+#### Herramienta `shell` (HU-01-04):
+
+`ShellTool` (`adapters/tools/shell.py`) ejecuta un comando a través del puerto `Shell` y es de riesgo **alto** sin argumento `path`, así que `DefaultPermissionPolicy` siempre pregunta: sin aprobador (HU-05-03) el bucle la deniega y no se lanza ningún proceso.
+
+| Aspecto | Valor |
+|---|---|
+| Argumentos | `command` (1 a 8 000 caracteres), `timeout_seconds` (1 a 600, por defecto 120) |
+| Carpeta de partida | Raíz del área de trabajo; cada llamada es independiente |
+| Intérprete | `select_shell(platform.system(), cwd=...)`: PowerShell en Windows, bash en lo demás (`BashShell`, `PowerShellShell`) |
+| Resultado | `Código de salida: 0` + salida; o `[codigo_de_salida=N]`, `[tiempo_agotado]`, `[interprete_no_disponible]`, `[sin_area]`, `[error_de_shell]` |
+| Salida | Estándar y de errores juntas, a lo sumo 20 000 caracteres; si se recorta, cabeza + `[salida recortada: se omitieron N caracteres]` + cola |
+| Tiempo agotado | Se termina el comando **y sus procesos hijos** (SIGTERM y luego SIGKILL al grupo en POSIX; `taskkill /T /F` en Windows) |
+| Entorno | El del harness sin las variables de claves de los proveedores (`PROVIDER_KEY_VARIABLES`) |
+
+```python
+import platform
+
+from harness_agent.adapters.system import environment_notice, select_shell
+from harness_agent.adapters.tools import ShellTool
+from harness_agent.config import PROVIDER_KEY_VARIABLES, process_environment
+from harness_agent.core import Message, Role
+
+shell = select_shell(
+    platform.system(),
+    cwd=area.root,
+    environ=process_environment(),
+    removed_env={name for name in PROVIDER_KEY_VARIABLES.values() if name},
+)
+registry.register(ShellTool(shell, area, on_cancel=shell.terminate_running))
+prefix = Message(role=Role.SYSTEM, content=environment_notice(platform.system(), shell.interpreter_name))
+```
+
+- `bootstrap.py` hace este cableado: `Composition.history_prefix` lleva el mensaje de sistema con el sistema operativo y el intérprete, y `run_session` abre cada conversación con él.
+- `on_cancel` termina el árbol de procesos si se cancela la llamada (Ctrl-C); el puerto `Shell` es síncrono y no tiene cancelación propia (hallazgo para A).
+- `denied_commands_for("bash" | "powershell")` publica la lista por defecto de comandos peligrosos **solo como dato**: ni el shell ni la herramienta la aplican. La consume HU-05-02 (análisis de comandos compuestos); la aprobación interactiva es de HU-05-03.
+- `process_environment()` (`config.py`) es la única lectura del entorno del proceso para el shell: ni `bootstrap.py` ni los adaptadores leen `os.environ`.
+
 ---
 
 ## 4. Reglas Obligatorias de Diseño y Pureza
