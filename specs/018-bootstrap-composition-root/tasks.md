@@ -177,6 +177,24 @@
 
 ---
 
+## Phase 8: Convergencia con el cierre del Sprint 1 (2026-10-25)
+
+**Propósito**: Cerrar lo que el Sprint 1 pide y que la composición aún no demostraba por sí sola (criterios de demostración 3 y 4) y el hallazgo de la plantilla `fake/test`.
+
+- [x] T016 [US3] Rechazar `fake/…` al arrancar con el proveedor por omisión (FR-015)
+  - **Archivos**: `src/harness_agent/bootstrap.py`, `tests/unit/test_bootstrap_compose.py`, `tests/unit/test_bootstrap_main.py`
+  - **Dependencias**: T007
+  - **Estimación**: 25 min
+  - **Evidencia**: 2026-10-25: rojo por `ImportError` (`StartupError`, `TEST_ONLY_PROVIDER_MESSAGE`); verde con `StartupError`, `TEST_ONLY_PROVIDERS` y la comprobación en `_default_provider` (antes de abrir la base; un proveedor inyectado acepta `fake/…`) y `main` lo traduce a una línea con código 2. 4 pruebas nuevas; `bootstrap.py` al 100 % (102 líneas, 16 ramas).
+
+- [x] T017 [US1] [US2] Demostrar con la composición real los criterios de demostración 3 y 4 del Sprint 1
+  - **Archivos**: `tests/integration/test_bootstrap_session.py`
+  - **Dependencias**: T006
+  - **Estimación**: 35 min
+  - **Evidencia**: 2026-10-25: `TestSprintOneDemoOutsideTheArea` (ruta absoluta, «..» y enlace simbólico fuera del área: se deniega antes de escribir, nada se crea fuera y la decisión `PERMISSION_DECIDED` queda guardada) y `TestSprintOneDemoKilledProcess` (5 ejecuciones del `main` real en un subproceso que muere con `os._exit` a mitad de la sesión: el archivo escrito existe y los eventos anteriores están en la base, sin `INTERRUPTED`). Pasaron sin cambios en `src/` (la composición ya cumplía); una mutación temporal (sin registrador) hace fallar 11 de ellas.
+
+---
+
 ## Dependencias y orden de ejecución
 
 ```text
@@ -229,6 +247,8 @@ La estimación es **1,9 veces** el presupuesto (el plan lo repite en «Scale/Sco
 | SC-005 nada fuera del área | T006 |
 | SC-006 arranque < 2 s sin la biblioteca | T015 (manual) |
 | SC-007 cuatro puertas, 100 % del módulo | T007, T011 |
+| FR-015 `fake/…` rechazado al arrancar | T016 |
+| Demo Sprint 1, criterios 3 y 4 | T017 |
 
 ## Archivos protegidos (verificar antes de cerrar)
 

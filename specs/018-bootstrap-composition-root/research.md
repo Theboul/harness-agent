@@ -55,7 +55,7 @@ Fase 0 de `/speckit-plan`. No quedan marcadores `NEEDS CLARIFICATION`; aquí se 
 
 ## 8. Cosas que se dejan como están
 
-- **Modelo `fake/…`**: pasa la validación de configuración (está en `PROVIDER_KEY_VARIABLES`), pero la composición real construye `LiteLLMProvider`, que no lo conoce. Se documenta como hallazgo; las pruebas usan `provider_factory`.
+- **Modelo `fake/…`** (resuelto en la convergencia T016: el proveedor por omisión lo rechaza al arrancar con `StartupError`, antes de abrir la base; un proveedor inyectado lo acepta). Antes: pasa la validación de configuración (está en `PROVIDER_KEY_VARIABLES`), pero la composición real construye `LiteLLMProvider`, que no lo conoce. Se documenta como hallazgo; las pruebas usan `provider_factory`.
 - **Estado de la sesión al terminar**: ni el puerto ni el almacén permiten pasar de `active` a `completed`/`interrupted`. Hallazgo para B.
 - **Límites** (`config.limits.max_turns/seconds/tokens`): se ignoran hasta HU-01-06; solo `max_output_tokens` se usa (para el proveedor).
 - **Redacción de secretos y protección de la base** (PD-10, PD-09): sin cambios.

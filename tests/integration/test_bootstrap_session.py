@@ -10,12 +10,17 @@ from __future__ import annotations
 
 import asyncio
 import io
+import os
+import subprocess
+import sys
 from collections.abc import Iterator, Sequence
 from pathlib import Path
 from typing import Any
 
 import pytest
 
+import harness_agent
+from harness_agent.adapters.storage import SqliteSessionStore
 from harness_agent.bootstrap import NO_AREA_NOTICE, Composition, run_session
 from harness_agent.core import (
     Event,
@@ -349,3 +354,169 @@ class TestTheSameSessionTwentyTimes:
         assert len(signatures) == RUNS
         assert all(signature == signatures[0] for signature in signatures[1:])
         assert signatures[0][0] == 0
+
+
+class TestSprintOneDemoOutsideTheArea:
+    """Demo criterion 4: «..», an absolute path or a symbolic link are rejected before writing."""
+
+    async def test_an_absolute_path_outside_is_denied_before_writing_and_the_decision_is_saved(
+        self,
+        tmp_path: Path,
+        area: Path,
+        opened: list[Composition],
+        blocked_network: None,  # noqa: F811
+    ) -> None:
+        outside = tmp_path / "fuera-absoluta.txt"
+        run = Run(
+            opened,
+            tmp_path,
+            [
+                ProviderResponse(tool_calls=[write_note(path=str(outside))]),
+                ProviderResponse(content="no pude"),
+            ],
+            workspace=area,
+        )
+
+        await run.go("escribe fuera del área\n/salir\n")
+
+        assert not outside.exists()
+        assert run.tool_answers()[0].startswith("[")
+        decisions = [e for e in run.saved() if e.type is EventType.PERMISSION_DECIDED]
+        assert [d.payload["name"] for d in decisions] == ["escribir_archivo"]
+        assert decisions[0].payload["decision"] != "allow"
+
+    async def test_a_dot_dot_path_is_denied_and_the_decision_is_saved(
+        self,
+        tmp_path: Path,
+        area: Path,
+        opened: list[Composition],
+        blocked_network: None,  # noqa: F811
+    ) -> None:
+        run = Run(
+            opened,
+            tmp_path,
+            [
+                ProviderResponse(tool_calls=[write_note(path="../fuera-relativa.txt")]),
+                ProviderResponse(content="no pude"),
+            ],
+            workspace=area,
+        )
+
+        await run.go("escribe fuera del área\n/salir\n")
+
+        assert not (tmp_path / "fuera-relativa.txt").exists()
+        decisions = [e for e in run.saved() if e.type is EventType.PERMISSION_DECIDED]
+        assert [d.payload["decision"] != "allow" for d in decisions] == [True]
+
+    async def test_a_symbolic_link_that_leaves_the_area_is_denied_before_writing(
+        self,
+        tmp_path: Path,
+        area: Path,
+        opened: list[Composition],
+        blocked_network: None,  # noqa: F811
+    ) -> None:
+        elsewhere = tmp_path / "otra-carpeta"
+        elsewhere.mkdir()
+        try:
+            (area / "enlace").symlink_to(elsewhere, target_is_directory=True)
+        except (OSError, NotImplementedError):
+            pytest.skip("El sistema no permite crear enlaces simbólicos.")
+        run = Run(
+            opened,
+            tmp_path,
+            [
+                ProviderResponse(tool_calls=[write_note(path="enlace/escapado.txt")]),
+                ProviderResponse(content="no pude"),
+            ],
+            workspace=area,
+        )
+
+        await run.go("escribe a través del enlace\n/salir\n")
+
+        assert not (elsewhere / "escapado.txt").exists()
+        decisions = [e for e in run.saved() if e.type is EventType.PERMISSION_DECIDED]
+        assert [d.payload["decision"] != "allow" for d in decisions] == [True]
+
+
+SRC_DIR = str(Path(harness_agent.__file__).resolve().parents[1])
+KILLED_RUNS = 5
+
+# Child program: the real ``main`` with a provider that asks to write a file in the first call
+# and kills the whole process (``os._exit``, no ``close``) in the second one.
+KILLED_CHILD = r"""
+import os
+import sys
+
+from harness_agent.bootstrap import main
+from harness_agent.core import Provider, ProviderResponse, ToolCall
+
+config_path, text = sys.argv[1], sys.argv[2]
+
+
+class KillsTheProcess(Provider):
+    def __init__(self):
+        self.calls = 0
+
+    async def complete(self, messages, tools=None):
+        self.calls += 1
+        if self.calls == 1:
+            call = ToolCall(
+                id="c1", name="escribir_archivo", arguments={"path": "notas.txt", "content": "hola"}
+            )
+            return ProviderResponse(tool_calls=[call])
+        os._exit(0)
+
+
+import io
+
+code = main(
+    environ={"OPENAI_API_KEY": "x"},
+    config_path=config_path,
+    input_stream=io.StringIO(text),
+    output=io.StringIO(),
+    error=sys.stderr,
+    provider_factory=lambda _config: KillsTheProcess(),
+)
+sys.exit(code)
+"""
+
+
+class TestSprintOneDemoKilledProcess:
+    """Demo criterion 3: if the process is killed in the middle, the events that happened stay."""
+
+    @pytest.mark.parametrize("attempt", range(KILLED_RUNS))
+    def test_the_events_before_the_kill_are_in_the_database_and_the_file_is_written(
+        self, tmp_path: Path, attempt: int
+    ) -> None:
+        area = tmp_path / f"area-{attempt}"
+        area.mkdir()
+        database = tmp_path / f"sesiones-{attempt}.db"
+        config = tmp_path / f"config-{attempt}.toml"
+        config.write_text(
+            f'model = "openai/modelo-de-prueba"\n\n[paths]\n'
+            f'workspace_root = "{area.as_posix()}"\n'
+            f'sessions_db = "{database.as_posix()}"\n',
+            encoding="utf-8",
+            newline="",
+        )
+        environment = {**os.environ, "PYTHONPATH": SRC_DIR}
+
+        result = subprocess.run(
+            [sys.executable, "-c", KILLED_CHILD, str(config), "crea notas.txt\n"],
+            env=environment,
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+        )
+
+        assert result.returncode == 0, result.stderr
+        assert (area / "notas.txt").read_text(encoding="utf-8") == "hola"
+        with SqliteSessionStore(database) as reopened:
+            sessions = reopened.list_sessions()
+            assert len(sessions) == 1
+            types = [e.type for e in reopened.load_session(sessions[0].id)]
+        assert types[0] is EventType.USER_MESSAGE
+        assert EventType.PERMISSION_DECIDED in types
+        assert EventType.TOOL_FINISHED in types
+        assert EventType.INTERRUPTED not in types

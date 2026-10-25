@@ -59,7 +59,17 @@ EXIT_STARTUP = 2
 EXIT_INTERRUPTED = 130
 STARTUP_FAILURE_PREFIX = "No se pudo iniciar: "
 
+TEST_ONLY_PROVIDERS = frozenset({"fake"})
+TEST_ONLY_PROVIDER_MESSAGE = (
+    "El proveedor 'fake' solo existe para pruebas y no se puede usar con el comando; "
+    "elija un modelo real en config.toml (por ejemplo <proveedor>/<modelo>)."
+)
+
 ProviderFactory = Callable[[HarnessConfig], Provider]
+
+
+class StartupError(Exception):
+    """The system cannot start because of a choice of the user; the message is for the user."""
 
 
 @dataclass(frozen=True)
@@ -87,6 +97,8 @@ class Composition:
 
 def _default_provider(config: HarnessConfig) -> Provider:
     """The real provider: LiteLLM with the configured model, output cap and key."""
+    if config.model.partition("/")[0] in TEST_ONLY_PROVIDERS:
+        raise StartupError(TEST_ONLY_PROVIDER_MESSAGE)
     return LiteLLMProvider(
         config.model,
         max_output_tokens=config.limits.max_output_tokens,
@@ -229,7 +241,7 @@ def main(
             composition = compose(
                 config, provider_factory=provider_factory, clock=clock, id_factory=id_factory
             )
-        except (ConfigError, ProviderDependencyError, SessionStoreError) as problem:
+        except (ConfigError, ProviderDependencyError, SessionStoreError, StartupError) as problem:
             return _report_startup_failure(failures, str(problem))
         except Exception as problem:
             kind = type(problem).__name__

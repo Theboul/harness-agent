@@ -134,7 +134,7 @@ No se crea ninguna carpeta nueva, ningún puerto ni ningún adaptador. **Archivo
 3. Aviso de capacidad: 3 h añadidas al Sprint 1 de C (R-22).
 4. `SessionStore` y `SqliteSessionStore` no tienen forma de pasar una sesión a `completed`/`interrupted`: toda sesión queda `active`. Para B (HU-03-04 o posterior).
 5. Ctrl-C en el prompt: `run_cli` lee con `readline()` bloqueante, así que el primer Ctrl-C no se atiende hasta una nueva línea o un segundo Ctrl-C. Para C (`cli/`) cuando se aborde la cancelación controlada.
-6. Un modelo `fake/…` pasa la validación de configuración pero la composición real no sabe construirlo; falla en la primera llamada con `ProviderError`. Decisión pendiente: rechazarlo al arrancar o dejarlo.
+6. (Resuelto en la convergencia T016) Un modelo `fake/…` pasa la validación de configuración pero la composición real no sabe construirlo; ahora se rechaza al arrancar con `StartupError`. Antes era una decisión pendiente: rechazarlo al arrancar o dejarlo.
 7. `LITELLM_LOCAL_MODEL_COST_MAP=True` (nota de HU-07-02): la composición no toca el entorno; lo fija el usuario.
 8. PD-09 (la base de sesiones queda dentro del árbol del área si `workspace_root` contiene `.harness/`) sigue abierta y se hace visible con este comando.
 9. Prueba manual con un modelo real: tarea humana, omitida sin clave (como Sp1-45).

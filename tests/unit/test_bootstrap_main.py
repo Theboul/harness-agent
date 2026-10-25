@@ -21,6 +21,7 @@ from harness_agent.bootstrap import (
     EXIT_INTERRUPTED,
     EXIT_STARTUP,
     NO_AREA_NOTICE,
+    TEST_ONLY_PROVIDER_MESSAGE,
     Composition,
     main,
     run_session,
@@ -251,6 +252,11 @@ class Startup:
         self.output = io.StringIO()
         self.error = io.StringIO()
 
+    def write_config(self, text: str) -> Path:
+        path = self.tmp_path / "config.toml"
+        path.write_text(text, encoding="utf-8", newline="")
+        return path
+
     def go(
         self,
         *,
@@ -343,6 +349,20 @@ class TestMainStartupFailures:
         assert code == EXIT_STARTUP
         startup.assert_clean_failure()
         assert database.read_bytes() == b"esto no es una base de datos de SQLite"
+
+    def test_the_simulated_provider_is_refused_with_a_clear_line(self, tmp_path: Path) -> None:
+        startup = Startup(tmp_path)
+
+        code = main(
+            environ={},
+            config_path=startup.write_config('model = "fake/test"\n'),
+            input_stream=io.StringIO("/salir\n"),
+            output=startup.output,
+            error=startup.error,
+        )
+
+        assert code == EXIT_STARTUP
+        assert startup.assert_clean_failure() == PREFIX + TEST_ONLY_PROVIDER_MESSAGE + "\n"
 
     def test_an_unexpected_error_is_reduced_to_its_type(self, tmp_path: Path) -> None:
         def factory(_config: HarnessConfig) -> Provider:

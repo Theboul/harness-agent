@@ -19,7 +19,9 @@ from harness_agent.adapters.storage import SessionStoreError, SqliteSessionStore
 from harness_agent.bootstrap import (
     AREA_NOT_A_FOLDER_NOTICE,
     NO_AREA_NOTICE,
+    TEST_ONLY_PROVIDER_MESSAGE,
     Composition,
+    StartupError,
     compose,
 )
 from harness_agent.config import HarnessConfig, Secret
@@ -259,3 +261,30 @@ class TestTheDefaultProvider:
         opened.append(composition)
 
         assert built == [(config.model, 777, key)]
+
+
+class TestTheSimulatedProviderIsNotACommandProvider:
+    """``fake/...`` passes the configuration but only exists as a test double (convergence T016)."""
+
+    def test_the_default_provider_refuses_a_fake_model_before_opening_the_database(
+        self, tmp_path: Path
+    ) -> None:
+        config = make_config(tmp_path, workspace=tmp_path, model="fake/test")
+
+        with pytest.raises(StartupError) as raised:
+            compose(config)
+
+        assert str(raised.value) == TEST_ONLY_PROVIDER_MESSAGE
+        assert not config.paths.sessions_db.parent.exists()
+
+    def test_the_message_is_one_line_in_spanish_and_does_not_repeat_the_model(self) -> None:
+        assert "\n" not in TEST_ONLY_PROVIDER_MESSAGE
+        assert "fake" in TEST_ONLY_PROVIDER_MESSAGE
+        assert "config.toml" in TEST_ONLY_PROVIDER_MESSAGE
+
+    def test_an_injected_provider_may_use_a_fake_model(
+        self, tmp_path: Path, opened: list[Composition]
+    ) -> None:
+        composition = build(opened, make_config(tmp_path, workspace=tmp_path, model="fake/test"))
+
+        assert composition.session_id

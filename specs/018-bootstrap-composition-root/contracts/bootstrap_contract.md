@@ -10,6 +10,8 @@ EXIT_INTERRUPTED: int = 130
 
 ProviderFactory = Callable[[HarnessConfig], Provider]
 
+class StartupError(Exception): ...   # decisión del usuario que impide arrancar (p. ej. modelo fake/…)
+
 @dataclass(frozen=True)
 class Composition:
     loop: AgentLoop
@@ -95,6 +97,7 @@ Sin argumentos ni opciones. La ruta de la configuración se elige con `HARNESS_C
 | Error de configuración o de clave | `No se pudo iniciar: <texto del ConfigError>` (error) |
 | Falta la dependencia del proveedor | `No se pudo iniciar: <texto de ProviderDependencyError>` (error) |
 | Base ilegible o de otro esquema | `No se pudo iniciar: <texto de SessionStoreError>` (error) |
+| Modelo `fake/…` con el proveedor por omisión | `No se pudo iniciar: El proveedor 'fake' solo existe para pruebas y no se puede usar con el comando; elija un modelo real en config.toml (por ejemplo <proveedor>/<modelo>).` (error) |
 | Cualquier otra excepción al arrancar | `No se pudo iniciar: error inesperado (<Tipo>).` (error) |
 | Sin `workspace_root` | `Aviso: no hay área de trabajo configurada (paths.workspace_root); las herramientas de archivos están desactivadas.` (salida, antes del prompt) |
 | `workspace_root` que no es una carpeta | `Aviso: el área de trabajo configurada no es una carpeta; las herramientas de archivos están desactivadas.` (salida, antes del prompt) |

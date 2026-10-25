@@ -113,6 +113,7 @@ Quien desarrolla puede ejecutar la misma composición en pruebas con un proveedo
 - Dos ejecuciones simultáneas sobre la misma base: la segunda no corrompe la primera (el almacén ya lo gestiona); si no puede abrir, falla cerrada con mensaje.
 - El área de trabajo apunta a una carpeta que no existe: el área falla cerrada, cualquier uso de una herramienta de archivos se deniega con motivo y se avisa al arrancar.
 - Una variable `HARNESS_CONFIG` apunta a un archivo inexistente: se muestra el error de HU-00-04 tal cual.
+- El modelo configurado es `fake/…` (el valor de `config.example.toml`): el arranque lo rechaza con el mensaje «El proveedor 'fake' solo existe para pruebas…» y código 2, en vez de fallar en el primer turno.
 - El terminal no puede codificar los caracteres de una respuesta: ya lo resuelve la CLI; la composición no lo reimplementa.
 
 ## Requirements *(mandatory)*
@@ -132,6 +133,7 @@ Quien desarrolla puede ejecutar la misma composición en pruebas con un proveedo
 - **FR-011**: La composición MUST NOT cambiar puertos, entidades, catálogo de eventos, bucle, política, almacén, herramientas ni CLI; solo los usa por su API pública.
 - **FR-012**: Todo lo que toca el exterior (ruta de configuración, entorno, flujos de entrada y salida, proveedor, reloj, generador de identificadores) MUST poder inyectarse para probar la composición sin red, claves ni consola.
 - **FR-013**: Las acciones que piden aprobación MUST seguir denegándose con motivo hasta que exista la aprobación interactiva; la composición MUST NOT conceder permisos por su cuenta.
+- **FR-015**: Con el proveedor real por omisión, un modelo cuyo proveedor solo existe para pruebas (`fake/…`) MUST rechazarse al arrancar, antes de abrir la base, con un mensaje de una línea; con un proveedor inyectado se acepta (convergencia T016).
 - **FR-014**: La raíz de composición MUST ser el único módulo que conoce a la vez el núcleo, los adaptadores, la CLI y la configuración; el núcleo MUST NOT importarla (guarda de arquitectura).
 
 ### Key Entities *(include if feature involves data)*
