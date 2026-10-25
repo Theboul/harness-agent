@@ -5,6 +5,7 @@ from __future__ import annotations
 import harness_agent.adapters.storage as storage
 
 EXPECTED = {
+    "EXPORT_FILE_NAME",
     "SCHEMA_VERSION",
     "CriteriaIntegrityError",
     "CriteriaNotFound",

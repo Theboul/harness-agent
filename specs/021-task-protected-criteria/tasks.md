@@ -58,7 +58,7 @@
 
 ## Phase 6: Cableado e integración · Sp2-42
 
-- [ ] T010 [US1] (Sp2-42) `bootstrap.py`: envolver la política con `ProtectedPolicy` (área `ProtectedPaths` y marcadores derivados de `paths.sessions_db`), crear `SqliteTaskStore`, `compose(..., task=)` que inicia la tarea (sesión de la composición = sesión de la tarea) y `Composition` con `task_store`, `task` y `criteria_export`; pruebas en `tests/unit/test_bootstrap_task.py`; sin tarea, el comportamiento actual no cambia.
+- [x] T010 [US1] (Sp2-42) `bootstrap.py`: envolver la política con `ProtectedPolicy` (área `ProtectedPaths` y marcadores derivados de `paths.sessions_db`), crear `SqliteTaskStore`, `compose(..., task=)` que inicia la tarea (sesión de la composición = sesión de la tarea) y `Composition` con `task_store`, `task` y `criteria_export`; pruebas en `tests/unit/test_bootstrap_task.py`; sin tarea, el comportamiento actual no cambia.
 - [ ] T011 [US3] Integración AC-01 a AC-03 en `tests/integration/test_task_start.py` y `tests/integration/test_task_protection_agent_loop.py`: bucle, política y registro reales; cinco herramientas sobre `.harness/` denegadas con evento `permission_decided`; copia alterada → restaurada + `criteria_tampered`; ningún proceso lanzado por el shell denegado (archivo marcador ausente).
 
 ## Phase 7: Frontera y cierre
