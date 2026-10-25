@@ -47,8 +47,8 @@
 
 **Independent test**: con la política real, las cinco herramientas sobre `.harness/` se deniegan; el resto no cambia.
 
-- [ ] T007 [US3] (Sp2-39) `src/harness_agent/core/permissions/protected.py` (`ProtectedPolicy`, contrato `contracts/protected_policy.md`), exportar en `core/permissions/__init__.py` y `core/__init__.py`; pruebas en `tests/unit/core/permissions/test_protected_policy.py` con dobles (`ScriptedPolicy`, `DummyAuthorizedArea`): ruta protegida, shell con marcador, delegación, excepción → DENY, limitación documentada con un caso no detectado.
-- [ ] T008 [US3] (Sp2-39) `adapters/system/protected_paths.py` (`ProtectedPaths`: archivos con `-wal/-shm/-journal` y carpetas, ruta real, mayúsculas de Windows, `..`, enlaces, fallo cerrado) y exportar en `adapters/system/__init__.py`; pruebas en `tests/unit/adapters/system/test_protected_paths.py` con batería de rutas hostiles.
+- [x] T007 [US3] (Sp2-39) `src/harness_agent/core/permissions/protected.py` (`ProtectedPolicy`, contrato `contracts/protected_policy.md`), exportar en `core/permissions/__init__.py` y `core/__init__.py`; pruebas en `tests/unit/core/permissions/test_protected_policy.py` con dobles (`ScriptedPolicy`, `DummyAuthorizedArea`): ruta protegida, shell con marcador, delegación, excepción → DENY, limitación documentada con un caso no detectado.
+- [x] T008 [US3] (Sp2-39) `adapters/system/protected_paths.py` (`ProtectedPaths`: archivos con `-wal/-shm/-journal` y carpetas, ruta real, mayúsculas de Windows, `..`, enlaces, fallo cerrado) y exportar en `adapters/system/__init__.py`; pruebas en `tests/unit/adapters/system/test_protected_paths.py` con batería de rutas hostiles.
 
 ## Phase 5: US2 — Iniciar una tarea desde un issue de GitHub (P2) · Sp2-41
 
