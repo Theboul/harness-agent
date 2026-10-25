@@ -110,7 +110,7 @@ class TestTheRecorder:
 
 
 class TestTheTools:
-    async def test_the_four_file_tools_are_offered_to_the_model(
+    async def test_the_file_tools_and_the_shell_are_offered_to_the_model(
         self, tmp_path: Path, opened: list[Composition]
     ) -> None:
         provider = scripted("listo")
@@ -120,7 +120,13 @@ class TestTheTools:
 
         assert provider.received_tools[0] is not None
         names = sorted(tool.name for tool in provider.received_tools[0] or [])
-        assert names == ["buscar_texto", "escribir_archivo", "leer_archivo", "listar_archivos"]
+        assert names == [
+            "buscar_texto",
+            "escribir_archivo",
+            "leer_archivo",
+            "listar_archivos",
+            "shell",
+        ]
 
     def test_with_an_area_there_are_no_notices(
         self, tmp_path: Path, opened: list[Composition]

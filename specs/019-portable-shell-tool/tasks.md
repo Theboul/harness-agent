@@ -193,7 +193,7 @@
   - **Estimación**: 20 min (10 min impl + 5 min check + 5 min registro)
   - **Verificación**: Pruebas primero: `denied_commands_for("bash")` y `("powershell")` devuelven tuplas no vacías de `DeniedCommand` con `pattern` y `reason` no vacíos; son distintas entre sí; un intérprete desconocido devuelve `()`; `DEFAULT_DENIED_COMMANDS` es de solo lectura (no admite asignación); una prueba de arquitectura ligera confirma que `subprocess_shell.py`, `bash_shell.py`, `powershell_shell.py` y `shell.py` **no** importan este módulo (nada lo aplica aquí).
 
-- [ ] **T014** [US5] Cableado en `bootstrap.py`: elección del `Shell`, `ShellTool`, entorno sin claves y prefijo (FR-012, AC-03)
+- [x] **T014** [US5] Cableado en `bootstrap.py`: elección del `Shell`, `ShellTool`, entorno sin claves y prefijo (FR-012, AC-03)
   - **Archivos**: `src/harness_agent/bootstrap.py`, `tests/unit/test_bootstrap_shell.py`
   - **Dependencias**: T009, T010, T012
   - **Criterios relacionados**: AC-03, US3-1, US3-4, US5-5, FR-010c, FR-012, plan D13, D15 y «Qué cambia en bootstrap.py»
@@ -201,7 +201,7 @@
   - **Estimación**: 40 min (25 min impl + 10 min check + 5 min registro)
   - **Verificación**: Pruebas primero con `compose` y un `provider_factory` de prueba: la herramienta `shell` queda registrada (con y sin área; sin área devuelve `[sin_area]`); `ShellTool` recibe `shell.terminate_running` como `on_cancel`; el `Shell` se construye con `cwd == area.root`, el entorno inyectado y los nombres de `PROVIDER_KEY_VARIABLES` (sin `None`) como nombres a quitar; `Composition.history_prefix` tiene un único mensaje de sistema con el texto de `environment_notice` del sistema inyectado; `run_session` empieza `history` con ese prefijo y el prefijo no cambia entre turnos; `main` pasa su `environ` a `compose`. `bootstrap.py` sigue importando solo lo permitido (`test_bootstrap_boundaries.py` en verde). Si una prueba existente (`tests/unit/test_bootstrap_compose.py`, `test_bootstrap_main.py`, `tests/integration/test_bootstrap_session.py`) fijaba la lista exacta de herramientas o el historial vacío, se ajusta solo su aserción y se anota la desviación en `PROGRESO.md`.
 
-- [ ] **T015** [US5] Integración con el bucle real y la política real: denegación sin proceso y ejecución de extremo a extremo (AC-01 a AC-03, FR-024)
+- [x] **T015** [US5] Integración con el bucle real y la política real: denegación sin proceso y ejecución de extremo a extremo (AC-01 a AC-03, FR-024)
   - **Archivos**: `tests/integration/test_shell_agent_loop.py`
   - **Dependencias**: T014
   - **Criterios relacionados**: AC-01, AC-02, AC-03, US5-3, FR-024, SC-003

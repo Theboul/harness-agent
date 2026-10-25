@@ -179,7 +179,9 @@ class TestATaskFromStartToFinish:
 
         assert "hola" in run.tool_answers()
         fourth_call = [m.content for m in run.provider.received[3]]
-        assert fourth_call[0] == "escribe notas.txt"
+        # The history opens with the environment notice (HU-01-04); the first task follows it.
+        assert fourth_call[0].startswith("Entorno de ejecución")
+        assert fourth_call[1] == "escribe notas.txt"
         assert "lee notas.txt" in fourth_call
 
 
