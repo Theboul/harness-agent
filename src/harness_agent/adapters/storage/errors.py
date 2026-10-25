@@ -29,3 +29,15 @@ class DuplicateEvent(SessionStoreError):
 
 class EventSerializationError(SessionStoreError):
     """The payload of an event cannot be represented as JSON."""
+
+
+class CriteriaNotFound(SessionStoreError):
+    """A criterion was addressed by an identifier that does not exist (or is not valid)."""
+
+
+class CriteriaIntegrityError(SessionStoreError):
+    """The stored criteria show signs of tampering; nothing from them can be trusted."""
+
+
+class ExportError(SessionStoreError):
+    """The read-only copy of the criteria could not be written or restored."""

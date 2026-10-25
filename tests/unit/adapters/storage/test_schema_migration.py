@@ -108,7 +108,9 @@ def test_version_one_database_migrates_without_losing_data(tmp_path: Path) -> No
     path = tmp_path / "old.db"
     old = sqlite3.connect(path)
     old.executescript(V1_DDL)
-    old.execute("INSERT INTO sessions (id, created_at, goal, status) VALUES ('s1','t','g','active')")
+    old.execute(
+        "INSERT INTO sessions (id, created_at, goal, status) VALUES ('s1','t','g','active')"
+    )
     old.execute(
         "INSERT INTO events (id, session_id, seq, type, content, created_at) "
         "VALUES ('e1','s1',1,'user_message','{}','t')"

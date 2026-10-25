@@ -6,13 +6,18 @@ import harness_agent.adapters.storage as storage
 
 EXPECTED = {
     "SCHEMA_VERSION",
+    "CriteriaIntegrityError",
+    "CriteriaNotFound",
     "DuplicateEvent",
     "EventSerializationError",
+    "ExportError",
     "ParentSessionNotFound",
     "SchemaVersionError",
     "SessionNotFound",
     "SessionStoreError",
     "SqliteSessionStore",
+    "SqliteTaskStore",
+    "StartedTask",
     "StoredSession",
     "attach_event_recorder",
 }
