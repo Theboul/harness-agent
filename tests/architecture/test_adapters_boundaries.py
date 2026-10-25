@@ -23,7 +23,7 @@ from tests.architecture.test_core_reads_no_config import find_config_reads
 
 ADAPTERS_DIR = Path(__file__).resolve().parents[2] / "src" / "harness_agent" / "adapters"
 ROOT_PACKAGE = "harness_agent.adapters"
-GUARDED = ("system", "tools", "storage")
+GUARDED = ("system", "tools", "storage", "tasks")
 STDLIB = set(sys.stdlib_module_names) | {"__future__"}
 CORE_API = "harness_agent.core"
 
