@@ -50,6 +50,8 @@ from harness_agent.core.interfaces import (
     ToolRegistry,
 )
 from harness_agent.core.permissions import (
+    ApprovalGate,
+    ApprovalOutcome,
     DefaultPermissionPolicy,
     PermissionRules,
     ProtectedPolicy,
@@ -104,6 +106,8 @@ __all__ = [
     "PermissionDecision",
     "ApprovalAction",
     "ApprovalResult",
+    "ApprovalGate",
+    "ApprovalOutcome",
     "SessionStore",
     "MemoryStore",
     "SessionSummary",
