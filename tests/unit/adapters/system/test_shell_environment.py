@@ -11,8 +11,8 @@ from harness_agent.adapters.system.shell_environment import child_environment
 BASE: Mapping[str, str] = {
     "PATH": "/usr/bin",
     "HOME": "/home/u",
-    "ANTHROPIC_API_KEY": "valor-sintetico-1",
-    "OPENAI_API_KEY": "valor-sintetico-2",
+    "ANTHROPIC_API_KEY": "v-sint-1",
+    "OPENAI_API_KEY": "v-sint-2",
     "GIT_CONFIG": "kept",
 }
 REMOVED = ("ANTHROPIC_API_KEY", "OPENAI_API_KEY")
@@ -46,16 +46,16 @@ def test_an_empty_environment_stays_empty() -> None:
 
 @pytest.mark.parametrize("name", ["anthropic_api_key", "Anthropic_Api_Key"])
 def test_on_windows_names_are_compared_ignoring_case(name: str) -> None:
-    environ = {name: "valor-sintetico-3", "PATH": "C:\\Windows"}
+    environ = {name: "v-sint-3", "PATH": "C:\\Windows"}
     assert child_environment(environ, ("ANTHROPIC_API_KEY",), windows=True) == {
         "PATH": "C:\\Windows"
     }
 
 
 def test_on_other_systems_names_are_case_sensitive() -> None:
-    environ = {"anthropic_api_key": "valor-sintetico-3", "ANTHROPIC_API_KEY": "valor-sintetico-4"}
+    environ = {"anthropic_api_key": "v-sint-3", "ANTHROPIC_API_KEY": "v-sint-4"}
     assert child_environment(environ, ("ANTHROPIC_API_KEY",), windows=False) == {
-        "anthropic_api_key": "valor-sintetico-3"
+        "anthropic_api_key": "v-sint-3"
     }
 
 

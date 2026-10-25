@@ -22,3 +22,12 @@ MAX_QUERY_CHARS = 200
 
 MAX_RESULT_CHARS = 20_000
 """Longest listing or search answer."""
+
+DEFAULT_SHELL_TIMEOUT_SECONDS = 120
+"""Time a ``shell`` command may run when the model does not say."""
+
+MAX_SHELL_TIMEOUT_SECONDS = 600
+"""Longest time the model may ask a ``shell`` command to run."""
+
+MAX_COMMAND_CHARS = 8_000
+"""Longest command text ``shell`` accepts."""

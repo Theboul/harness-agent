@@ -113,7 +113,7 @@
 
 **Prueba independiente**: con el sistema inyectado, la elección devuelve la implementación correcta; en cada sistema real, un comando imprime el intérprete que lo ejecuta.
 
-- [ ] **T007** [P] [US2] `BashShell` (FR-007, FR-009, FR-010)
+- [x] **T007** [P] [US2] `BashShell` (FR-007, FR-009, FR-010)
   - **Archivos**: `src/harness_agent/adapters/system/bash_shell.py`, `tests/unit/adapters/system/test_bash_shell.py`
   - **Dependencias**: T005
   - **Criterios relacionados**: AC-02, US2-2, US2-4, FR-007, FR-009, FR-010, research R2, plan D7
@@ -121,7 +121,7 @@
   - **Estimación**: 30 min (15 min impl + 10 min check + 5 min registro)
   - **Verificación**: Pruebas primero: `interpreter_name == "bash"`; el argv es `[<bash>, "--noprofile", "--norc", "-c", <command>]` con `which` inyectado (corre en cualquier sistema); sin `bash` → `ShellStartError` («intérprete no disponible»), sin caer en otro; marcadas Linux (con motivo): `echo $0`/`echo $BASH_VERSION` confirma bash, `exit 3`, `echo hola`, perfiles no cargados (variable exportada en un archivo de perfil temporal no aparece), comando con comillas y `&&`.
 
-- [ ] **T008** [P] [US2] `PowerShellShell` (FR-007, FR-009, FR-010)
+- [x] **T008** [P] [US2] `PowerShellShell` (FR-007, FR-009, FR-010)
   - **Archivos**: `src/harness_agent/adapters/system/powershell_shell.py`, `tests/unit/adapters/system/test_powershell_shell.py`
   - **Dependencias**: T005
   - **Criterios relacionados**: AC-02, US2-1, US2-4, US2-6, FR-007, FR-009, FR-010, research R1, plan D7
@@ -129,7 +129,7 @@
   - **Estimación**: 40 min (25 min impl + 10 min check + 5 min registro)
   - **Verificación**: Pruebas primero: `interpreter_name == "powershell"`; con `which` inyectado prefiere `pwsh` y si no usa `powershell`; el argv contiene `-NoLogo -NoProfile -NonInteractive -Command` y el guion con preludio UTF-8, el comando intacto en su propia línea y el epílogo del código de salida (corre en cualquier sistema); sin ninguno de los dos → `ShellStartError`. Marcadas Windows (con motivo): `echo hola`, `exit 3`, un ejecutable nativo con código 7, un cmdlet que falla → 1 y texto legible (sin `#< CLIXML`), `echo 'áéñ ü'` correcto, un comando con comillas simples y dobles, comando terminado en comentario `# …`.
 
-- [ ] **T009** [US2] `select_shell`, `interpreter_for` y contrato común del puerto (FR-007, FR-008, FR-022)
+- [x] **T009** [US2] `select_shell`, `interpreter_for` y contrato común del puerto (FR-007, FR-008, FR-022)
   - **Archivos**: `src/harness_agent/adapters/system/shell_selection.py`, `src/harness_agent/adapters/system/__init__.py`, `tests/unit/adapters/system/test_shell_selection.py`, `tests/contracts/test_shell_contract.py`
   - **Dependencias**: T007, T008
   - **Criterios relacionados**: AC-02, AC-04, US2-1 a US2-3, US2-5, FR-007, FR-008, FR-022, contrato §3, plan D8, D9
@@ -145,7 +145,7 @@
 
 **Prueba independiente**: el historial inicial empieza con un mensaje de sistema que nombra el sistema y el intérprete (completada con T014).
 
-- [ ] **T010** [P] [US3] `environment_notice` (FR-011)
+- [x] **T010** [P] [US3] `environment_notice` (FR-011)
   - **Archivos**: `src/harness_agent/adapters/system/environment_notice.py`, `src/harness_agent/adapters/system/__init__.py`, `tests/unit/adapters/system/test_environment_notice.py`
   - **Dependencias**: T001
   - **Criterios relacionados**: AC-03, US3-2, US3-3, FR-011, contrato §2, research R8, plan D13
@@ -161,7 +161,7 @@
 
 **Prueba independiente**: un comando que imprime mucho más que el máximo devuelve a lo sumo el máximo, con cabeza, cola y aviso; uno corto, sin aviso.
 
-- [ ] **T011** [US4] Salida enorme y no UTF-8 con procesos reales (FR-006, FR-013, FR-014, SC-002)
+- [x] **T011** [US4] Salida enorme y no UTF-8 con procesos reales (FR-006, FR-013, FR-014, SC-002)
   - **Archivos**: `tests/unit/adapters/system/test_subprocess_shell.py`
   - **Dependencias**: T006
   - **Criterios relacionados**: US4-1 a US4-5, FR-006, FR-013, FR-014, SC-002
@@ -177,7 +177,7 @@
 
 **Prueba independiente**: con el bucle y la política reales y sin aprobador, la llamada se pregunta, se deniega y no lanza ningún proceso.
 
-- [ ] **T012** [US5] `ShellTool` y sus límites (FR-015 a FR-019)
+- [x] **T012** [US5] `ShellTool` y sus límites (FR-015 a FR-019)
   - **Archivos**: `src/harness_agent/adapters/tools/shell.py`, `src/harness_agent/adapters/tools/_limits.py`, `src/harness_agent/adapters/tools/__init__.py`, `tests/unit/adapters/tools/test_shell_tool.py`
   - **Dependencias**: T005
   - **Criterios relacionados**: AC-01, US5-1, US5-2, US5-4, US5-5, FR-015 a FR-019, SC-004, contrato §1, plan D2, D11, D12, D16
@@ -185,7 +185,7 @@
   - **Estimación**: 40 min (25 min impl + 10 min check + 5 min registro)
   - **Verificación**: Pruebas primero con un `Shell` de prueba (clase local en la prueba, no en `tests/doubles/`) que devuelve resultados guionizados: nombre `shell`, riesgo `HIGH`, esquema que pasa `check_schema` (registro real) y rechaza campos extra, `command` vacío o no textual, `timeout_seconds` fuera de rango; éxito → `Código de salida: 0`; código ≠ 0 → `[codigo_de_salida=N]` y `is_error`; tiempo agotado → `[tiempo_agotado]` con el plazo aplicado y la salida parcial; salida vacía → `(sin salida)`; `ShellStartError`/`OSError` → `[interprete_no_disponible]` con el nombre del intérprete; otra excepción → `[error_de_shell]` sin el texto de la excepción (centinela `VALOR-DE-PRUEBA-123` no aparece); sin área → `[sin_area]` y el `Shell` no se llama; `timeout_seconds` por defecto 120 y acotado a 600; el `Shell` se ejecuta fuera del hilo del bucle (`asyncio.to_thread`); el resultado no repite el comando; si la tarea que ejecuta `run` se cancela mientras el `Shell` de prueba espera, se invoca `on_cancel` exactamente una vez y la cancelación se propaga (`CancelledError`); sin gancho no falla.
 
-- [ ] **T013** [P] [US5] Lista de comandos denegados por plataforma como dato (FR-010b)
+- [x] **T013** [P] [US5] Lista de comandos denegados por plataforma como dato (FR-010b)
   - **Archivos**: `src/harness_agent/adapters/system/denied_commands.py`, `src/harness_agent/adapters/system/__init__.py`, `tests/unit/adapters/system/test_denied_commands.py`
   - **Dependencias**: T001
   - **Criterios relacionados**: regla de negocio 3, FR-010b, research R9, plan D14

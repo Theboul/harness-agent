@@ -330,3 +330,68 @@ class TestEndsAtTheLimit:
         result = make_shell(tmp_path).execute("print('fin')", 5)
         assert (result.exit_code, result.timed_out) == (0, False)
         assert result.output.strip() == "fin"
+
+
+HUGE_MEGABYTES = 100
+WRITE_HUGE = (
+    "import sys\n"
+    "out = sys.stdout.buffer\n"
+    "out.write(b'INICIO\\n')\n"
+    "line = b'x' * 1023 + b'\\n'\n"
+    f"for _ in range({HUGE_MEGABYTES} * 1024):\n"
+    "    out.write(line)\n"
+    "out.write(b'FINAL\\n')\n"
+    "out.flush()\n"
+)
+
+
+class TestBoundedOutput:
+    def test_a_huge_output_is_cut_with_head_tail_and_notice(self, tmp_path: Path) -> None:
+        import re
+        import tracemalloc
+
+        tracemalloc.start()
+        try:
+            started = time.monotonic()
+            result = make_shell(tmp_path).execute(WRITE_HUGE, 120)
+            elapsed = time.monotonic() - started
+            _, peak = tracemalloc.get_traced_memory()
+        finally:
+            tracemalloc.stop()
+        assert (result.exit_code, result.timed_out) == (0, False)
+        assert len(result.output) <= 20_000
+        assert result.output.startswith("INICIO")
+        assert result.output.endswith("FINAL\n")
+        match = re.search(r"\[salida recortada: se omitieron (\d+) caracteres\]", result.output)
+        assert match is not None
+        total = len("INICIO\n") + HUGE_MEGABYTES * 1024 * 1024 + len("FINAL\n")
+        shown = len(result.output) - len(match.group(0)) - 2
+        assert int(match.group(1)) + shown == total
+        assert peak < 20 * 1024 * 1024, f"retained {peak} bytes"
+        assert elapsed < 60
+
+    def test_a_short_output_has_no_notice(self, tmp_path: Path) -> None:
+        output = make_shell(tmp_path).execute("print('corto')", 10).output
+        assert "salida recortada" not in output
+
+    def test_invalid_bytes_become_replacement_characters(self, tmp_path: Path) -> None:
+        code = "import sys; sys.stdout.buffer.write(b'a\\xff\\xfeb')"
+        result = make_shell(tmp_path).execute(code, 10)
+        assert result.exit_code == 0
+        assert result.output == "a\ufffd\ufffdb"
+
+    def test_the_notice_also_appears_with_a_non_zero_exit_code(self, tmp_path: Path) -> None:
+        code = "import sys; sys.stdout.write('x' * 100000); sys.exit(3)"
+        result = make_shell(tmp_path).execute(code, 10)
+        assert result.exit_code == 3
+        assert "salida recortada" in result.output
+        assert len(result.output) <= 20_000
+
+    def test_the_notice_also_appears_with_a_timeout(self, tmp_path: Path) -> None:
+        code = (
+            "import sys, time\nsys.stdout.write('x' * 100000); sys.stdout.flush()\ntime.sleep(60)\n"
+        )
+        result = make_shell(tmp_path).execute(code, 2)
+        assert result.timed_out is True
+        assert "salida recortada" in result.output
+        assert len(result.output) <= 20_000
