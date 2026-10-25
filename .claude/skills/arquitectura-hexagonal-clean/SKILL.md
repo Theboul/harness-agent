@@ -18,7 +18,7 @@ Cargar antes de escribir código de una historia, al diseñar un puerto o adapta
 - Los puertos son clases abstractas (`ABC`), se nombran por rol en inglés y usan solo tipos y errores del dominio (`core/entities.py`, `core/events.py`), nunca del SDK.
 - Los puertos, `core/entities.py` y `core/events.py` son contratos de HU-00-01: cambiarlos exige acuerdo de A, B y C.
 - Los adaptadores traducen errores externos a errores de dominio; el núcleo no captura excepciones de SDK.
-- Las dependencias se reciben por constructor y se conectan solo en `bootstrap.py` (mientras no exista, en las pruebas de integración).
+- Las dependencias se reciben por constructor y se conectan solo en `bootstrap.py` (la raíz de composición real, HU-00-08).
 - El reloj, los identificadores, la configuración y las variables de entorno se inyectan; `core/` no lee `config.toml` ni `os.environ`.
 - El núcleo no imprime ni lee de la terminal: emite eventos por `EventBus`.
 - Los tipos del dominio son `@dataclass(frozen=True)`; el núcleo no muta lo que recibe (copia antes de pasarlo a un colaborador).
@@ -44,7 +44,7 @@ Capas, antipatrones y reglas del harness: `references/capas-y-reglas.md`.
 1. Recorrer el flujo de Decision Gates para la historia.
 2. Si hace falta un puerto, escribirlo con tipos del dominio y documentar los errores de dominio que puede lanzar (`assets/port_provider.py` muestra el formato real).
 3. Implementar el adaptador traduciendo formatos y errores (`assets/adapter_litellm.py`).
-4. Conectar en `bootstrap.py` (`assets/bootstrap.py`) o, si aún no existe, en la prueba de integración.
+4. Conectar en `bootstrap.py` (el ejemplo ilustrativo está en `assets/bootstrap.py`).
 5. Probar el núcleo con dobles y el adaptador con prueba de contrato, sin red ni claves.
 6. Revisar contra la lista de `references/capas-y-reglas.md` y ejecutar la skill `verificar-fronteras-hexagonales`.
 

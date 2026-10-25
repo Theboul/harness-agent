@@ -1,6 +1,6 @@
-# Ejemplo ILUSTRATIVO de la raíz de composición: src/harness_agent/bootstrap.py (aún no existe).
+# Ejemplo ILUSTRATIVO de la raíz de composición. La real es src/harness_agent/bootstrap.py (HU-00-08).
 # Es el único módulo que conoce núcleo, adaptadores, configuración y CLI a la vez.
-# Mientras no exista, esta misma conexión se hace a mano en tests/integration/ (make_rig).
+# Las pruebas de integración antiguas conectan a mano (make_rig); las nuevas pueden usar compose().
 from __future__ import annotations
 
 import uuid

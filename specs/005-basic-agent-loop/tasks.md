@@ -465,6 +465,7 @@ T001–T030 completadas con dobles; T031 y T032 siguen **sin marcar** (bloqueada
   - **Criterios relacionados**: **AC-01**, FR-031, Q3, Q4
   - **Evidencia requerida**: salida de `pytest tests/integration/test_loop_with_b_components.py`
   - **Completada cuando**: B confirma la semántica y la prueba pasa con sus implementaciones reales; hasta entonces permanece sin marcar.
+  - **Estado 2026-10-25 (sin marcar: falta la confirmación de B)**: los bloqueos ya no existen (HU-00-03 y HU-01-05 están integradas). El objetivo está cubierto por pruebas con las implementaciones reales, en otros archivos: `tests/integration/test_fake_provider_agent_loop.py` (guion con `FakeProvider`, 20 ejecuciones idénticas, fallos simulados), `tests/integration/test_event_bus_agent_loop.py` (`TestQ4SuscriptorQueFalla`: un suscriptor que falla detiene el turno y la herramienta no se ejecuta; `test_observation_the_loop_does_not_emit_approval_requested_yet`) y `tests/integration/test_bootstrap_session.py`. Nota: el texto original suponía que el bus aísla al suscriptor que falla; la semántica implementada por B (HU-01-05, decisión D3) es que `emit` falla y el bucle propaga (Q4).
 
 - [ ] T032 [BLOQUEADA: C] Prueba de integración con el `ToolRegistry` real (HU-01-02) y la `PermissionPolicy` real (HU-05-01/Sp1-35) en `tests/integration/test_loop_with_c_components.py`
   - **Objetivo**: confirmar con C la semántica exacta de `validate_args` (devuelve un `dict` nuevo con los argumentos efectivos sin mutar la entrada; excepciones posibles) y que la política razona sobre los argumentos efectivos (R-07); ejecutar la demostración «leer, escribir y releer» y registrar si la política provisional clasifica la lectura como `ASK` (riesgo A-12): **no se amplían permisos desde el núcleo**; el desenlace se reporta a C.
@@ -475,6 +476,7 @@ T001–T030 completadas con dobles; T031 y T032 siguen **sin marcar** (bloqueada
   - **Criterios relacionados**: FR-008, FR-013, A-12, R-07
   - **Evidencia requerida**: salida de la prueba y nota de C sobre la semántica de `validate_args` en `docs/PROGRESO.md`
   - **Completada cuando**: C confirma la semántica y la demostración corre (o se documenta la denegación de la lectura sin ampliar permisos); hasta entonces permanece sin marcar.
+  - **Estado 2026-10-25 (sin marcar: falta la confirmación de C)**: los bloqueos ya no existen. Cubierto con las implementaciones reales: `tests/integration/test_tool_registry_consumer.py` y `tests/core/test_loop_doubles.py` (`validate_args` devuelve un `dict` nuevo sin mutar la entrada), `tests/core/test_loop_permissions.py` y `tests/core/test_loop_happy_path.py` (R-07: la política ve los argumentos efectivos), `tests/integration/test_permission_policy_agent_loop.py` y `tests/integration/test_file_tools_agent_loop.py` (leer, escribir y releer: con la regla de lectura de HU-05-01 la lectura dentro del área se permite; sin ella se pregunta y se deniega, sin ampliar permisos). El desenlace de la lectura (supuesto pendiente del PO) está en las observaciones de HU-05-01.
 
 ---
 

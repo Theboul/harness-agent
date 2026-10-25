@@ -1,0 +1,255 @@
+# Implementation Tasks: Raíz de composición y punto de entrada ejecutable (propuesta HU-00-08)
+
+**Feature**: `specs/018-bootstrap-composition-root/spec.md`  
+**Plan**: `specs/018-bootstrap-composition-root/plan.md`  
+**Responsable de la historia**: C — Control y conexiones (decisión del PO, cierra PD-08)  
+**Sprint**: Sprint 1 | **PHU**: sin asignar (historia propuesta; el PO la formaliza)  
+**Tareas de referencia**: ninguna en `docs/03-plan-sprints.md` (la historia no tiene ficha); se propone el prefijo provisional `Sp1-P` en `PROGRESO.md`
+
+---
+
+## Cómo leer este documento
+
+**Pruebas primero, dentro de cada tarea.** Cada tarea agrupa las pruebas y la implementación de una pieza: se escriben las pruebas, se ejecutan y se confirma que fallan **por la razón esperada** (indicada en cada tarea), se implementa lo mínimo y se pasan los cuatro comandos de calidad. No hay tareas de «solo pruebas».
+
+**Ritmo**: 7 tareas de trabajo con código (T003 a T009), todas de 40 min como máximo; aparte, solo estas: inicio (T001), documentación de cierre (T010), verificación final (T011) y las humanas (T002, T012 a T015).
+
+**Reglas que valen para todas las tareas:**
+- **Archivos protegidos**: no modificar `src/harness_agent/core/interfaces/`, `core/events.py`, `core/loop.py`, `core/in_memory_event_bus.py`, `cli/`, `tests/doubles/`, ninguna prueba existente ni `docs/archivo/`. Tampoco `.github/workflows/ci.yml`. Los únicos archivos existentes que se tocan son `pyproject.toml` (solo `[project.scripts]`), `CLAUDE.md`, las skills (ambas copias) y `docs/PROGRESO.md`.
+- `core/` no se toca. `bootstrap.py` es el único módulo que conoce a la vez núcleo, adaptadores, CLI y configuración; importa de la API pública (`harness_agent.core`, `harness_agent.adapters.storage`, `.system`, `.tools`, `harness_agent.cli`, `harness_agent.config`) y, **solo estos dos submódulos autorizados** por no tener vía pública, de `harness_agent.core.loop` (`AgentLoop`) y `harness_agent.adapters.providers.litellm_provider` (`LiteLLMProvider`, `ProviderDependencyError`). Cualquier otro submódulo es una violación. No lee `os.environ`, no usa `print`, `input` ni `sys.stdout` directamente: escribe en los flujos inyectados (el valor por omisión `sys.stdout`/`sys.stderr` se resuelve en `main`). Python 3.12, `mypy --strict`, `ruff` a 100 columnas. Identificadores y docstrings en inglés; mensajes al usuario en español.
+- Contratos y decisiones: [contracts/bootstrap_contract.md](contracts/bootstrap_contract.md), [data-model.md](data-model.md), [research.md](research.md) y [plan.md](plan.md).
+- **Aislamiento**: ninguna prueba usa red ni claves reales. Las de integración importan la fixture `blocked_network` de `tests/integration/test_fake_provider_agent_loop.py` (con `# noqa: F401`, como `test_sprint1_scripted_file_task.py`). El proveedor de prueba entra por `provider_factory` con `FakeProvider` o una clase mínima local; la base es `:memory:` o `tmp_path`.
+- **Sin literales detectables**: usar `VALOR-DE-PRUEBA-123` como centinela de la clave; no asignar valores largos a nombres tipo `secret`, `token`, `password` (`tests/architecture/test_no_secrets_in_repo.py`).
+- **Windows**: no usar señales reales en las pruebas; `write_text(..., newline="")`; `ids=` explícitos en `parametrize` con valores largos; las rutas se pasan como `Path`.
+- **No dejar `.coverage*`** en el árbol: `rm -f .coverage*` antes de confirmar y añadir con rutas explícitas (`git add <rutas>`).
+- **Al cerrar cada tarea que toca código o pruebas**: `ruff format --check .`, `ruff check .`, `mypy src tests` y `pytest --cov=harness_agent --cov-report=term-missing`, los cuatro con código 0, y `pytest tests/architecture`. La cobertura de `bootstrap.py` y `__main__.py` debe llegar al **100 % de líneas y ramas** al cerrar T007.
+
+**Correspondencia con el plan de sprint**: la historia no tiene tareas `Sp1-xx` en `docs/03-plan-sprints.md`. El PO asignó **3 h (180 min)** de presupuesto; la estimación de abajo es mayor y se avisa en «Estimación frente al presupuesto».
+
+| Bloque | Descripción | Microtareas |
+|---|---|---|
+| Composición | `compose()`, `Composition`, avisos de área | T003 |
+| Sesión y comando | `run_session()`, `main()` feliz, `__main__`, comando `harness` | T004, T005 |
+| Integración | tarea de extremo a extremo con el bucle real, persistencia, interrupción | T006 |
+| Errores de arranque | códigos 2 y 130, secretos | T007 |
+| Determinismo y fronteras | 20 ejecuciones idénticas, guarda `ast` | T008, T009 |
+| Transversal | estado, ratificación, documentación, cierre, revisión y CI remota | T001, T002, T010 a T015 |
+
+---
+
+## Phase 1: Setup (estado y ratificación)
+
+**Propósito**: Marcar la historia `En curso` y dejar claro que los AC son propuestos.
+
+- [x] T001 Marcar la historia propuesta como `En curso` en `docs/PROGRESO.md` (transversal)
+  - **Archivos**: `docs/PROGRESO.md`
+  - **Dependencias**: Ninguna
+  - **Criterios relacionados**: Principio VIII, PD-08
+  - **Estimación**: 20 min
+  - **Verificación**: Fila nueva en la tabla de Sprint 1: «HU-00-08 (propuesta) — Raíz de composición y punto de entrada ejecutable», responsable `C — Control y conexiones`, estado `En curso`, PHU «—». Bloque **Observaciones de HU-00-08 (propuesta)** con: ID provisional, AC-P1 a AC-P3 pendientes de ratificación, 3 h asignadas por el PO y el aviso de capacidad. Una línea nueva en el Registro de cambios (una línea por fila, CRLF, tabla *Resumen* intacta). Línea base de las cuatro puertas antes de tocar código.
+  - **Evidencia**: 2026-10-24: fila «HU-00-08 (propuesta)» en la tabla de Sprint 1 (`En curso`, responsable C), bloque Observaciones de HU-00-08, PD-08 `En curso` y fila en el Registro de cambios; tabla *Resumen* intacta. Línea base: ruff format/check y mypy en 0; 3116 pasadas y 8 omitidas; `test_no_secrets_in_repo` fallaba por texto de `plan.md`/`tasks.md` (asignación de clave) y se reformuló, ya 28/28.
+
+- [ ] T002 *(humana)* El PO ratifica o sustituye AC-P1 a AC-P3 y decide el ID definitivo (puede hacerse al final, pero antes de pasar a `Hecha`)
+  - **Archivos**: `docs/PROGRESO.md` (solo para anotar la decisión)
+  - **Dependencias**: T001
+  - **Criterios relacionados**: Principio V
+  - **Estimación**: fuera del presupuesto de Claude
+  - **Verificación**: El PO acepta o reemplaza los tres criterios y asigna un ID de historia (o decide dejarla como tarea técnica); se anota fecha y decisión. **No bloquea** T003 a T009; conviene tenerla **antes de T010**: si el PO aún no respondió, T010 deja los AC marcados como «propuestos» y T011 lo informa. **Bloquea** pasar de `En revisión` a `Hecha`.
+  - **Evidencia**:
+
+---
+
+## Phase 2: Foundational — La composición (bloquea todas las historias de usuario)
+
+**Propósito**: Construir las piezas en el orden definido y dejar la composición lista para ejecutarse.
+
+- [x] T003 [US1] `compose()` y `Composition` en `src/harness_agent/bootstrap.py` con `tests/unit/test_bootstrap_compose.py`
+  - **Archivos** (fila de `estructura-carpetas-harness`: «Unir piezas y elegir implementaciones → `bootstrap.py`»): `src/harness_agent/bootstrap.py` (nuevo), `tests/unit/test_bootstrap_compose.py` (nuevo)
+  - **Dependencias**: T001
+  - **Criterios relacionados**: FR-003, FR-004, FR-005, FR-007, FR-011, FR-012, FR-013; AC-P1, AC-P2
+  - **Estimación**: 40 min
+  - **Pruebas primero**: con configuración construida a mano (`HarnessConfig`) y `provider_factory` con un proveedor mínimo: (1) la composición devuelve el bucle, el bus, el almacén y un `session_id` que existe en el almacén con `model=config.model`; (2) un evento emitido por el bus queda guardado (registrador conectado antes de devolver); (3) el registrador está suscrito a los 17 tipos; (4) sin `workspace_root` → `notices` con el aviso de área ausente y cada una de las cuatro herramientas de archivos queda denegada por la política con `[approval_required_unavailable]` (hallazgo de la implementación: el `[sin_area]` de la herramienta no llega al modelo); (5) `workspace_root` que no es carpeta → el otro aviso, sin reproducir la ruta; (6) con área válida → sin avisos y las 4 herramientas registradas por nombre (`leer_archivo`, `escribir_archivo`, `listar_archivos`, `buscar_texto`); (7) el proveedor se construye **antes** de abrir la base (si `provider_factory` lanza, el archivo de la base no existe); (8) si falla un paso posterior a abrir el almacén, este se cierra antes de propagar; (9) `close()` cierra el almacén y es idempotente; (10) reloj e identificadores inyectados llegan al almacén (`session_id` fijo). Deben fallar con `ModuleNotFoundError: harness_agent.bootstrap`.
+  - **Implementación**: `Composition` (`@dataclass(frozen=True)`: `loop`, `bus`, `store`, `session_id`, `notices`, `close()`), `compose(config, *, provider_factory=None, clock=None, id_factory=None)` con el orden de `data-model.md`, constantes con los dos textos de aviso, `_default_provider(config)` con `LiteLLMProvider` construido con `config.model`, el tope `config.limits.max_output_tokens` y la clave `config.api_key`.
+  - **Verificación**: las pruebas pasan; `bootstrap.py` no importa submódulos (`harness_agent.core.loop`, etc.); cuatro puertas en 0.
+  - **Evidencia**: 2026-10-24: rojo por `ImportError: cannot import name 'bootstrap'`; verde con `src/harness_agent/bootstrap.py` y `tests/unit/test_bootstrap_compose.py` (19 pruebas; `bootstrap.py` 100 % de líneas y ramas). Cuatro puertas en 0: 3136 pasadas, 8 omitidas; `pytest tests/architecture` 299 pasadas. **Hallazgo**: sin área, la política trata cualquier uso de las cuatro herramientas como «preguntar» y el bucle lo deniega con `[approval_required_unavailable]`; el `[sin_area]` de la herramienta no llega al modelo. Se corrigieron spec, investigación, T003 y T006(8).
+
+---
+
+## Phase 3: User Story 1 — Ejecutar una tarea real desde la terminal (P1) [AC-P1]
+
+**Objetivo**: Una sesión interactiva de extremo a extremo con el comando.
+
+**Prueba independiente**: con proveedor simulado y entrada de dos líneas, el archivo se crea dentro del área, la terminal muestra los eventos y la salida es 0.
+
+- [x] T004 [US1] `run_session()` con historial continuo y avisos en `src/harness_agent/bootstrap.py` (+ clase `TestRunSession` en `tests/unit/test_bootstrap_main.py`)
+  - **Archivos**: `src/harness_agent/bootstrap.py`, `tests/unit/test_bootstrap_main.py` (nuevo)
+  - **Dependencias**: T003
+  - **Criterios relacionados**: FR-006, FR-007, FR-013; Historia 1 (escenarios 2, 4 y 5)
+  - **Estimación**: 30 min
+  - **Pruebas primero**: con `StringIO` de entrada y salida y un proveedor que registra los mensajes que recibe: (1) los avisos de `notices` se escriben **antes** del primer prompt; (2) la segunda tarea llega al proveedor con el historial de la primera (el historial crece entre líneas); (3) `/salir` y fin de entrada devuelven 0; (4) un turno que lanza una excepción ordinaria devuelve 1 (lo decide `run_cli`); (5) una acción que pide aprobación se deniega con `[approval_required_unavailable]` en lo que recibe el modelo (se provoca con `config.permissions.ask = ("leer_archivo",)`, sin tocar la política); (6) la entrada se cierra antes de la primera tarea → código 0 y ningún evento guardado en la sesión. Deben fallar con `AttributeError`/`ImportError` de `run_session`.
+  - **Implementación**: `run_session(composition, *, input_stream=None, output=None)`: lista `history` propia de la sesión, `run_turn(task)` que llama a `composition.loop.run_turn(session_id=…, task=…, history=history)`, escritura de avisos y `return await run_cli(composition.bus, run_turn, input_stream=…, output=…)`.
+  - **Verificación**: las pruebas pasan; `cli/` no se modifica (`git diff` limpio).
+  - **Evidencia**: 2026-10-24: rojo por `ImportError: cannot import name 'run_session'`; verde con `run_session` en `bootstrap.py` y `TestRunSession` (7 pruebas) en `tests/unit/test_bootstrap_main.py`; los ayudantes comunes pasaron a `tests/unit/bootstrap_support.py`. `bootstrap.py` al 100 % (72 líneas, 14 ramas). El turno que lanza una excepción ordinaria se provoca con un suscriptor que falla (`EventDeliveryError`): el bucle absorbe las excepciones del proveedor como `PROVIDER_ERROR`, así que `ScriptExhausted` no produce código 1. `cli/` sin cambios.
+
+- [x] T005 [US1] `main()` en el camino feliz, `__main__.py` y el comando `harness` (`src/harness_agent/bootstrap.py`, `src/harness_agent/__main__.py`, `pyproject.toml`, `tests/unit/test_entry_point.py`)
+  - **Archivos**: `src/harness_agent/bootstrap.py`, `src/harness_agent/__main__.py` (nuevo), `pyproject.toml` (solo `[project.scripts]`), `tests/unit/test_entry_point.py` (nuevo), ampliación de `tests/unit/test_bootstrap_main.py`
+  - **Dependencias**: T004
+  - **Criterios relacionados**: FR-001, FR-002, FR-009; AC-P1; Historia 1 (escenario 5)
+  - **Estimación**: 40 min
+  - **Pruebas primero**: (1) `main(environ=…, config_path=<archivo en tmp_path>, input_stream=…, output=…, provider_factory=…)` con configuración válida y `/salir` devuelve 0 y cierra el almacén; (2) `main` carga la configuración con el `environ` recibido (la clave de un entorno falso llega al proveedor sin tocar `os.environ`); (3) `runpy.run_module("harness_agent", run_name="__main__")` con `main` sustituido por un doble llama a `main()` sin argumentos y termina con su código; (4) `pyproject.toml` declara `harness = "harness_agent.bootstrap:main"` (se lee con `tomllib` en la prueba) y la función existe y es invocable. Deben fallar por `main` inexistente y por el script no declarado.
+  - **Implementación**: `main(...)` con los valores por omisión reales (`sys.stdin`, `sys.stdout`, `sys.stderr`), `load_config(config_path, environ=environ)`, `compose`, `asyncio.run(run_session(...))`, `close()` en `finally`. `__main__.py`: `from harness_agent.bootstrap import main` / `raise SystemExit(main())` bajo `if __name__ == "__main__":` (o sin guarda, de modo que `runpy` lo ejecute). `[project.scripts]` en `pyproject.toml`.
+  - **Verificación**: las pruebas pasan; `pip install -e . --no-deps` no se rompe (mismo `pyproject.toml` válido); cuatro puertas en 0.
+  - **Evidencia**: 2026-10-24: rojo por `ImportError: cannot import name 'main'`; verde con `main()` en `bootstrap.py`, `src/harness_agent/__main__.py`, `[project.scripts]` en `pyproject.toml`, `TestMainHappyPath` (4) en `tests/unit/test_bootstrap_main.py` y `tests/unit/test_entry_point.py` (3). `bootstrap.py` y `__main__.py` al 100 %. Comprobado en un entorno limpio de Python 3.12: `pip install --no-deps .` crea el comando `harness` y arranca. `main` aún no traduce errores (T007); sin configuración muestra la traza de `ConfigFileNotFoundError`.
+
+- [x] T006 [US1] [US2] Integración con el `AgentLoop` real en `tests/integration/test_bootstrap_session.py`
+  - **Archivos**: `tests/integration/test_bootstrap_session.py` (nuevo)
+  - **Dependencias**: T005
+  - **Criterios relacionados**: AC-P1, AC-P2; Historia 1 (escenarios 1 a 4), Historia 2 (escenarios 1 y 2); SC-002, SC-005
+  - **Estimación**: 40 min
+  - **Pruebas primero** (la composición real con `FakeProvider`, `blocked_network` y base en `tmp_path`; fallan mientras falte algún cableado): (1) tarea «crea `notas.txt`» → el archivo existe dentro del área, la salida contiene la solicitud y el resultado de la herramienta y el código es 0; (2) **SC-002**: los eventos guardados en la base (en orden y con un solo `session_id`) coinciden en número y tipos con los que se mostraron; (3) segunda tarea que usa lo de la primera → el historial se conserva; (4) escritura fuera del área → denegada y el archivo no existe (**SC-005**); (5) acción que pide aprobación (con `config.permissions.ask = ("leer_archivo",)`) → denegada con motivo; (6) `QuotaExceeded` a mitad de tarea → la sesión sigue y el error se muestra; (7) interrupción: la tarea de `run_session` se cancela con una llamada al proveedor en espera → el evento `INTERRUPTED` queda guardado y la base se puede cerrar (esta es la ruta de cancelación que produce una señal real; la señal en sí solo se ve a mano en T015); (8) sin `workspace_root` → aviso y la escritura queda denegada con `[approval_required_unavailable]`, sin crear ningún archivo.
+  - **Verificación**: pasan sin cambios en `src/`; `rm -f .coverage*` antes de confirmar.
+  - **Evidencia**: 2026-10-24: `tests/integration/test_bootstrap_session.py` (8 pruebas con el `AgentLoop`, las herramientas, `WorkspaceArea`, la política, el bus, SQLite y la CLI reales; `blocked_network`): tarea que escribe dentro del área, eventos guardados = emitidos en orden bajo una sola sesión (SC-002), segunda tarea que ve la primera, escritura fuera del área denegada (SC-005), sin área, aprobación denegada con motivo, `QuotaExceeded` con sesión que sigue e interrupción que guarda `INTERRUPTED`. No hizo falta cambiar `src/` (la composición de T003 a T005 ya cumplía), así que no hubo rojo natural; se comprobó que las pruebas detectan fallos con dos mutaciones temporales y revertidas: sin `attach_event_recorder` fallan 3, y con una política sobre otra área falla la de «sin área».
+
+---
+
+## Phase 4: User Story 3 — Errores de arranque claros (P2) [AC-P3]
+
+- [x] T007 [US3] Errores de arranque y códigos 2 y 130 en `main()` (`src/harness_agent/bootstrap.py`, `tests/unit/test_bootstrap_main.py`)
+  - **Archivos**: `src/harness_agent/bootstrap.py`, `tests/unit/test_bootstrap_main.py`
+  - **Dependencias**: T005
+  - **Criterios relacionados**: FR-002, FR-008, FR-009, FR-010; AC-P3; SC-003, SC-007
+  - **Estimación**: 40 min
+  - **Pruebas primero** (cada caso verifica: código 2, **una sola línea** en el flujo de errores, prefijo «No se pudo iniciar: », ninguna traza y que el centinela no aparece en ninguna salida): (1) archivo de configuración inexistente; (2) campo inválido; (3) clave escrita en el archivo; (4) falta la variable de la clave (el mensaje nombra la variable, no su valor); (5) `provider_factory` que lanza `ProviderDependencyError` (el mensaje incluye el comando de instalación); (6) base de datos inutilizable (`sessions_db` apunta a un archivo que no es una base, o a un esquema desconocido) → mensaje del almacén y la base no se modifica; (7) excepción no prevista en `compose` → «error inesperado (Tipo).» sin el texto de la excepción (se usa un mensaje con el centinela y se comprueba que no sale); (8) `KeyboardInterrupt` lanzado por el proveedor/entrada → código 130, almacén cerrado, sin traza (no pasa por la cancelación del bucle, así que **no** produce `INTERRUPTED`; la cadena completa señal → cancelación → `INTERRUPTED` → 130 se verifica a mano en T015); (9) **FR-009**: los cuatro códigos (0, 1, 2, 130) son distintos entre sí. Deben fallar porque `main` aún deja subir las excepciones.
+  - **Implementación**: `EXIT_STARTUP = 2`, `EXIT_INTERRUPTED = 130`, función `_one_line(text)`, captura de `ConfigError`, `ProviderDependencyError`, `SessionStoreError` y `Exception` genérica **solo** en la fase de arranque (no dentro de la sesión), y de `KeyboardInterrupt` alrededor de `asyncio.run`.
+  - **Verificación**: las pruebas pasan; **`bootstrap.py` y `__main__.py` al 100 % de líneas y ramas** (`--cov-report=term-missing`); cuatro puertas en 0.
+  - **Evidencia**: 2026-10-24: rojo por `ImportError: cannot import name 'EXIT_INTERRUPTED'`; verde con el manejo de errores de `main()` (`EXIT_STARTUP = 2`, `EXIT_INTERRUPTED = 130`, prefijo «No se pudo iniciar: », una línea, tipo del error inesperado sin su texto, interrupción con almacén cerrado) y `TestMainStartupFailures` (8), `TestMainInterruption` (3) en `tests/unit/test_bootstrap_main.py`. **`bootstrap.py` (97 líneas, 14 ramas) y `__main__.py` al 100 %.** Los cuatro códigos son distintos (0, 1, 2, 130). Nota: sin salida al flujo de errores en la interrupción (decisión: ningún mensaje).
+
+---
+
+## Phase 5: User Story 4 — La conexión es verificable sin red (P2)
+
+- [x] T008 [US4] Determinismo: 20 ejecuciones idénticas y sin red (`tests/integration/test_bootstrap_session.py`)
+  - **Archivos**: `tests/integration/test_bootstrap_session.py` (ampliación)
+  - **Dependencias**: T006
+  - **Criterios relacionados**: FR-012; Historia 4 (escenario 1); SC-004
+  - **Estimación**: 20 min
+  - **Pruebas primero**: ejecutar 20 veces la misma sesión (reloj e identificadores inyectados, base `:memory:` nueva en cada una) y comparar la salida de la terminal y los eventos guardados: idénticos; el guardia de red no se dispara. Si falla, la causa es no determinismo en la composición (orden de construcción, reloj real) y se corrige en `bootstrap.py`.
+  - **Verificación**: pasa 20/20; sin cambios de código si la composición ya es determinista (se anota).
+  - **Evidencia**: 2026-10-24: `TestTheSameSessionTwentyTimes` en `tests/integration/test_bootstrap_session.py`: 20 ejecuciones de una sesión de dos tareas (reloj e identificador de sesión inyectados, base nueva en cada una, `blocked_network`) con salida de la terminal, eventos guardados (tipo y carga), mensajes recibidos por el proveedor y archivo escrito idénticos; el guardia de red no se dispara. La composición ya era determinista: no hubo cambios en `src/`.
+
+- [x] T009 [P] [US4] Guarda de arquitectura `tests/architecture/test_bootstrap_boundaries.py` y verificación de fronteras
+  - **Archivos** (fila: guarda `ast` de la frontera nueva, skill `verificar-fronteras-hexagonales`): `tests/architecture/test_bootstrap_boundaries.py` (nuevo)
+  - **Dependencias**: T005 (necesita `bootstrap.py` y `__main__.py`)
+  - **Criterios relacionados**: FR-011, FR-014; Historia 4 (escenario 2)
+  - **Estimación**: 40 min
+  - **Pruebas primero** (autopruebas con fragmentos sintéticos y prueba de mutación sobre copias en `tmp_path`, como `test_cli_boundaries.py`; reutilizar `forbidden_imports`/`find_config_reads`/`terminal_uses`, no copiarlos): (a) `config.py` no importa `harness_agent.bootstrap` y nada importa `harness_agent.__main__` (que `core/`, `cli/` y `adapters/` no importen `bootstrap` ya lo vigilan las guardas existentes: no se duplica); (b) `bootstrap.py` solo importa stdlib, `harness_agent.core` (nombres de `__all__`), `harness_agent.config`, `harness_agent.cli` y la API pública (`__all__`) de `adapters.storage`, `.system` y `.tools`, **más solo los dos submódulos autorizados** `harness_agent.core.loop` y `harness_agent.adapters.providers.litellm_provider`; cualquier otro submódulo falla (con autoprueba que lo demuestra); (c) `bootstrap.py` no lee `os.environ`/`os.getenv` ni usa `print`/`input`/`sys.stdout` como llamada directa; (d) `__main__.py` solo importa `bootstrap` (y `sys` si lo necesita); (e) `bootstrap.py` es el único módulo de `src/` que importa a la vez `core`, `adapters`, `cli` y `config`.
+  - **Verificación**: `pytest tests/architecture` en verde con la guarda nueva; se informa qué reglas cubre, ningún archivo viola una regla y no se añadió ninguna excepción a las guardas existentes.
+  - **Evidencia**: 2026-10-24: `tests/architecture/test_bootstrap_boundaries.py` (32 pruebas): reglas (a) a (e) con autopruebas de cada detector y pruebas de mutación sobre una copia del paquete (importar `bootstrap` desde `config.py`, importar `__main__`, un segundo módulo que une las cuatro capas, un submódulo prohibido y una lectura de `os.environ` en `bootstrap.py`). Ajustes frente al texto de la tarea: (c) prohíbe `os.environ`/`os.getenv` y las llamadas a `print`/`input`, pero **permite** referirse a `sys.stdin/stdout/stderr` como valor por omisión de los flujos inyectados; `harness_agent.config` es un módulo sin `__all__`, así que para él se comprueban sus nombres públicos. `pytest tests/architecture`: 331 pasadas. Sin excepciones nuevas en las guardas existentes. Ningún archivo viola una regla; no hace falta puerto ni evento nuevo.
+
+---
+
+## Phase 6: Documentación y cierre
+
+- [x] T010 Documentación de cierre: `CLAUDE.md`, skills (ambas copias) y `docs/PROGRESO.md`
+  - **Archivos**: `CLAUDE.md`, `.claude/skills/estructura-carpetas-harness/references/arbol.md`, `.claude/skills/verificar-fronteras-hexagonales/SKILL.md`, sus copias idénticas en `.agents/skills/`, `docs/PROGRESO.md`
+  - **Dependencias**: T007, T008, T009 (y, si es posible, la respuesta del PO en T002)
+  - **Criterios relacionados**: Principio VIII; regla «las skills describen el código real»; PD-08
+  - **Estimación**: 40 min
+  - **Verificación**: `CLAUDE.md`: fila nueva en «Qué existe hoy» (`bootstrap.py`, `__main__.py`, comando), se retira «`bootstrap.py` aún no existe» y «raíz de composición ni punto de entrada ejecutable» de «Aún no hay», el diagrama de arquitectura pierde el «aún no existe», la numeración de specs pasa a «existen 001–018, falta 008; la siguiente es 019». `arbol.md` quita «(planeado)» de `bootstrap.py` y añade `__main__.py`; la skill de fronteras añade `test_bootstrap_boundaries.py` a la tabla de guardas. Las dos copias de cada skill quedan idénticas (`diff -r` sin diferencias). `PROGRESO.md`: fila → `En revisión` con archivos y evidencia reales, PD-08 marcada como resuelta (dueño C, historia propuesta), bloque de observaciones con los 9 hallazgos del plan y una línea por tarea en el Registro de cambios; tabla *Resumen* intacta.
+  - **Evidencia**: 2026-10-24: `CLAUDE.md` (fila de `bootstrap.py`/`__main__.py`/comando `harness`, comando de ejecución, numeración de specs 001–018 y siguiente 019, «Aún no hay» corregido, diagrama sin «aún no existe»); skills `arquitectura-hexagonal-clean`, `estructura-carpetas-harness` (con `arbol.md` y `recetas.md`) y `verificar-fronteras-hexagonales` en `.claude/skills/` y `.agents/skills/` (`diff -r` sin diferencias: tabla de guardas con `test_bootstrap_boundaries.py`, `bootstrap.py` y `__main__.py` ya no «planeados», fuera el «mientras no exista»). `PROGRESO.md`: fila `En revisión` con archivos y evidencia, PD-08 resuelta técnicamente, 7 observaciones nuevas (A: política sin área; C: Ctrl-C en el prompt; B: estado de la sesión y plantilla `fake/test`; submódulos autorizados; sin cambios en protegidos) y una línea por tarea en el Registro. Tabla *Resumen* intacta.
+
+- [x] T011 Verificación final: puertas de calidad, archivos protegidos y lista de comprobación
+  - **Archivos**: ninguno (verificación); `tasks.md` (marcas con evidencia)
+  - **Dependencias**: T010
+  - **Criterios relacionados**: Principios IV y IX; Output Contract de las tres skills
+  - **Estimación**: 30 min
+  - **Verificación**: `ruff format --check .`, `ruff check .`, `mypy src tests`, `pytest --cov=harness_agent --cov-report=term-missing` en 0 y `pytest tests/architecture` en verde; `git diff --exit-code $(git merge-base HEAD origin/main) -- src/harness_agent/core/interfaces src/harness_agent/core/events.py tests/doubles docs/archivo` sin diferencias, y `git diff` de `core/loop.py`, `core/in_memory_event_bus.py` y `cli/` vacío; lista de comprobación de `capas-y-reglas.md` del plan revisada **contra el código** (12 respuestas sí/no); `.coverage*` borrado.
+  - **Evidencia**: 2026-10-24: `ruff format --check .` (197 archivos), `ruff check .` y `mypy src tests` (197 archivos) en 0; `pytest --cov=harness_agent --cov-report=term-missing`: 3202 pasadas y 8 omitidas, cobertura total 98 % (las 41 líneas sin cubrir son de `adapters/converters/`, ya conocidas), **`bootstrap.py` (97 líneas, 14 ramas) y `__main__.py` al 100 %**; `pytest tests/architecture`: 331 pasadas. `git diff --exit-code $(git merge-base HEAD origin/main) -- core/interfaces core/events.py tests/doubles docs/archivo` sin diferencias y sin cambios en `core/loop.py`, `core/in_memory_event_bus.py`, `cli/` ni `.github/`. `.coverage*` borrado. Lista de `capas-y-reglas.md` revisada contra el código: 1 Sí (solo conecta); 2 Sí (todo por puertos existentes); 3 Sí (puertos, entidades y eventos intactos); 4 Sí (errores de arranque a una línea sin valores; los no previstos solo con su tipo); 5 Sí (cumple la regla: único lugar de conexión); 6 Sí (dobles, sin red ni claves); 7 No aplica (sin adaptador ni puerto nuevo); 8 Sí en local (331 pasadas), por verificar en Ubuntu y Windows; 9 Sí (los avisos son de la capa de composición); 10 No aplica (nada nuevo en `core/`); 11 Sí (falla cerrada, secretos ocultos); 12 No todavía (revisión cruzada, T013). Una desviación frente al plan: la regla de imports de `bootstrap.py` autoriza dos submódulos (`core.loop`, `providers.litellm_provider`), documentada en el plan, el contrato y la guarda.
+
+---
+
+## Phase 7: Tareas humanas finales (Claude **no** las marca)
+
+- [ ] T012 *(humana)* Ratificación del PO de AC-P1 a AC-P3 y del ID definitivo (ver T002)
+- [ ] T013 *(humana)* Revisión cruzada por una persona de A o B (diseño de la composición, mensajes, hallazgos 4, 5 y 6 del plan)
+- [ ] T014 *(humana)* CI remota en `ubuntu-latest` y `windows-latest` en verde
+- [ ] T015 *(humana)* Prueba manual con un modelo real (`quickstart.md` §4), incluido SC-006 (arranque < 2 s sin contar la carga de la biblioteca) y el doble Ctrl-C en el prompt
+
+---
+
+## Phase 8: Convergencia con el cierre del Sprint 1 (2026-10-25)
+
+**Propósito**: Cerrar lo que el Sprint 1 pide y que la composición aún no demostraba por sí sola (criterios de demostración 3 y 4) y el hallazgo de la plantilla `fake/test`.
+
+- [x] T016 [US3] Rechazar `fake/…` al arrancar con el proveedor por omisión (FR-015)
+  - **Archivos**: `src/harness_agent/bootstrap.py`, `tests/unit/test_bootstrap_compose.py`, `tests/unit/test_bootstrap_main.py`
+  - **Dependencias**: T007
+  - **Estimación**: 25 min
+  - **Evidencia**: 2026-10-25: rojo por `ImportError` (`StartupError`, `TEST_ONLY_PROVIDER_MESSAGE`); verde con `StartupError`, `TEST_ONLY_PROVIDERS` y la comprobación en `_default_provider` (antes de abrir la base; un proveedor inyectado acepta `fake/…`) y `main` lo traduce a una línea con código 2. 4 pruebas nuevas; `bootstrap.py` al 100 % (102 líneas, 16 ramas).
+
+- [x] T017 [US1] [US2] Demostrar con la composición real los criterios de demostración 3 y 4 del Sprint 1
+  - **Archivos**: `tests/integration/test_bootstrap_session.py`
+  - **Dependencias**: T006
+  - **Estimación**: 35 min
+  - **Evidencia**: 2026-10-25: `TestSprintOneDemoOutsideTheArea` (ruta absoluta, «..» y enlace simbólico fuera del área: se deniega antes de escribir, nada se crea fuera y la decisión `PERMISSION_DECIDED` queda guardada) y `TestSprintOneDemoKilledProcess` (5 ejecuciones del `main` real en un subproceso que muere con `os._exit` a mitad de la sesión: el archivo escrito existe y los eventos anteriores están en la base, sin `INTERRUPTED`). Pasaron sin cambios en `src/` (la composición ya cumplía); una mutación temporal (sin registrador) hace fallar 11 de ellas.
+
+---
+
+## Dependencias y orden de ejecución
+
+```text
+T001 ─▶ T003 ─▶ T004 ─▶ T005 ─┬─▶ T006 ─▶ T008 ─┐
+                              ├─▶ T007 ──────────┼─▶ T010 ─▶ T011 ─▶ T012–T015
+                              └─▶ T009 [P] ──────┘
+T002 (humana) puede ocurrir en cualquier momento; bloquea solo `Hecha`
+```
+
+- **MVP**: T003 + T004 + T005 + T006 (Historia 1 y 2: una tarea real, guardada). T007 es la Historia 3; T008 y T009 la Historia 4.
+- **Paralelo**: T009 es independiente de T006 a T008 (otro archivo) una vez existe `bootstrap.py`; T007 y T006 tocan archivos de prueba distintos pero ambas ampliarían `bootstrap.py` solo en T007, por eso T006 va antes.
+
+## Estimación frente al presupuesto
+
+| Concepto | Minutos |
+|---|---|
+| T001 | 20 |
+| T003 a T009 (trabajo con código) | 40 + 30 + 40 + 40 + 40 + 20 + 40 = 250 |
+| T010, T011 | 40 + 30 = 70 |
+| **Total de Claude** | **340 min (≈ 5,7 h)** |
+| Presupuesto asignado por el PO | 180 min (3 h) |
+
+La estimación es **1,9 veces** el presupuesto (el plan lo repite en «Scale/Scope») (el patrón se repite en HU-00-03, HU-01-03 y HU-06-01). Para volver a 3 h habría que quitar la prueba de interrupción de T006 (20 min) y fusionar T008 con T006 (20 min), sin llegar. Se avisa a C y al PO en `PROGRESO.md` (T001) en lugar de recortar pruebas que protegen AC-P2 y AC-P3.
+
+## Cobertura de los requisitos
+
+| Requisito | Tarea |
+|---|---|
+| FR-001 comando único | T005 |
+| FR-002 configuración con sus errores | T005, T007 |
+| FR-003 construir todas las piezas | T003 |
+| FR-004 registrador antes del primer evento | T003, T006 |
+| FR-005 sesión nueva al arrancar | T003 |
+| FR-006 historial continuo | T004, T006 |
+| FR-007 sin área: herramientas desactivadas y aviso | T003, T004, T006 |
+| FR-008 fallos de arranque en una línea | T007 |
+| FR-009 cierre del almacén y códigos de salida | T005, T007 |
+| FR-010 la clave no aparece en ninguna salida | T007 |
+| FR-011 no cambia puertos, bucle, CLI… | T009, T011 |
+| FR-012 todo inyectable | T003, T005, T008 |
+| FR-013 aprobación denegada con motivo | T004, T006 |
+| FR-014 único importador de las cuatro capas | T009 |
+| Caso límite: entrada cerrada antes de la primera tarea | T004 |
+| Caso límite: dos ejecuciones sobre la misma base | fuera de esta historia: lo cubre HU-03-02 (almacén) |
+| Caso límite: terminal que no codifica los caracteres | fuera de esta historia: lo cubre HU-06-01 (`cli/`) |
+| SC-001 un solo comando | T005, T015 |
+| SC-002 eventos guardados = mostrados | T006 |
+| SC-003 una línea, código ≠ 0, sin clave | T007 |
+| SC-004 20 ejecuciones idénticas, sin red | T008 |
+| SC-005 nada fuera del área | T006 |
+| SC-006 arranque < 2 s sin la biblioteca | T015 (manual) |
+| SC-007 cuatro puertas, 100 % del módulo | T007, T011 |
+| FR-015 `fake/…` rechazado al arrancar | T016 |
+| Demo Sprint 1, criterios 3 y 4 | T017 |
+
+## Archivos protegidos (verificar antes de cerrar)
+
+`src/harness_agent/core/interfaces/`, `src/harness_agent/core/events.py`, `src/harness_agent/core/loop.py`, `src/harness_agent/core/in_memory_event_bus.py`, `src/harness_agent/cli/`, `tests/doubles/`, `docs/archivo/`, `.github/workflows/ci.yml`.

@@ -18,7 +18,7 @@ Cargar antes de crear un archivo nuevo, mover código o proponer un módulo en e
 - Los puertos viven en `core/interfaces/`, en el archivo de su dominio (tabla de `references/arbol.md`); su cambio exige acuerdo de A, B y C. Lo mismo vale para `core/entities.py` y el catálogo de eventos `core/events.py`.
 - Un puerto por interfaz, como clase abstracta (`ABC`), nombrado por rol en inglés (`SessionStore`), no por tecnología.
 - Todo lo público de `core/` se exporta en `core/__init__.py` (`__all__`); los consumidores (`cli/`, `adapters/`, pruebas) importan desde `harness_agent.core`, nunca de un submódulo.
-- Las implementaciones se conectan en la raíz de composición `src/harness_agent/bootstrap.py`. Mientras no exista, la conexión se hace en las pruebas de integración y el plan anota qué deberá conectar.
+- Las implementaciones se conectan en la raíz de composición `src/harness_agent/bootstrap.py`. Cada pieza nueva se cablea en `compose()` de ese archivo.
 - `tests/` refleja la estructura de `src/harness_agent/` (ver «Pruebas» en `references/arbol.md`).
 - Sin secretos en el repositorio: solo `.env.example` y `config.example.toml` sin valores de clave.
 - `__init__.py` expone la API pública del subpaquete; el resto es interno.
