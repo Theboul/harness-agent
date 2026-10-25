@@ -23,6 +23,10 @@ max_tokens = 200000
 # válido también para proveedores de tope bajo). No es lo mismo que max_tokens, que es el
 # presupuesto de toda la ejecución. Descomente y ajuste la línea para cambiarlo.
 # max_output_tokens = 4096
+# Máximo de caracteres del resultado de UNA herramienta que vuelve al modelo (entero de al menos 256;
+# por defecto 24000). Si lo supera, se conservan el principio y el final y se marca cuántos caracteres
+# se omitieron. Descomente y ajuste la línea para cambiarlo.
+# max_tool_output_chars = 24000
 
 [paths]
 # Ruta de la base de datos de sesiones. Una ruta relativa se interpreta respecto a la carpeta de
