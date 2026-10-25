@@ -37,7 +37,7 @@ Sp2-12 supera su presupuesto (185 frente a 60 min) porque incluye la configuraci
 
 ## Phase 1: Inicio
 
-- [ ] **T001** Línea base y puntero de feature (15 min)
+- [x] **T001** Línea base y puntero de feature (15 min)
   - **Archivos**: `.specify/feature.json` (ignorado por git; apunta a `specs/020-tool-output-truncation`).
   - **Verificación**: en el worktree, los cuatro comandos de calidad y `pytest tests/architecture` en 0 **antes** de tocar nada; anotar el número de pruebas pasadas y omitidas como línea base.
 
@@ -45,17 +45,17 @@ Sp2-12 supera su presupuesto (185 frente a 60 min) porque incluye la configuraci
 
 **Goal**: AC-01. **Independent test**: una herramienta con salida enorme, servida por el registro, devuelve contenido ≤ máximo con principio, final y marca exacta.
 
-- [ ] **T002** [US1] Función pura de recorte y validación del máximo (40 min)
+- [x] **T002** [US1] Función pura de recorte y validación del máximo (40 min)
   - **Archivos**: `src/harness_agent/core/tools/output_limit.py` (fila «regla/implementación pura en `core/`»); `tests/unit/core/tools/test_output_limit.py`.
   - **Pruebas**: dentro del máximo → misma instancia; exactamente el máximo → sin marca; un carácter más → marca con `1`... (cantidad exacta); texto enorme → `len ≤ max`, empieza y termina como el original; cantidad omitida = `len(original) - len(head) - len(tail)` (se comprueba extrayéndola de la marca); texto vacío; caracteres no ASCII y emoji; máximo mínimo (256) y justo por debajo (`ValueError` sin el valor recibido, probado con el centinela); `check_max_output_chars` rechaza `bool`, `float`, `str`, `None`, 0, negativos y < 256, acepta 256 y 24 000; el texto de la marca coincide con el de `adapters/system/shell_output.py` (prueba de coherencia).
   - **Implementación**: constantes `DEFAULT_MAX_OUTPUT_CHARS = 24_000`, `MIN_MAX_OUTPUT_CHARS = 256`; `omission_notice`, `truncate_output`, `check_max_output_chars`, con la reserva de la marca calculada con los dígitos de `len(text)`.
 
-- [ ] **T003** [US1] Decorador `TruncatingTool` (35 min)
+- [x] **T003** [US1] Decorador `TruncatingTool` (35 min)
   - **Archivos**: `src/harness_agent/core/tools/output_limit.py` (misma pieza); `tests/unit/core/tools/test_output_limit.py` (clase nueva de pruebas).
   - **Pruebas**: delega `name`, `description`, `schema` y `risk` (leídos en cada acceso); `run` recibe los mismos `args` (misma instancia, sin copiar ni mutar); resultado corto → misma instancia de `ToolResult`; largo → `call_id` e `is_error` intactos y `content` recortado; error largo conserva su etiqueta inicial; resultado que no es `ToolResult` o con `content` no texto → se devuelve tal cual; excepción de la herramienta se propaga; `asyncio.CancelledError` se propaga; el máximo del constructor se valida.
   - **Implementación**: `class TruncatingTool(Tool)` con `inner` y `max_chars`.
 
-- [ ] **T004** [US1] El registro sirve la herramienta con recorte (40 min)
+- [x] **T004** [US1] El registro sirve la herramienta con recorte (40 min)
   - **Archivos**: `src/harness_agent/core/tools/registry.py` (modifica); `src/harness_agent/core/tools/__init__.py` y `src/harness_agent/core/__init__.py` (exportan `TruncatingTool`, `truncate_output`, `omission_notice`, `check_max_output_chars`, `DEFAULT_MAX_OUTPUT_CHARS`, `MIN_MAX_OUTPUT_CHARS`); `tests/unit/core/tools/test_registry_output_limit.py`.
   - **Pruebas**: sin máximo, `get` y `list` devuelven las instancias registradas (misma identidad); con máximo, `get(n).run(...)` recorta y `get(n)` tiene los mismos `name/description/schema/risk`; `list()` mantiene el orden y devuelve herramientas con recorte; registrar una herramienta inválida o duplicada sigue sin dejar rastro; `validate_args` y `UnknownToolError` no cambian; el máximo inválido (`True`, 0, 255, `"x"`) hace fallar el constructor con mensaje en español sin el valor; dos registros con máximos distintos recortan distinto el mismo texto (US2.1); `test_registry.py` existente sigue pasando sin cambios.
   - **Implementación**: `__init__(self, *, max_output_chars: int | None = None)`; `_Entry` gana `served`; `get`/`list` devuelven `served`.
@@ -64,41 +64,43 @@ Sp2-12 supera su presupuesto (185 frente a 60 min) porque incluye la configuraci
 
 **Goal**: regla de negocio 1. **Independent test**: un valor válido en `config.toml` llega al registro de `compose()`; uno inválido se rechaza al cargar.
 
-- [ ] **T005** [US2] Campo `limits.max_tool_output_chars` en la configuración (40 min)
+- [x] **T005** [US2] Campo `limits.max_tool_output_chars` en la configuración (40 min)
   - **Archivos**: `src/harness_agent/config.py` (aditivo, área de B; **desviación declarada**); `config.example.toml` (campo comentado y explicado); `tests/unit/test_config_max_tool_output_chars.py`.
   - **Pruebas**: `Limits().max_tool_output_chars == 24000`; sin el campo rige el defecto; valor válido (256, 12000) se lee; ni `True`, ni 255, ni 0, ni texto, ni decimal se aceptan (`ConfigProblem("limits.max_tool_output_chars", …)` con mensaje en español que no reproduce el valor); se acumulan con otros problemas; los otros límites no cambian; las pruebas existentes de `config` (en particular las de `_LIMIT_FIELDS` y de campos desconocidos) siguen pasando — si alguna fija la lista exacta de campos, se ajusta y se anota.
   - **Implementación**: añadir el campo a `_LIMIT_FIELDS` y a `Limits`; validación con `MIN_MAX_OUTPUT_CHARS` importado de `harness_agent.core`.
 
-- [ ] **T006** [US2] Cableado en `bootstrap.py` (30 min)
+- [x] **T006** [US2] Cableado en `bootstrap.py` (30 min)
   - **Archivos**: `src/harness_agent/bootstrap.py` (modifica); `tests/unit/test_bootstrap_tool_output_limit.py`.
   - **Pruebas**: `compose(config)` con `max_tool_output_chars=300` devuelve un registro cuyo `get("leer_archivo")`... (con herramienta de archivos real sobre `tmp_path` y un archivo mayor que 300) entrega contenido ≤ 300 con marca; con el defecto, un archivo de 30 000 caracteres llega recortado a ≤ 24 000 y uno de 1 000 llega íntegro; `test_bootstrap_boundaries.py` sigue en verde.
   - **Implementación**: `InMemoryToolRegistry(max_output_chars=config.limits.max_tool_output_chars)`.
 
 ## Phase 4: US3 — Convive con los acotados de cada herramienta (P2)
 
-- [ ] **T007** [US3] Coherencia con el shell y las herramientas de archivos (30 min)
+- [x] **T007** [US3] Coherencia con el shell y las herramientas de archivos (30 min)
   - **Archivos**: `tests/integration/test_tool_output_truncation.py` (parte 1); `src/harness_agent/adapters/tools/_limits.py` y `src/harness_agent/adapters/system/shell_limits.py` (solo docstrings: quitar «hasta que HU-02-02…» y remitir al recorte general; **valores sin cambio**).
   - **Pruebas**: el peor resultado del shell (cabecera de error + cuerpo de 20 000 con su aviso, construido con `ShellTool` y un `Shell` de prueba en memoria, o con las constantes) pasa por el registro con el máximo por defecto **idéntico** y con un solo aviso; el listado y la búsqueda de 20 000 también; con un máximo más bajo (1 000) el resultado final ≤ 1 000 y su aviso nuevo es exacto respecto del texto recibido; el texto de la marca del registro y el de `OutputCollector` son el mismo.
   - **Verificación**: `git diff` de esos dos archivos muestra solo comentarios o docstrings.
 
-- [ ] **T008** [US1] Sp2-13: salida de gran tamaño por el bucle real (35 min)
+- [x] **T008** [US1] Sp2-13: salida de gran tamaño por el bucle real (35 min)
   - **Archivos**: `tests/integration/test_tool_output_truncation.py` (parte 2); usa `make_rig` de `tests/core/support.py` o `compose()` con `FakeProvider`.
   - **Pruebas**: `AgentLoop` real con una herramienta que devuelve 10 veces el máximo (SC-001): el mensaje `TOOL` que entra al historial no supera el máximo y contiene la cantidad exacta omitida; un turno con salida corta queda idéntico (SC-002); una herramienta con `is_error=True` y salida enorme sigue marcada como error; los eventos del bucle no llevan el contenido (FR-029 de HU-01-01); dos llamadas en el mismo turno se recortan por separado.
 
 ## Phase 5: Frontera y cierre
 
-- [ ] **T009** Guarda de arquitectura y verificación de fronteras (30 min)
+- [x] **T009** Guarda de arquitectura y verificación de fronteras (30 min)
   - **Archivos**: `tests/architecture/test_output_limit_boundaries.py` (a partir de `.claude/skills/verificar-fronteras-hexagonales/assets/test_module_boundaries.py`, reutilizando los detectores existentes).
   - **Pruebas**: `core/tools/output_limit.py` importa solo stdlib y `harness_agent.core`; no importa `adapters`, `cli`, `config`, `bootstrap`; no usa `os`, `open`, `print`; autopruebas sobre fragmentos sintéticos; `config.py` puede importar `harness_agent.core` (comprobado por la guarda de `config`, si existe, o documentado).
   - **Verificación**: `pytest tests/architecture` en 0.
 
-- [ ] **T010** Documentación de estructura y guía (20 min)
+- [x] **T010** Documentación de estructura y guía (20 min)
   - **Archivos**: `.claude/skills/estructura-carpetas-harness/references/arbol.md` y su copia en `.agents/skills/` (el archivo nuevo de `core/tools/` y la prueba de arquitectura); `CLAUDE.md` (snapshot: una fila en «Qué existe hoy» y la convención del máximo); `docs/guia-contratos-desarrollo.md` solo si menciona el recorte de salidas.
   - **Verificación**: las dos copias de `arbol.md` quedan idénticas en lo tocado.
 
-- [ ] **T011** Cierre de la historia (35 min)
+- [x] **T011** Cierre de la historia (35 min)
   - **Archivos**: `docs/PROGRESO.md`; este `tasks.md` (marcar solo lo hecho, con su evidencia).
   - **Verificación**: los cuatro comandos de calidad en 0 y `pytest tests/architecture`; cobertura de `core/tools/output_limit.py` al 100 % de líneas y ramas; `git diff --exit-code $(git merge-base HEAD origin/main) -- src/harness_agent/core/interfaces src/harness_agent/core/events.py src/harness_agent/core/loop.py tests/doubles docs/archivo` da 0; `PROGRESO.md`: fila de HU-02-02 → `En revisión` (nunca `Hecha`), *Archivos*, *Evidencia* con comandos y resultados reales, una línea por tarea en *Registro de cambios*, observaciones para B (campo de `config.py`), HU-02-01 (el recorte afecta a `leer_archivo` y a lo que el ensamblador cuente), HU-11-03 (desbloqueada), HU-01-04 (docstrings) y el PO (24 000); la tabla *Resumen* no cambia. Las tareas humanas quedan sin marcar. `.specify/feature.json` apunta a `specs/020-tool-output-truncation`.
+
+**Evidencia de cierre (2026-10-25, Windows 10, Python 3.12):** `ruff format --check .`, `ruff check .`, `mypy src tests` y `pytest --cov=harness_agent --cov-report=term-missing` en 0 (3521 pasadas, 45 omitidas); `pytest tests/architecture` → 347; `output_limit.py`, `registry.py`, `config.py` y `bootstrap.py` al 100 % de líneas y ramas; archivos protegidos sin diferencias. T007 a T009 se escribieron después del código que verifican (sin rojo previo); T002 a T006 con rojo comprobado. Detalle en `docs/PROGRESO.md`.
 
 ## Phase 6: Tareas humanas (Claude no las marca)
 
