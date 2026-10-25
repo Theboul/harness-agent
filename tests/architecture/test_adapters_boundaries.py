@@ -263,3 +263,59 @@ def test_the_core_does_not_import_sqlite3() -> None:
     ]
 
     assert offenders == []
+
+
+# --- the shell tool and the shells (HU-01-04) -----------------------------------------------------
+
+
+def adapter_imports(source: str, package: str, other: str) -> list[str]:
+    """Imports of the sibling adapter package ``other`` made by ``source``."""
+    prefix = f"{ROOT_PACKAGE}.{other}"
+    return [
+        f"{module} at line {line}"
+        for module, line in imported_modules(source, package)
+        if module == prefix or module.startswith(prefix + ".")
+    ]
+
+
+def test_the_shell_tool_does_not_import_the_system_adapters() -> None:
+    source = (ADAPTERS_DIR / "tools" / "shell.py").read_text(encoding="utf-8")
+
+    assert adapter_imports(source, f"{ROOT_PACKAGE}.tools", "system") == []
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "from harness_agent.adapters.system import select_shell\n",
+        "import harness_agent.adapters.system.subprocess_shell\n",
+        "from harness_agent.adapters.system.shell_errors import ShellStartError\n",
+    ],
+)
+def test_the_sibling_adapter_detector_flags_each_form(source: str) -> None:
+    assert adapter_imports(source, f"{ROOT_PACKAGE}.tools", "system") != []
+
+
+def test_the_system_adapters_may_use_the_standard_modules_that_run_processes() -> None:
+    source = "import subprocess\nimport threading\nimport signal\nimport codecs\nimport shutil\n"
+
+    assert guarded_imports(source, f"{ROOT_PACKAGE}.system") == []
+
+
+def test_the_shell_modules_do_not_read_the_environment_nor_use_the_terminal() -> None:
+    names = (
+        "subprocess_shell.py",
+        "bash_shell.py",
+        "powershell_shell.py",
+        "shell_selection.py",
+        "shell_environment.py",
+        "shell_output.py",
+        "process_control.py",
+        "environment_notice.py",
+        "denied_commands.py",
+    )
+    for name in names:
+        source = (ADAPTERS_DIR / "system" / name).read_text(encoding="utf-8")
+        package = f"{ROOT_PACKAGE}.system"
+        assert find_config_reads(source, name, package) == [], name
+        assert terminal_uses(source) == [], name

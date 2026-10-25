@@ -44,8 +44,10 @@ harness-agent/
 │   │   ├── converters/     # formato canónico <-> OpenAI/Anthropic, ConversionEnvelope (HU-07-01)
 │   │   ├── providers/      # LiteLLMProvider: un adaptador para cualquier <proveedor>/<modelo>, sin ramas por proveedor; litellm (dependencia opcional) solo aquí y con importlib (HU-07-02); el FakeProvider de HU-00-03 vive en tests/doubles/fake_provider.py
 │   │   ├── storage/        # SqliteSessionStore: esquema sessions/events, creación de sesión (HU-03-01), save_event/load_session y attach_event_recorder (HU-03-02)
-│   │   ├── tools/          # leer_archivo, escribir_archivo, listar_archivos, buscar_texto (HU-01-03); planeado: shell (HU-01-04), …
-│   │   ├── system/         # WorkspaceArea: AuthorizedArea real (rutas reales, «..», enlaces, reglas de Windows) (HU-01-03)
+│   │   ├── tools/          # leer_archivo, escribir_archivo, listar_archivos, buscar_texto (HU-01-03); shell (HU-01-04); planeado: otras herramientas, …
+│   │   ├── system/         # WorkspaceArea: AuthorizedArea real (rutas reales, «..», enlaces, reglas de Windows) (HU-01-03);
+│   │   │                   # shells (HU-01-04): SubprocessShell (tiempo máximo, árbol de procesos, salida acotada), BashShell,
+│   │   │                   # PowerShellShell, select_shell/interpreter_for, environment_notice, denied_commands (dato)
 │   │   └── mcp/            # (planeado: HU-08-01) cliente MCP por stdio y traducción a Tool
 │   ├── observability/      # (planeado: HU-05-05, HU-10-01, HU-10-02) auditoría, trazas, redacción
 │   ├── config.py           # load_config(), HarnessConfig, Secret (HU-00-04)

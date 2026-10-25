@@ -485,6 +485,15 @@ def _unknown_names(data: Mapping[str, Any]) -> tuple[list[str], list[str]]:
     return reported, every_name
 
 
+def process_environment() -> dict[str, str]:
+    """A copy of the environment of the running process.
+
+    ``config`` is the one module that reads the environment, so the composition root asks it for
+    the environment it hands to the shell instead of reading ``os.environ`` itself (HU-01-04).
+    """
+    return dict(os.environ)
+
+
 def load_config(
     path: str | os.PathLike[str] | None = None,
     *,

@@ -92,7 +92,8 @@ class TestRunSession:
 
         assert code == 0
         assert provider.call_count == 2
-        second_call = [m.content for m in provider.received[1]]
+        # The history opens with the environment notice (HU-01-04).
+        second_call = [m.content for m in provider.received[1]][1:]
         assert second_call == ["primera tarea", "respuesta uno", "segunda tarea"]
 
     async def test_slash_exit_and_the_end_of_the_input_return_zero(

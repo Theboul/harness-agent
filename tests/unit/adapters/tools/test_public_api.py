@@ -1,4 +1,4 @@
-"""Public API of ``adapters.tools`` and ``adapters.system`` (HU-01-03 / T015)."""
+"""Public API of ``adapters.tools`` and ``adapters.system`` (HU-01-03 / T015, HU-01-04)."""
 
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ from harness_agent.adapters.tools import _limits
 from harness_agent.adapters.tools.list_files import ListFilesTool
 from harness_agent.adapters.tools.read_file import ReadFileTool
 from harness_agent.adapters.tools.search_text import SearchTextTool
+from harness_agent.adapters.tools.shell import ShellTool
 from harness_agent.adapters.tools.write_file import WriteFileTool
 
 SRC = Path(__file__).resolve().parents[4] / "src"
@@ -24,6 +25,7 @@ TOOLS_API = {
     "WriteFileTool",
     "ListFilesTool",
     "SearchTextTool",
+    "ShellTool",
     "MAX_READ_BYTES",
     "MAX_WRITE_BYTES",
     "MAX_LIST_ENTRIES",
@@ -31,8 +33,24 @@ TOOLS_API = {
     "MAX_LINE_CHARS",
     "MAX_QUERY_CHARS",
     "MAX_RESULT_CHARS",
+    "DEFAULT_SHELL_TIMEOUT_SECONDS",
+    "MAX_SHELL_TIMEOUT_SECONDS",
+    "MAX_COMMAND_CHARS",
 }
-SYSTEM_API = {"WorkspaceArea", "windows_path_problem"}
+SYSTEM_API = {
+    "BashShell",
+    "DEFAULT_DENIED_COMMANDS",
+    "DeniedCommand",
+    "PowerShellShell",
+    "ShellStartError",
+    "SubprocessShell",
+    "WorkspaceArea",
+    "denied_commands_for",
+    "environment_notice",
+    "interpreter_for",
+    "select_shell",
+    "windows_path_problem",
+}
 
 
 def _clean_environment() -> dict[str, str]:
@@ -47,13 +65,14 @@ def _clean_environment() -> dict[str, str]:
     return {**kept, "PYTHONPATH": str(SRC)}
 
 
-def test_tools_expose_the_four_tools_and_the_limits() -> None:
+def test_tools_expose_the_tools_and_the_limits() -> None:
     assert set(tools.__all__) == TOOLS_API
     assert len(tools.__all__) == len(TOOLS_API)
     assert tools.ReadFileTool is ReadFileTool
     assert tools.WriteFileTool is WriteFileTool
     assert tools.ListFilesTool is ListFilesTool
     assert tools.SearchTextTool is SearchTextTool
+    assert tools.ShellTool is ShellTool
     for name in TOOLS_API:
         assert hasattr(tools, name), name
     assert tools.MAX_READ_BYTES == _limits.MAX_READ_BYTES

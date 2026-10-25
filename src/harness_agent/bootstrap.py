@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import platform
 import sys
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -31,10 +32,27 @@ from harness_agent.adapters.storage import (
     SqliteSessionStore,
     attach_event_recorder,
 )
-from harness_agent.adapters.system import WorkspaceArea
-from harness_agent.adapters.tools import ListFilesTool, ReadFileTool, SearchTextTool, WriteFileTool
+from harness_agent.adapters.system import (
+    WorkspaceArea,
+    environment_notice,
+    interpreter_for,
+    select_shell,
+)
+from harness_agent.adapters.tools import (
+    ListFilesTool,
+    ReadFileTool,
+    SearchTextTool,
+    ShellTool,
+    WriteFileTool,
+)
 from harness_agent.cli import run_cli
-from harness_agent.config import ConfigError, HarnessConfig, load_config
+from harness_agent.config import (
+    PROVIDER_KEY_VARIABLES,
+    ConfigError,
+    HarnessConfig,
+    load_config,
+    process_environment,
+)
 from harness_agent.core import (
     AuthorizedArea,
     DefaultPermissionPolicy,
@@ -43,6 +61,7 @@ from harness_agent.core import (
     InMemoryToolRegistry,
     Message,
     Provider,
+    Role,
 )
 from harness_agent.core.loop import AgentLoop
 
@@ -82,6 +101,8 @@ class Composition:
         store: The open session store; ``close`` closes it.
         session_id: Identifier of the session created for this run.
         notices: Startup notices for the user (missing or unusable work area); usually empty.
+        history_prefix: Messages that open every conversation (the environment notice for the
+            model); the session history starts as a copy of them.
     """
 
     loop: AgentLoop
@@ -89,6 +110,7 @@ class Composition:
     store: SqliteSessionStore
     session_id: str
     notices: tuple[str, ...]
+    history_prefix: tuple[Message, ...] = ()
 
     def close(self) -> None:
         """Close the session store; safe to call more than once."""
@@ -121,6 +143,8 @@ def compose(
     provider_factory: ProviderFactory | None = None,
     clock: Callable[[], datetime] | None = None,
     id_factory: Callable[[], str] | None = None,
+    environ: Mapping[str, str] | None = None,
+    system_name: str | None = None,
 ) -> Composition:
     """Build the connected system from ``config``; nothing is left half open on failure.
 
@@ -129,6 +153,9 @@ def compose(
         provider_factory: Builds the provider from the configuration; defaults to LiteLLM.
         clock: Clock of the session store; defaults to UTC now.
         id_factory: Identifier factory of the session store; defaults to ``uuid4``.
+        environ: Environment the shell commands start from (without the provider keys); defaults
+            to the one of the running process.
+        system_name: Operating system name as ``platform.system()`` gives it; that is the default.
 
     Raises:
         ProviderDependencyError: The optional dependency of the real provider is missing.
@@ -137,12 +164,22 @@ def compose(
     """
     provider = (provider_factory if provider_factory is not None else _default_provider)(config)
     area, notices = _build_area(config.paths.workspace_root)
+    system = platform.system() if system_name is None else system_name
+    shell = None
+    if area is not None:
+        shell = select_shell(
+            system,
+            cwd=area.root,
+            environ=process_environment() if environ is None else environ,
+            removed_env={name for name in PROVIDER_KEY_VARIABLES.values() if name},
+        )
     registry = InMemoryToolRegistry()
     for tool in (
         ReadFileTool(area),
         WriteFileTool(area),
         ListFilesTool(area),
         SearchTextTool(area),
+        ShellTool(shell, area, on_cancel=None if shell is None else shell.terminate_running),
     ):
         registry.register(tool)
     policy = DefaultPermissionPolicy(registry, area, config.permissions)
@@ -160,7 +197,15 @@ def compose(
     except BaseException:
         store.close()
         raise
-    return Composition(loop=loop, bus=bus, store=store, session_id=session.id, notices=notices)
+    notice = Message(role=Role.SYSTEM, content=environment_notice(system, interpreter_for(system)))
+    return Composition(
+        loop=loop,
+        bus=bus,
+        store=store,
+        session_id=session.id,
+        notices=notices,
+        history_prefix=(notice,),
+    )
 
 
 def _write_notice(stream: TextIO, text: str) -> None:
@@ -192,7 +237,7 @@ async def run_session(
     stream = sys.stdout if output is None else output
     for notice in composition.notices:
         _write_notice(stream, notice)
-    history: list[Message] = []
+    history: list[Message] = list(composition.history_prefix)
 
     async def run_turn(task: str) -> object:
         return await composition.loop.run_turn(
@@ -239,7 +284,11 @@ def main(
         try:
             config = load_config(config_path, environ=environ)
             composition = compose(
-                config, provider_factory=provider_factory, clock=clock, id_factory=id_factory
+                config,
+                provider_factory=provider_factory,
+                clock=clock,
+                id_factory=id_factory,
+                environ=environ,
             )
         except (ConfigError, ProviderDependencyError, SessionStoreError, StartupError) as problem:
             return _report_startup_failure(failures, str(problem))
