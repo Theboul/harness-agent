@@ -49,7 +49,19 @@ from harness_agent.core.interfaces import (
     ToolDefinition,
     ToolRegistry,
 )
-from harness_agent.core.permissions import DefaultPermissionPolicy, PermissionRules
+from harness_agent.core.permissions import (
+    DefaultPermissionPolicy,
+    PermissionRules,
+    ProtectedPolicy,
+)
+from harness_agent.core.tasks import (
+    MAX_CRITERIA,
+    CriterionDefinition,
+    CriterionKind,
+    TaskDefinition,
+    TaskFormatError,
+    parse_task,
+)
 from harness_agent.core.tools import (
     DEFAULT_MAX_OUTPUT_CHARS,
     MIN_MAX_OUTPUT_CHARS,
@@ -128,4 +140,12 @@ __all__ = [
     # Permission policy (HU-05-01)
     "DefaultPermissionPolicy",
     "PermissionRules",
+    "ProtectedPolicy",
+    # Task definition and parser (HU-11-01)
+    "MAX_CRITERIA",
+    "CriterionDefinition",
+    "CriterionKind",
+    "TaskDefinition",
+    "TaskFormatError",
+    "parse_task",
 ]
