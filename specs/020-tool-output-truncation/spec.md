@@ -109,6 +109,7 @@ Como mantenedor, quiero que el recorte general no duplique ni contradiga los aco
 - **Resultado de tipo inesperado**: si `run` devuelve algo que no es `ToolResult` con `content` de texto, se entrega tal cual para que el bucle lo rechace como hoy.
 - **Identidad de la herramienta**: `get(nombre)` devuelve un objeto con el mismo `name`, `description`, `schema` y `risk` que la herramienta registrada; el catálogo (`list()`) sigue en orden de registro y las definiciones que ve el modelo no cambian.
 - **Contenido como dato**: el texto de la salida es dato, no instrucción; el recorte no lo interpreta. Los eventos del bucle siguen sin llevar salida (FR-029 de HU-01-01).
+- **`leer_archivo` y archivos grandes**: la herramienta devuelve hasta 262 144 bytes sin recorte propio; con el recorte general, un archivo de más de 24 000 caracteres llega al modelo recortado con marca. Es el objetivo de la historia y se anota como observación para HU-02-01.
 - **Secretos en la salida**: no se redactan aquí (PD-10 sigue abierta).
 
 ## Requirements *(mandatory)*
@@ -129,7 +130,7 @@ Como mantenedor, quiero que el recorte general no duplique ni contradiga los aco
 **Configuración**
 
 - **FR-009**: El máximo MUST ser configurable: parámetro opcional de construcción del registro (sin valor, no hay recorte general) y valor de configuración opcional `[limits] max_tool_output_chars` con valor por defecto de 24 000 caracteres, que `bootstrap.py` MUST entregar siempre al registro.
-- **FR-010**: Un máximo que no sea un entero positivo (un booleano no cuenta como entero) o que no deje espacio para la marca y contenido útil MUST rechazarse al construir el registro y al cargar la configuración, con mensaje en español sin reproducir el valor.
+- **FR-010**: Un máximo que no sea un entero positivo (un booleano no cuenta como entero) o menor que 256 caracteres (espacio mínimo para la marca y contenido útil) MUST rechazarse al construir el registro y al cargar la configuración, con mensaje en español sin reproducir el valor.
 
 **Convivencia**
 
@@ -156,7 +157,7 @@ Como mantenedor, quiero que el recorte general no duplique ni contradiga los aco
 - **SC-001**: Con una salida diez veces mayor que el máximo, el mensaje que entra al historial del bucle no supera el máximo y contiene la cantidad omitida exacta.
 - **SC-002**: En el 100 % de los casos de prueba con salida dentro del máximo, el contenido llega idéntico y sin aviso.
 - **SC-003**: El mismo conjunto de pruebas pasa en Windows y en Linux sin pruebas omitidas por plataforma.
-- **SC-004**: Las pruebas existentes de HU-01-01, HU-01-02, HU-01-03 y HU-01-04 pasan sin modificar su comportamiento esperado (solo se ajustan si fijaban la identidad exacta del objeto devuelto por `get`, y se documenta).
+- **SC-004**: Las pruebas existentes de HU-01-01, HU-01-02, HU-01-03 y HU-01-04 pasan sin modificar su comportamiento esperado (sin máximo, `get` devuelve la misma instancia registrada; solo se ajustan, y se documenta, las pruebas que fijen la lista exacta de campos de `Limits`).
 - **SC-005**: Cobertura del módulo nuevo: 100 % de líneas y ramas.
 
 ## Assumptions

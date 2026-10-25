@@ -8,7 +8,6 @@ Sin persistencia ni entidades nuevas del dominio: `ToolResult` (`call_id`, `cont
 |---|---|---|
 | `DEFAULT_MAX_OUTPUT_CHARS` | 24 000 | Valor por defecto de `Limits.max_tool_output_chars` |
 | `MIN_MAX_OUTPUT_CHARS` | 256 | Mínimo aceptado; deja sitio a la marca y a contenido útil |
-| `OMISSION_NOTICE_PREFIX` | `"\n[salida recortada: se omitieron "` | Parte fija de la marca (las pruebas la comparan con la del shell) |
 
 ## Funciones y clases
 
