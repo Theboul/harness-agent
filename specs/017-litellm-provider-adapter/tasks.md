@@ -217,6 +217,7 @@
   - **Verificación**: La persona elige proveedor y modelo (idealmente con nivel gratuito o local), define su clave **solo** como variable de entorno y ejecuta la orden de `quickstart.md` §5. Esperado: el modelo responde, pide herramientas, recibe sus resultados y llega a una respuesta final. Se anota en `docs/PROGRESO.md` el proveedor, el modelo, los tokens consumidos y si `limits.max_output_tokens = 4096` fue aceptado; si el modelo lo rechaza, se anota como hallazgo. Fuera de la CI y sin clave se omite. Claude no marca esta tarea.
 
 - [ ] T015 *(humana)* Revisión cruzada (A o B) y confirmación de la CI remota en Ubuntu y Windows
+  - **Evidencia disponible (2026-10-25)**: CI en verde en Linux y Windows en `main` c12c4cb (workflow CI, run n.º 47, `quality (ubuntu-latest, py3.12)` y `quality (windows-latest, py3.12)`), https://github.com/Theboul/harness-agent/actions/runs/40149368199; solo cubre la parte de CI. La revisión cruzada sigue pendiente de una persona (no se marca).
   - **Archivos**: `docs/PROGRESO.md` (columna Commit/PR)
   - **Dependencias**: T013
   - **Criterios relacionados**: Principio IX, regla «todo cambio lo revisa alguien de otra área», FR-018, SC-007

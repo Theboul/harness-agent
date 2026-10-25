@@ -20,3 +20,4 @@
 - [ ] **T005** Corrida con claves reales de pocos tokens para cerrar AC-01 (depende de D-IA)
 - [ ] **T006** Revisión cruzada por A o C
 - [ ] **T007** CI remota en `ubuntu-latest` y `windows-latest` (la prueba debe omitirse sin `litellm`)
+  - **Evidencia disponible (2026-10-25)**: CI en verde en Linux y Windows en `main` c12c4cb (workflow CI, run n.º 47, `quality (ubuntu-latest, py3.12)` y `quality (windows-latest, py3.12)`), https://github.com/Theboul/harness-agent/actions/runs/40149368199; falta que una persona la confirme y marque la tarea.

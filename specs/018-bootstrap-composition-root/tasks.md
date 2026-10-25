@@ -173,6 +173,7 @@
 - [ ] T012 *(humana)* Ratificación del PO de AC-P1 a AC-P3 y del ID definitivo (ver T002)
 - [ ] T013 *(humana)* Revisión cruzada por una persona de A o B (diseño de la composición, mensajes, hallazgos 4, 5 y 6 del plan)
 - [ ] T014 *(humana)* CI remota en `ubuntu-latest` y `windows-latest` en verde
+  - **Evidencia disponible (2026-10-25)**: CI en verde en Linux y Windows en `main` c12c4cb (workflow CI, run n.º 47, `quality (ubuntu-latest, py3.12)` y `quality (windows-latest, py3.12)`), https://github.com/Theboul/harness-agent/actions/runs/40149368199; falta que una persona la confirme y marque la tarea.
 - [ ] T015 *(humana)* Prueba manual con un modelo real (`quickstart.md` §4), incluido SC-006 (arranque < 2 s sin contar la carga de la biblioteca) y el doble Ctrl-C en el prompt
 
 ---

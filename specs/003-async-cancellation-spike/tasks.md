@@ -140,6 +140,7 @@
 ### Evidencia real pendiente (no marcada como hecha)
 
 - [ ] Ejecución en un runner de GitHub Actions (`ubuntu-latest`, Python 3.12): nada está subido a GitHub, así que la matriz de HU-00-02 no ha corrido.
+  - **Evidencia disponible (2026-10-25)**: la matriz vigente ya corrió en remoto: CI en verde en Linux y Windows en `main` c12c4cb (workflow CI, run n.º 47, `quality (ubuntu-latest, py3.12)` y `quality (windows-latest, py3.12)`), https://github.com/Theboul/harness-agent/actions/runs/40149368199. El workflow ejecuta `pytest` con `testpaths = ["tests"]`, que incluye `tests/spikes`, pero no se revisó el registro del trabajo de Ubuntu para confirmar los 5 casos de SIGTERM; por eso la línea sigue sin marcar y la frase «nada está subido» queda desactualizada.
 - [x] Prueba real de un hijo que ignora `SIGTERM` en Linux: ejecutada en WSL2 Ubuntu local (T016), no en la CI.
 - [x] Decisión de gobernanza sobre la versión de Python: resuelta por PD-07 (2026-10-17, Python 3.12.x única versión soportada).
 - [x] Comparación de `Task.cancelling()` entre 3.11 y 3.12: no aplica tras PD-07 (3.11 ya no es soportada).

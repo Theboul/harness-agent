@@ -162,6 +162,7 @@
   - **Estimación**: humana
 
 - [ ] **T013** CI remota en `ubuntu-latest` y `windows-latest` en verde (incluidas las pruebas de procesos hijos), y ratificación de HU-00-01 (Sp1-03)
+  - **Evidencia disponible (2026-10-25)**: CI en verde en Linux y Windows en `main` c12c4cb (workflow CI, run n.º 47, `quality (ubuntu-latest, py3.12)` y `quality (windows-latest, py3.12)`), https://github.com/Theboul/harness-agent/actions/runs/40149368199; solo cubre la parte de CI. La ratificación de HU-00-01 (Sp1-03) sigue pendiente de una persona (no se marca).
   - **Archivos**: PR
   - **Dependencias**: T012
   - **Criterios relacionados**: Principio IX
