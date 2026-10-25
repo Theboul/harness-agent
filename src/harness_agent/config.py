@@ -23,6 +23,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, NoReturn
 
+from harness_agent.core import DEFAULT_MAX_OUTPUT_CHARS, MIN_MAX_OUTPUT_CHARS
 from harness_agent.core.permissions import PermissionRules
 
 MAX_FIELD_DISPLAY = 64
@@ -46,12 +47,20 @@ PROVIDER_KEY_VARIABLES: Mapping[str, str | None] = MappingProxyType(
 )
 
 _DEFAULT_SESSIONS_DB = Path(".harness") / "sessions.db"
-_LIMIT_FIELDS = ("max_turns", "max_seconds", "max_tokens", "max_output_tokens")
+_LIMIT_FIELDS = (
+    "max_turns",
+    "max_seconds",
+    "max_tokens",
+    "max_output_tokens",
+    "max_tool_output_chars",
+)
+_LIMIT_MINIMUMS = {"max_tool_output_chars": MIN_MAX_OUTPUT_CHARS}
 _PATH_FIELDS = ("workspace_root", "sessions_db")
 _PERMISSION_FIELDS = ("deny", "ask")
 _MISSING_FIELD = "falta el campo obligatorio."
 _MODEL_FORM = "debe ser un texto con la forma <proveedor>/<modelo>."
 _NOT_AN_INTEGER = "debe ser un entero mayor que 0."
+_INTEGER_AT_LEAST = "debe ser un entero de al menos {minimum}."
 _NOT_A_TEXT = "debe ser un texto no vacío."
 _NOT_A_TABLE = "debe ser una tabla."
 _NOT_A_NAME_LIST = "debe ser una lista de textos no vacíos."
@@ -272,12 +281,15 @@ class Limits:
     ``max_tokens`` is the token budget of the whole run. ``max_output_tokens`` (HU-07-02) is the
     cap of the tokens the model may generate in one call; the default is low enough for providers
     with a small cap, such as free tiers. They are independent: one is never used as the other.
+    ``max_tool_output_chars`` (HU-02-02) is the longest text a tool result may carry into the
+    context; a longer result is cut with a visible notice.
     """
 
     max_turns: int = 30
     max_seconds: int = 600
     max_tokens: int = 200000
     max_output_tokens: int = 4096
+    max_tool_output_chars: int = DEFAULT_MAX_OUTPUT_CHARS
 
 
 @dataclass(frozen=True, slots=True)
@@ -377,16 +389,18 @@ def _check_model(
 
 
 def _check_limits(table: Mapping[str, Any], present: list[ConfigProblem]) -> Limits:
-    """The limits: integers (a boolean is not one) greater than zero."""
+    """The limits: integers (a boolean is not one) greater than zero, or than their minimum."""
     values: dict[str, int] = {}
     for field in _LIMIT_FIELDS:
         if field not in table:
             continue
         value = table[field]
-        if isinstance(value, int) and not isinstance(value, bool) and value > 0:
+        minimum = _LIMIT_MINIMUMS.get(field, 1)
+        if isinstance(value, int) and not isinstance(value, bool) and value >= minimum:
             values[field] = value
         else:
-            present.append(ConfigProblem(f"limits.{field}", _NOT_AN_INTEGER))
+            message = _NOT_AN_INTEGER if minimum == 1 else _INTEGER_AT_LEAST.format(minimum=minimum)
+            present.append(ConfigProblem(f"limits.{field}", message))
     return Limits(**values)
 
 

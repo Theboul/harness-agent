@@ -51,13 +51,19 @@ from harness_agent.core.interfaces import (
 )
 from harness_agent.core.permissions import DefaultPermissionPolicy, PermissionRules
 from harness_agent.core.tools import (
+    DEFAULT_MAX_OUTPUT_CHARS,
+    MIN_MAX_OUTPUT_CHARS,
     DuplicateToolError,
     InMemoryToolRegistry,
     InvalidToolDefinitionError,
     ToolRegistryError,
     ToolValidationError,
+    TruncatingTool,
     UnknownToolError,
     Violation,
+    check_max_output_chars,
+    omission_notice,
+    truncate_output,
 )
 
 __all__ = [
@@ -104,6 +110,12 @@ __all__ = [
     "EventHandler",
     # Tool registry and argument validation (HU-01-02)
     "InMemoryToolRegistry",
+    "TruncatingTool",
+    "DEFAULT_MAX_OUTPUT_CHARS",
+    "MIN_MAX_OUTPUT_CHARS",
+    "check_max_output_chars",
+    "omission_notice",
+    "truncate_output",
     "ToolRegistryError",
     "InvalidToolDefinitionError",
     "DuplicateToolError",

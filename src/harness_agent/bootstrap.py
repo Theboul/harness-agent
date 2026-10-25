@@ -173,7 +173,7 @@ def compose(
             environ=process_environment() if environ is None else environ,
             removed_env={name for name in PROVIDER_KEY_VARIABLES.values() if name},
         )
-    registry = InMemoryToolRegistry()
+    registry = InMemoryToolRegistry(max_output_chars=config.limits.max_tool_output_chars)
     for tool in (
         ReadFileTool(area),
         WriteFileTool(area),

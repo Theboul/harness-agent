@@ -35,7 +35,7 @@ harness-agent/
 │   │   ├── interfaces/     # PUERTOS (ABC), ver tabla abajo
 │   │   ├── loop.py         # AgentLoop: bucle razonar–actuar–observar (HU-01-01)
 │   │   ├── in_memory_event_bus.py  # InMemoryEventBus, EventDeliveryError (HU-01-05)
-│   │   ├── tools/          # InMemoryToolRegistry, validador JSON Schema propio, errores (HU-01-02)
+│   │   ├── tools/          # InMemoryToolRegistry, validador JSON Schema propio, errores (HU-01-02); output_limit.py: recorte general de salidas, TruncatingTool (HU-02-02)
 │   │   ├── permissions/    # DefaultPermissionPolicy, PermissionRules (HU-05-01)
 │   │   ├── limits.py       # (planeado: HU-01-06) turnos, tiempo y consumo
 │   │   ├── context/        # (planeado: HU-02-01, HU-02-03) ContextManager, estimación, compactación

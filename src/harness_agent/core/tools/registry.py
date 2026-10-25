@@ -22,6 +22,7 @@ from harness_agent.core.tools.errors import (
     ToolValidationError,
     UnknownToolError,
 )
+from harness_agent.core.tools.output_limit import TruncatingTool, check_max_output_chars
 from harness_agent.core.tools.schema_validator import check_schema, validate_arguments
 
 _NAME_PATTERN = re.compile(rf"[A-Za-z0-9_-]{{1,{MAX_NAME_LENGTH}}}")
@@ -83,10 +84,12 @@ def _check_and_copy_schema(schema: dict[str, Any]) -> tuple[list[str], dict[str,
 
 @dataclass(frozen=True)
 class _Entry:
-    """A registered tool and the deep copy of its schema taken at registration."""
+    """A registered tool, the deep copy of its schema taken at registration and the tool that
+    is served to callers (the tool itself, or the tool wrapped so its results are bounded)."""
 
     tool: Tool
     schema: dict[str, Any]
+    served: Tool
 
 
 class InMemoryToolRegistry(ToolRegistry):
@@ -94,9 +97,24 @@ class InMemoryToolRegistry(ToolRegistry):
 
     A registration either succeeds completely or leaves the catalog untouched. The catalog only
     grows: tools cannot be removed or replaced.
+
+    With ``max_output_chars`` every tool is served wrapped in ``TruncatingTool`` (HU-02-02): the
+    content of its results never exceeds the maximum and a notice says what was left out. Without
+    it the registry serves the registered instances, as it did before.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, *, max_output_chars: int | None = None) -> None:
+        """Create an empty registry.
+
+        Args:
+            max_output_chars: Longest content of a tool result, or ``None`` for no general limit.
+
+        Raises:
+            ValueError: ``max_output_chars`` is not ``None`` and not a valid maximum.
+        """
+        self._max_output_chars = (
+            None if max_output_chars is None else check_max_output_chars(max_output_chars)
+        )
         self._entries: dict[str, _Entry] = {}
 
     def register(self, tool: Tool) -> None:
@@ -127,7 +145,10 @@ class InMemoryToolRegistry(ToolRegistry):
             raise DuplicateToolError(name)
 
         # Only now is the catalog modified.
-        self._entries[name] = _Entry(tool, schema_copy)
+        served = (
+            tool if self._max_output_chars is None else TruncatingTool(tool, self._max_output_chars)
+        )
+        self._entries[name] = _Entry(tool, schema_copy, served)
 
     def _find_entry(self, name: object) -> _Entry | None:
         """The entry registered under exactly ``name``; ``None`` if there is none.
@@ -141,10 +162,12 @@ class InMemoryToolRegistry(ToolRegistry):
     def get(self, name: str) -> Tool | None:
         """Return the tool registered under exactly ``name``, or ``None``.
 
+        With a maximum, the tool returned is the registered one wrapped so its results are bounded.
+
         A ``name`` that is not text is an unknown tool, not an error.
         """
         entry = self._find_entry(name)
-        return entry.tool if entry is not None else None
+        return entry.served if entry is not None else None
 
     def validate_args(self, name: str, args: dict[str, Any]) -> dict[str, Any]:
         """Validate ``args`` against the schema that was stored when ``name`` was registered.
@@ -168,4 +191,4 @@ class InMemoryToolRegistry(ToolRegistry):
     # body would refer to this method instead of the builtin type (mypy).
     def list(self) -> list[Tool]:
         """Return a new list with the registered tools, in registration order."""
-        return [entry.tool for entry in self._entries.values()]
+        return [entry.served for entry in self._entries.values()]

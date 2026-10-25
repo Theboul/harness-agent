@@ -21,7 +21,8 @@ MAX_QUERY_CHARS = 200
 """Longest text ``buscar_texto`` accepts."""
 
 MAX_RESULT_CHARS = 20_000
-"""Longest listing or search answer."""
+"""Longest listing or search answer, bounded at the source. The registry applies the general
+limit (HU-02-02) on top of it, with room left for the label of the tool result."""
 
 DEFAULT_SHELL_TIMEOUT_SECONDS = 120
 """Time a ``shell`` command may run when the model does not say."""

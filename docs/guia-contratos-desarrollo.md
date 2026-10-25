@@ -245,7 +245,7 @@ policy = DefaultPermissionPolicy(registry, area, PermissionRules())
 | Carpeta de partida | Raíz del área de trabajo; cada llamada es independiente |
 | Intérprete | `select_shell(platform.system(), cwd=...)`: PowerShell en Windows, bash en lo demás (`BashShell`, `PowerShellShell`) |
 | Resultado | `Código de salida: 0` + salida; o `[codigo_de_salida=N]`, `[tiempo_agotado]`, `[interprete_no_disponible]`, `[sin_area]`, `[error_de_shell]` |
-| Salida | Estándar y de errores juntas, a lo sumo 20 000 caracteres; si se recorta, cabeza + `[salida recortada: se omitieron N caracteres]` + cola |
+| Salida | Estándar y de errores juntas, a lo sumo 20 000 caracteres; si se recorta, cabeza + `[salida recortada: se omitieron N caracteres]` + cola. Encima, el registro de herramientas recorta con la misma marca todo resultado que pase de `limits.max_tool_output_chars` (24 000 por defecto, HU-02-02) |
 | Tiempo agotado | Se termina el comando **y sus procesos hijos** (SIGTERM y luego SIGKILL al grupo en POSIX; `taskkill /T /F` en Windows) |
 | Entorno | El del harness sin las variables de claves de los proveedores (`PROVIDER_KEY_VARIABLES`) |
 
