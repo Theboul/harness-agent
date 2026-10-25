@@ -39,7 +39,7 @@ harness-agent/
 │   │   ├── permissions/    # DefaultPermissionPolicy, PermissionRules (HU-05-01); protected.py: ProtectedPolicy, decorador que solo deniega (HU-11-01)
 │   │   ├── tasks/          # TaskDefinition, CriterionDefinition, parse_task, TaskFormatError: formato y validación de la tarea (HU-11-01)
 │   │   ├── limits.py       # (planeado: HU-01-06) turnos, tiempo y consumo
-│   │   ├── context/        # (planeado: HU-02-01, HU-02-03) ContextManager, estimación, compactación
+│   │   ├── context/        # HU-02-01: estimación, prefijo estable, ContextAssembler (planeado: HU-02-03 ContextManager, compactación)
 │   │   └── subagents/      # (planeado: HU-09-01) SubagentRunner, perfiles, resultado estructurado
 │   ├── adapters/           # implementaciones de los puertos
 │   │   ├── converters/     # formato canónico <-> OpenAI/Anthropic, ConversionEnvelope (HU-07-01)

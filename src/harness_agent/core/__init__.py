@@ -4,6 +4,19 @@ Domain entities, canonical message and event definitions, and abstract
 contracts for the agent harness. Contains zero third-party dependencies.
 """
 
+from harness_agent.core.context import (
+    AssembledContext,
+    ContextAssembler,
+    ContextConfigError,
+    PrefixSpec,
+    StablePrefix,
+    TokenEstimator,
+    build_prefix,
+    estimate_message,
+    estimate_messages,
+    estimate_text,
+    estimate_tool_definition,
+)
 from harness_agent.core.entities import (
     Message,
     Role,
@@ -148,4 +161,16 @@ __all__ = [
     "TaskDefinition",
     "TaskFormatError",
     "parse_task",
+    # Token estimation and stable prefix (HU-02-01)
+    "AssembledContext",
+    "ContextAssembler",
+    "ContextConfigError",
+    "PrefixSpec",
+    "StablePrefix",
+    "TokenEstimator",
+    "build_prefix",
+    "estimate_message",
+    "estimate_messages",
+    "estimate_text",
+    "estimate_tool_definition",
 ]
