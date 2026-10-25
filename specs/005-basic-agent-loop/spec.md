@@ -2,7 +2,7 @@
 
 **Feature Branch**: `005-basic-agent-loop`  
 **Created**: 2026-10-18  
-**Status**: Implementado con dobles, en revisión (2026-10-19; T001–T030 completadas; T031/T032 marcadas el 2026-10-25 con las pruebas de integración reales con los componentes de B y C, pendiente la revisión cruzada). Historial previo: Borrador (2026-10-18): especificación redactada y aclarada (sesión de `/speckit-clarify` del 2026-10-18; las cinco aclaraciones resueltas, Q4 aprobada por el PO), plan generado (`plan.md`, 2026-10-18), decisiones R-07 y R-08 incorporadas (comunicadas en la solicitud de `/speckit-tasks` del 2026-10-18), `tasks.md` generado. No hay código. La historia sigue en `Pendiente` en `docs/PROGRESO.md`  
+**Status**: Implementado con dobles, en revisión (2026-10-19; T001–T030 completadas, T031/T032 bloqueadas por B y C). Historial previo: Borrador (2026-10-18): especificación redactada y aclarada (sesión de `/speckit-clarify` del 2026-10-18; las cinco aclaraciones resueltas, Q4 aprobada por el PO), plan generado (`plan.md`, 2026-10-18), decisiones R-07 y R-08 incorporadas (comunicadas en la solicitud de `/speckit-tasks` del 2026-10-18), `tasks.md` generado. No hay código. La historia sigue en `Pendiente` en `docs/PROGRESO.md`  
 **Responsable**: A — Núcleo  
 **Sprint**: Sprint 1 | **Estimación**: 5 PHU (Sp1-12: 7 h, Sp1-13: 2,5 h, Sp1-14: 4 h)  
 **Prioridad**: Alta | **Requisitos**: RF-1.1, RF-1.5 | **Depende de**: HU-00-01, HU-07-01  
