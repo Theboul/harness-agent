@@ -36,18 +36,21 @@ harness-agent/
 │   │   ├── loop.py         # AgentLoop: bucle razonar–actuar–observar (HU-01-01)
 │   │   ├── in_memory_event_bus.py  # InMemoryEventBus, EventDeliveryError (HU-01-05)
 │   │   ├── tools/          # InMemoryToolRegistry, validador JSON Schema propio, errores (HU-01-02); output_limit.py: recorte general de salidas, TruncatingTool (HU-02-02)
-│   │   ├── permissions/    # DefaultPermissionPolicy, PermissionRules (HU-05-01)
+│   │   ├── permissions/    # DefaultPermissionPolicy, PermissionRules (HU-05-01); protected.py: ProtectedPolicy, decorador que solo deniega (HU-11-01)
+│   │   ├── tasks/          # TaskDefinition, CriterionDefinition, parse_task, TaskFormatError: formato y validación de la tarea (HU-11-01)
 │   │   ├── limits.py       # (planeado: HU-01-06) turnos, tiempo y consumo
 │   │   ├── context/        # (planeado: HU-02-01, HU-02-03) ContextManager, estimación, compactación
 │   │   └── subagents/      # (planeado: HU-09-01) SubagentRunner, perfiles, resultado estructurado
 │   ├── adapters/           # implementaciones de los puertos
 │   │   ├── converters/     # formato canónico <-> OpenAI/Anthropic, ConversionEnvelope (HU-07-01)
 │   │   ├── providers/      # LiteLLMProvider: un adaptador para cualquier <proveedor>/<modelo>, sin ramas por proveedor; litellm (dependencia opcional) solo aquí y con importlib (HU-07-02); el FakeProvider de HU-00-03 vive en tests/doubles/fake_provider.py
-│   │   ├── storage/        # SqliteSessionStore: esquema sessions/events, creación de sesión (HU-03-01), save_event/load_session y attach_event_recorder (HU-03-02)
+│   │   ├── storage/        # SqliteSessionStore: esquema sessions/events, creación de sesión (HU-03-01), save_event/load_session y attach_event_recorder (HU-03-02); esquema v2 con criterios (migración), SqliteTaskStore y copia de solo lectura con huella (HU-11-01)
+│   │   ├── tasks/          # load_task_file, load_github_issue (gh inyectable), TaskSourceError (HU-11-01)
 │   │   ├── tools/          # leer_archivo, escribir_archivo, listar_archivos, buscar_texto (HU-01-03); shell (HU-01-04); planeado: otras herramientas, …
 │   │   ├── system/         # WorkspaceArea: AuthorizedArea real (rutas reales, «..», enlaces, reglas de Windows) (HU-01-03);
 │   │   │                   # shells (HU-01-04): SubprocessShell (tiempo máximo, árbol de procesos, salida acotada), BashShell,
-│   │   │                   # PowerShellShell, select_shell/interpreter_for, environment_notice, denied_commands (dato)
+│   │   │                   # PowerShellShell, select_shell/interpreter_for, environment_notice, denied_commands (dato);
+│   │   │                   # ProtectedPaths (HU-11-01): AuthorizedArea de lo protegido, `contains` = «protegido»
 │   │   └── mcp/            # (planeado: HU-08-01) cliente MCP por stdio y traducción a Tool
 │   ├── observability/      # (planeado: HU-05-05, HU-10-01, HU-10-02) auditoría, trazas, redacción
 │   ├── config.py           # load_config(), HarnessConfig, Secret (HU-00-04)
@@ -89,7 +92,7 @@ Todos se reexportan en `core/interfaces/__init__.py` y en `core/__init__.py`.
 
 | Área | Dueño de |
 |---|---|
-| A (Núcleo) | `core/loop.py`, `core/limits.py`, `core/subagents/`, `adapters/converters/`, segundo proveedor y conmutación (HU-07-03 a HU-07-05) |
+| A (Núcleo) | `core/loop.py`, `core/limits.py`, `core/subagents/`, `core/tasks/`, `adapters/tasks/` (HU-11-01), `adapters/converters/`, segundo proveedor y conmutación (HU-07-03 a HU-07-05) |
 | B (Estado) | `adapters/storage/`, `core/context/`, `core/in_memory_event_bus.py`, `config.py`, `observability/`, `adapters/providers/` (LiteLLM HU-07-02; el FakeProvider de HU-00-03 vive en `tests/doubles/fake_provider.py`) |
 | C (Control y conexiones) | `core/permissions/`, `core/tools/`, `adapters/tools/`, `adapters/system/`, `adapters/mcp/`, `cli/` |
 | A, B y C juntos | `core/interfaces/`, `core/entities.py`, `core/events.py` (contratos de HU-00-01) |

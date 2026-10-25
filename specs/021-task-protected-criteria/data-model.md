@@ -6,7 +6,8 @@
 - `CriterionDefinition`: `description: str`, `command: str | None`, `expectation: str | None`; propiedad `kind` (objetivo si hay comando). Invariante: `command` y `expectation` están ambos o ninguno.
 - `TaskDefinition`: `title: str | None`, `objective: str`, `context: str`, `rules: str`, `criteria: tuple[CriterionDefinition, ...]` (≥ 1).
 - `TaskFormatError(ValueError)` con `code` (`vacia`, `demasiado_grande`, `sin_objetivo`, `sin_criterios`, `criterio_incompleto`, `seccion_repetida`, `seccion_desconocida`, `contenido_no_valido`, `demasiados_criterios`, `texto_demasiado_largo`, `formato_no_valido`) y mensaje fijo en español.
-- Límites: `MAX_TASK_CHARS = 65_536`, `MAX_CRITERIA = 100`, `MAX_FIELD_CHARS = 2_000`.
+- `TaskDefinition.with_title(title)` devuelve una copia con otro título (el del issue sirve de respaldo).
+- Límites: `MAX_TASK_CHARS = 65_536`, `MAX_CRITERIA = 100`, `MAX_FIELD_CHARS = 2_000`, `MAX_SECTION_CHARS = 20_000`.
 
 ## Esquema SQLite v2 (migración desde v1)
 

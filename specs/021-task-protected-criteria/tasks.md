@@ -64,7 +64,7 @@
 ## Phase 7: Frontera y cierre
 
 - [x] T012 (Sp2 transversal) Guardas y skills: `tests/architecture/test_tasks_boundaries.py` y `test_protected_policy_boundaries.py` (desde `verificar-fronteras-hexagonales/assets/test_module_boundaries.py` con autoprueba), añadir `adapters/tasks/` a la lista `GUARDED` de `test_adapters_boundaries.py`, y ampliar `test_bootstrap_boundaries.py` si hace falta; ejecutar `pytest tests/architecture`; responder sí/no la lista de `capas-y-reglas.md` contra el código; comprobar archivos protegidos con `git diff --exit-code`.
-- [ ] T013 Documentación: `docs/guia-contratos-desarrollo.md`, `CLAUDE.md` (tabla «Qué existe hoy»), `arbol.md` y `verificar-fronteras-hexagonales/SKILL.md` en `.claude/skills/` y `.agents/skills/`.
+- [x] T013 Documentación: `docs/guia-contratos-desarrollo.md`, `CLAUDE.md` (tabla «Qué existe hoy»), `arbol.md` y `verificar-fronteras-hexagonales/SKILL.md` en `.claude/skills/` y `.agents/skills/`.
 - [ ] T014 Cierre: los cuatro comandos de calidad y `pytest tests/architecture` en exit 0, cobertura 100 % de módulos nuevos; `docs/PROGRESO.md` (fila a `En revisión`, archivos, evidencia, registro por tarea, **Observaciones de HU-11-01** para HU-02-06.1, HU-11-03, HU-11-04.1, HU-05-02, HU-IN-02, PD-09, PD-10 y los hallazgos de puertos); marcar aquí solo lo hecho.
 
 ## Phase 8: Tareas humanas (Claude no las marca)

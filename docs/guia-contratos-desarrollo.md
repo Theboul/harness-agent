@@ -272,6 +272,23 @@ prefix = Message(role=Role.SYSTEM, content=environment_notice(platform.system(),
 - `denied_commands_for("bash" | "powershell")` publica la lista por defecto de comandos peligrosos **solo como dato**: ni el shell ni la herramienta la aplican. La consume HU-05-02 (análisis de comandos compuestos); la aprobación interactiva es de HU-05-03.
 - `process_environment()` (`config.py`) es la única lectura del entorno del proceso para el shell: ni `bootstrap.py` ni los adaptadores leen `os.environ`.
 
+### HU-11-01: tarea con criterios protegidos
+
+```python
+from harness_agent.adapters.tasks import load_github_issue, load_task_file
+from harness_agent.bootstrap import compose
+
+task = load_task_file("tarea.md")                      # o load_github_issue(14)
+composition = compose(config, task=task)               # la sesión de la tarea es la de la ejecución
+composition.task_store.get_pending(composition.session_id)
+composition.task_store.mark_passes(criteria_id, "salida de pytest: 0 fallos")  # exige evidencia
+composition.task_store.verify_export(composition.session_id)  # restaura la copia si la tocaron
+```
+
+- Los criterios viven en SQLite (`criterios`); `tareas/<sesión>/criterios.json` es solo una copia de solo lectura con huella. Si cambia, `verify_export` la restaura y emite `criteria_tampered` con el motivo (sin contenido ni rutas).
+- `ProtectedPolicy` solo puede endurecer: deniega lo que toque la carpeta del harness y delega el resto. Para `shell` es coincidencia literal con el nombre de la base, de la copia o de la carpeta; no analiza comandos compuestos (HU-05-02) ni sustituye al entorno aislado (PD-06).
+- Una historia que añada una herramienta con `path` queda protegida sin cambios; una con varias rutas debe declararlas todas en `path` o aportar su propia comprobación.
+
 ---
 
 ## 4. Reglas Obligatorias de Diseño y Pureza
