@@ -233,7 +233,7 @@
 
 ## Phase 9: Cierre
 
-- [ ] **T018** Cierre de la historia: calidad, cobertura, archivos protegidos y `PROGRESO.md` (Principio VIII, Sp2-05)
+- [x] **T018** Cierre de la historia: calidad, cobertura, archivos protegidos y `PROGRESO.md` (Principio VIII, Sp2-05)
   - **Archivos**: `docs/PROGRESO.md`, `specs/019-portable-shell-tool/tasks.md`
   - **Dependencias**: T001 a T017
   - **Criterios relacionados**: Principios IV, VIII y IX, FR-026, FR-027, SC-005 a SC-007
