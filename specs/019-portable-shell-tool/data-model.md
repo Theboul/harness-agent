@@ -26,6 +26,8 @@ Sin persistencia. Lo que hay son tipos en memoria de los adaptadores y los tipos
 | `which` | `Callable[[str], str \| None]` | Búsqueda del ejecutable (inyectable) |
 | `control` | `ProcessControl` | Terminación por plataforma (inyectable) |
 
+Método propio (no del puerto): `terminate_running() -> None`, seguro entre hilos; termina el árbol del comando en curso y hace que `execute` vuelva enseguida (sin lanzar); sin comando en curso no hace nada.
+
 Estados de `execute`: `validar → arrancar → leer + esperar → (terminar árbol si agota el tiempo) → recoger`. Reglas: tiempo no positivo o no numérico → `ValueError`; ejecutable ausente o fallo al arrancar → `ShellStartError`; todo lo demás devuelve `ShellResult`.
 
 ### `BashShell` / `PowerShellShell`
@@ -79,7 +81,7 @@ Aviso: `\n[salida recortada: se omitieron N caracteres]\n`.
 | `name` | `shell` |
 | `risk` | `RiskLevel.HIGH` |
 | `schema` | `{"type": "object", "properties": {"command": {"type": "string", "minLength": 1, "maxLength": 8000}, "timeout_seconds": {"type": "number", "minimum": 1, "maximum": 600}}, "required": ["command"], "additionalProperties": false}` |
-| constructor | `ShellTool(shell: Shell \| None, area: AuthorizedArea \| None)` |
+| constructor | `ShellTool(shell: Shell \| None, area: AuthorizedArea \| None, on_cancel: Callable[[], None] \| None = None)` |
 
 Etiquetas: `[codigo_de_salida=N]`, `[tiempo_agotado]`, `[interprete_no_disponible]`, `[sin_area]`, `[error_de_shell]`.
 

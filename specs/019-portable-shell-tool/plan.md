@@ -95,7 +95,7 @@ No hay violaciones; la sección de complejidad no aplica. Discrepancias de la do
 | D13 | `environment_notice(system_name, interpreter)` en `adapters/system/environment_notice.py` devuelve un texto fijo en español; `bootstrap.py` lo coloca como primer `Message(Role.SYSTEM)` del historial (`Composition.history_prefix`). HU-02-01 lo recogerá. | AC-03 sin esperar al ensamblador de contexto; estable para el caché del proveedor; sin cambiar el bucle. |
 | D14 | `DEFAULT_DENIED_COMMANDS` (`Mapping[str, tuple[DeniedCommand, ...]]` por intérprete) y `denied_commands_for(interpreter)` en `adapters/system/denied_commands.py`. Datos puros; nada del shell ni de la herramienta los lee. | Decisión del responsable (B); HU-05-02 los consume. |
 | D15 | El entorno del hijo lo construye `child_environment(environ, removed, *, windows)`: copia sin las claves quitadas (insensible a mayúsculas en Windows). `bootstrap.py` pasa `os.environ` y `{v for v in PROVIDER_KEY_VARIABLES.values() if v}` de `config.py`. `compose()` gana el parámetro `environ`. | FR-010c; el adaptador no importa `config` ni lee `os.environ`. |
-| D16 | La herramienta ejecuta `shell.execute` con `asyncio.to_thread`. Una cancelación a mitad de un comando no interrumpe el hilo: el tiempo máximo acota la espera (hallazgo para A: cancelar un turno aislado requeriría ampliar el puerto). | El puerto es síncrono (D-01 lo declara así para `Shell`). |
+| D16 | La herramienta ejecuta `shell.execute` con `asyncio.to_thread` y recibe un gancho opcional `on_cancel` (`Callable[[], None]` o `None`). Si la llamada se cancela (`CancelledError`, p. ej. Ctrl-C bajo `asyncio.run`), la herramienta invoca el gancho y relanza la cancelación. `SubprocessShell.terminate_running()` (seguro entre hilos) termina el árbol del comando en curso y hace que `execute` vuelva enseguida; `bootstrap.py` pasa `shell.terminate_running` como gancho. Cancelar solo un turno sigue sin existir (hallazgo para A: el puerto no tiene cancelación). | Sin el gancho, `asyncio.run` espera al hilo (hasta 600 s) al cancelar y Ctrl-C parecería colgarse; el puerto es síncrono y no cambia (D-01). |
 | D17 | Nombres: `ShellTool` (herramienta `shell`), `SubprocessShell`, `BashShell`, `PowerShellShell`, `ShellStartError`, `OutputCollector`, `ProcessControl`, `PosixProcessControl`, `WindowsProcessControl`. | Identificadores en inglés. |
 
 ---
@@ -122,7 +122,7 @@ Skills cargadas: `arquitectura-hexagonal-clean`, `estructura-carpetas-harness` y
 | `adapters/system/subprocess_shell.py`, `bash_shell.py`, `powershell_shell.py`, `process_control.py`, `shell_output.py`, `shell_environment.py`, `shell_selection.py`, `shell_limits.py`, `shell_errors.py` | «Código con … `subprocess` … → `adapters/<subpaquete>/`» | `tests/unit/adapters/system/test_*shell*.py`, `tests/contracts/test_shell_contract.py` |
 | `adapters/system/denied_commands.py`, `environment_notice.py` | Datos y texto del adaptador del sistema (sin lógica de negocio); mismo paquete que el shell que describen | `tests/unit/adapters/system/` |
 | `adapters/tools/shell.py` (+ constantes en `_limits.py`) | «Herramienta nativa» → `adapters/tools/` (receta «Nueva herramienta nativa») | `tests/unit/adapters/tools/test_shell_tool.py`, `tests/integration/test_shell_agent_loop.py` |
-| `bootstrap.py` (modificado) | «Unir piezas y elegir implementaciones» → `bootstrap.py` | `tests/integration/test_bootstrap.py` (existente, ampliada) y `tests/unit/test_bootstrap_shell.py` |
+| `bootstrap.py` (modificado) | «Unir piezas y elegir implementaciones» → `bootstrap.py` | `tests/unit/test_bootstrap_compose.py`, `tests/unit/test_bootstrap_main.py` y `tests/integration/test_bootstrap_session.py` (existentes; solo se ajusta una aserción si hace falta) y `tests/unit/test_bootstrap_shell.py` (nueva) |
 
 ### Lista de comprobación (`capas-y-reglas.md`)
 
@@ -216,7 +216,7 @@ docs/
 
 **Structure Decision**: Single project. No se crean carpetas nuevas: `adapters/system/` y `adapters/tools/` ya existen. `bootstrap.py` es la única raíz de composición y recibe el cableado (lo exige `CLAUDE.md`: «cada historia que añada una pieza nueva al arranque la cablea ahí»).
 
-**Qué cambia en `bootstrap.py`**: `compose(..., environ=None)` (por defecto `os.environ`, que ya se lee en la raíz de composición); `shell = select_shell(platform.system(), cwd=area.root, environ=environ, removed_env=claves)` solo si hay área; `ShellTool(shell, area)` se registra siempre (sin área devuelve `[sin_area]`, igual que las herramientas de archivos); `Composition` gana `history_prefix: tuple[Message, ...]`; `run_session` inicia `history = list(composition.history_prefix)`; `main()` pasa su `environ` a `compose`. Las pruebas existentes de `compose` y `run_session` se ajustan solo si fijaban un historial vacío o la lista exacta de herramientas (se verifica antes; se documenta como desviación si ocurre).
+**Qué cambia en `bootstrap.py`**: `compose(..., environ=None)` (por defecto `os.environ`, que ya se lee en la raíz de composición); `shell = select_shell(platform.system(), cwd=area.root, environ=environ, removed_env=claves)` solo si hay área; `ShellTool(shell, area, on_cancel=shell.terminate_running)` se registra siempre (sin área devuelve `[sin_area]`, igual que las herramientas de archivos); `Composition` gana `history_prefix: tuple[Message, ...]`; `run_session` inicia `history = list(composition.history_prefix)`; `main()` pasa su `environ` a `compose`. Las pruebas existentes de `compose` y `run_session` se ajustan solo si fijaban un historial vacío o la lista exacta de herramientas (se verifica antes; se documenta como desviación si ocurre).
 
 ---
 
@@ -227,7 +227,7 @@ docs/
 | Un proceso nieto sobrevive a la terminación del árbol | POSIX: grupo de procesos con `SIGKILL` final; Windows: `taskkill /T /F`. Prueba real con nieto en ambas plataformas. Límite documentado: un huérfano re-parentado en Windows escapa a `/T` (mejora posterior con Job Objects). |
 | Comillas, codificación o código de salida distintos en PowerShell | `-Command` con UTF-8 forzado y reenvío de `$LASTEXITCODE` (sondeado en Windows); pruebas reales en `windows-latest`; argv sintético en Linux. |
 | `bash` de Windows (WSL) tomado por error | `select_shell` elige PowerShell en Windows; las pruebas reales de bash se omiten en Windows con motivo. |
-| Hilo del shell sigue tras cancelar la sesión | El tiempo máximo acota la vida; hallazgo para A sobre cancelación de un solo turno. |
+| Hilo del shell sigue tras cancelar la sesión (Ctrl-C bajo `asyncio.run` espera al hilo) | Gancho `on_cancel` → `terminate_running` (D16); el tiempo máximo acota además la vida; hallazgo para A sobre cancelación de un solo turno. |
 | Salida enorme llena la memoria o bloquea la tubería | Lectura continua en hilo con retención acotada (D4, D5); prueba de 100 MB. |
 | Fuga de claves de proveedor al hijo | `child_environment` las quita; prueba con centinela y con `env`/`Get-ChildItem Env:` reales. |
 | Pruebas lentas o inestables por la espera de terminación | Gracia inyectable corta en pruebas; plazos holgados (+3 s) sin dormir de más; limpieza de procesos en `finally`. |

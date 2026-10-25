@@ -178,7 +178,7 @@ Como equipo de desarrollo, quiero que el mismo conjunto de pruebas del shell cor
 - **Procesos que ignoran la terminación amable**: se escala a terminación forzada tras un período de gracia corto; no queda proceso vivo.
 - **Proceso que termina justo al agotarse el plazo**: el resultado es coherente (no se informa «tiempo agotado» con un proceso ya terminado con éxito, ni se queda un proceso vivo).
 - **Comando que cambia de carpeta o de variables**: no persiste entre llamadas; cada ejecución es independiente y parte de la carpeta del área.
-- **Interrupción de la sesión (Ctrl-C) durante un comando**: no deja procesos huérfanos más allá del tiempo máximo.
+- **Interrupción de la sesión (Ctrl-C) o cancelación de la llamada durante un comando**: el comando en curso y su árbol de procesos se terminan al cancelarse la llamada, sin esperar al tiempo máximo, sin dejar procesos huérfanos y sin bloquear la salida del programa.
 - **Resultado y eventos**: las cargas de los eventos del bucle no llevan argumentos ni salida (FR-029 de HU-01-01); esta historia no cambia eso. El contenido de la salida es dato, no instrucción.
 - **Variables de claves en el entorno**: `env`, `printenv` o `Get-ChildItem Env:` no muestran las claves de los proveedores del harness (se quitaron); otras variables sensibles que el usuario tenga sí aparecen si el comando se aprueba.
 - **Secretos en la salida**: la salida del comando se entrega tal cual (puede contener lo que el usuario aprobó imprimir); esta historia no redacta secretos (PD-10 sigue abierta).
@@ -223,7 +223,7 @@ Como equipo de desarrollo, quiero que el mismo conjunto de pruebas del shell cor
 - **FR-015**: MUST existir `ShellTool` que implemente el puerto `Tool`: nombre `shell`, descripción para el modelo (indica el intérprete y que cada llamada es independiente), esquema con `command` (texto, longitud mínima 1 y máxima fija) y `timeout_seconds` (número opcional mayor que 0), `additionalProperties` falso, y riesgo alto.
 - **FR-016**: La herramienta MUST recibir por constructor el `Shell` y el área (o `None`); MUST NOT leer configuración, entorno ni terminal.
 - **FR-017**: Sin área (`None`), la herramienta MUST devolver un error claro con la etiqueta `[sin_area]` y MUST NOT lanzar ningún proceso.
-- **FR-018**: La herramienta MUST ejecutar el `Shell` fuera del bucle de eventos (el puerto es síncrono) y MUST devolver siempre un `ToolResult`: éxito con la salida y el código 0; con `is_error=True` y etiqueta para código distinto de 0, tiempo agotado, intérprete no disponible y falta de área.
+- **FR-018**: La herramienta MUST ejecutar el `Shell` fuera del bucle de eventos (el puerto es síncrono) y MUST devolver siempre un `ToolResult`; si la llamada se cancela mientras el comando corre, MUST invocar el gancho de cancelación que se le inyecta (que termina el comando en curso) y MUST dejar propagar la cancelación. Resultados: éxito con la salida y el código 0; con `is_error=True` y etiqueta para código distinto de 0, tiempo agotado, intérprete no disponible y falta de área.
 - **FR-019**: El contenido devuelto al modelo MUST incluir el código de salida y la salida acotada, y MUST NOT incluir trazas, rutas absolutas del ejecutable ni el comando completo repetido.
 
 **Calidad y fronteras (Sp2-05)**
@@ -252,7 +252,7 @@ Como equipo de desarrollo, quiero que el mismo conjunto de pruebas del shell cor
 ### Measurable Outcomes
 
 - **SC-001**: En el 100 % de las pruebas de tiempo agotado (al menos un comando simple, uno con proceso hijo y uno que ignora la terminación amable, en cada plataforma), el control vuelve en menos de la suma del tiempo máximo y 3 segundos, y ningún proceso del comando queda vivo.
-- **SC-002**: Un comando que produce más de 100 MB de salida no hace crecer el uso de memoria del harness más allá del máximo documentado más un margen fijo, y el resultado nunca supera el máximo de caracteres.
+- **SC-002**: Un comando que produce más de 100 MB de salida no hace crecer el uso de memoria del harness más allá del máximo documentado más un margen fijo, y la salida devuelta por el shell nunca supera el máximo de caracteres (el resultado de la herramienta añade solo un encabezado corto de código de salida).
 - **SC-003**: Con el bucle real, la política real y sin aprobador, el 100 % de las llamadas a `shell` se resuelven como denegadas y no lanzan ningún proceso.
 - **SC-004**: La herramienta devuelve un resultado estructurado, no una excepción, en el 100 % de los casos de error probados (código distinto de 0, tiempo agotado, intérprete ausente, sin área, comando que no arranca, salida no UTF-8).
 - **SC-005**: El mismo conjunto de pruebas de shell pasa en Linux y en Windows con el mismo código; las únicas omisiones son las marcadas por plataforma, con motivo, y cada una tiene su equivalente en la otra.
@@ -263,7 +263,7 @@ Como equipo de desarrollo, quiero que el mismo conjunto de pruebas del shell cor
 
 - **HU-00-01 sigue pendiente de aprobación técnica.** Esta historia no cambia ningún puerto, el bucle, el catálogo de eventos ni los dobles, así que puede implementarse sin esa ratificación, pero debe producirse antes de pasar a «Hecha».
 - **Sin aprobador, el shell no ejecuta nada.** La política vigente pregunta ante riesgo alto y el bucle resuelve «pregunta» como denegado hasta HU-05-03. La historia se prueba de extremo a extremo con una política de prueba que permite la herramienta; el uso real interactivo llega con HU-05-02 y HU-05-03.
-- **El puerto `Shell` es síncrono y no cambia.** La herramienta lo ejecuta en un hilo. Cancelar un turno a mitad de un comando no está soportado todavía (no existe cancelación de un solo turno): el tiempo máximo garantiza que el proceso termina. Cualquier ampliación del puerto (cancelación, carpeta de trabajo, entorno) requiere el acuerdo de A, B y C y queda como hallazgo.
+- **El puerto `Shell` es síncrono y no cambia.** La herramienta lo ejecuta en un hilo. Como el puerto no tiene cancelación, la implementación concreta ofrece un método propio (`terminate_running`) que la raíz de composición inyecta a la herramienta como gancho de cancelación: así la cancelación de la llamada (o Ctrl-C) termina el comando en curso. Cancelar solo un turno, sin cancelar la llamada, no existe todavía; en cualquier caso el tiempo máximo acota la vida del proceso. Cualquier ampliación del puerto (cancelación en el contrato, carpeta de trabajo, entorno) requiere el acuerdo de A, B y C y queda como hallazgo.
 - **Intérpretes**: PowerShell de Windows es `powershell.exe` (siempre presente) y, si existe, se prefiere `pwsh`; bash es `bash` del `PATH`. macOS no es plataforma del equipo ni de la CI; solo se garantiza que usa bash.
 - **El área solo fija la carpeta inicial**; no confina el comando. La confianza viene de la aprobación, no del área.
 - **La lista de comandos denegados por plataforma** (regla de negocio 3) se publica aquí como dato (FR-010b) y su evaluación, igual que el análisis de comandos compuestos, pertenece a la política (HU-05-02). La lista inicial es conservadora y de revisión por el PO; no sustituye a la aprobación obligatoria.

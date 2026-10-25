@@ -55,7 +55,7 @@ Fecha: 2026-10-24. No quedan `NEEDS CLARIFICATION`. Lo marcado **(sonda)** se mi
 
 ## R10. Qué pasa con `Tool.run` async y el puerto síncrono
 
-- `asyncio.to_thread(shell.execute, command, timeout)`. Mientras corre el comando el bucle de eventos sigue libre (el bus puede entregar eventos). Cancelar el turno no interrumpe el hilo; el tiempo máximo acota la espera. Es una limitación del puerto sin cancelación: se anota como hallazgo para A (D-01 dice que `Shell` es síncrono).
+- `asyncio.to_thread(shell.execute, command, timeout)`. Mientras corre el comando el bucle de eventos sigue libre (el bus puede entregar eventos). Cancelar la llamada (`CancelledError`, Ctrl-C) no interrumpe el hilo por sí sola: `asyncio.run` lo esperaría hasta el tiempo máximo. Por eso `ShellTool` recibe un gancho `on_cancel` que `bootstrap.py` enlaza con `SubprocessShell.terminate_running()` (método propio de la implementación, no del puerto); el tiempo máximo sigue acotando la espera si nadie cancela. Es una limitación del puerto sin cancelación: se anota como hallazgo para A (D-01 dice que `Shell` es síncrono).
 - Alternativa descartada: añadir `cancel()` al puerto (requiere acuerdo de A, B y C).
 
 ## R11. Límites iniciales
@@ -67,8 +67,8 @@ Fecha: 2026-10-24. No quedan `NEEDS CLARIFICATION`. Lo marcado **(sonda)** se mi
 | `MAX_COMMAND_CHARS` | 8 000 | `adapters/tools/_limits.py` | Muy por debajo del límite de la línea de comandos de Windows (32 767) |
 | `MAX_OUTPUT_CHARS` | 20 000 | `adapters/system/shell_limits.py` | Igual que `MAX_RESULT_CHARS` de las herramientas de archivos (alinear con HU-02-02) |
 | `NOTICE_RESERVE_CHARS` | 160 | `adapters/system/shell_limits.py` | Espacio fijo para el aviso de recorte, de modo que el total no supere el máximo |
-| `GRACE_SECONDS` | 2.0 | `adapters/system/shell_limits.py` | Tiempo entre la petición amable y la forzada |
-| `READER_JOIN_SECONDS` | 2.0 | `adapters/system/shell_limits.py` | Espera máxima al hilo lector tras terminar el árbol |
+| `GRACE_SECONDS` | 1.5 | `adapters/system/shell_limits.py` | Tiempo entre la petición amable y la forzada |
+| `READER_JOIN_SECONDS` | 1.0 | `adapters/system/shell_limits.py` | Espera máxima al hilo lector tras terminar el árbol |
 
 Duplicar `max` de timeout entre paquetes no hay: el tope de tiempo es solo de la herramienta; el máximo de salida es solo del adaptador.
 

@@ -62,6 +62,10 @@ Reglas: mismo par de entradas → mismo texto, byte a byte; no menciona usuario,
 | Termina a tiempo | `ShellResult(exit_code=<código>, output=<salida acotada>, timed_out=False)` |
 | Agota el tiempo | `ShellResult(exit_code=<código tras terminar>, output=<salida parcial acotada>, timed_out=True)`; el árbol de procesos termina |
 
+## 4b. Cancelación
+
+Si la llamada a `ShellTool.run` se cancela mientras el comando corre, la herramienta invoca una vez el gancho `on_cancel` (en la composición real, `SubprocessShell.terminate_running`) y relanza `CancelledError`. El gancho termina el árbol de procesos; el hilo del shell vuelve pronto.
+
 ## 5. Lista de comandos denegados (dato)
 
 `denied_commands_for("bash" | "powershell") -> tuple[DeniedCommand, ...]`. Datos de solo lectura; ni el shell ni la herramienta los aplican. Los consume HU-05-02.
