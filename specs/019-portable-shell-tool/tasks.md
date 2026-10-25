@@ -43,7 +43,7 @@
 
 **Propósito**: Marcar la historia `En curso`.
 
-- [ ] **T001** Marcar HU-01-04 como `En curso` en `docs/PROGRESO.md` (transversal)
+- [x] **T001** Marcar HU-01-04 como `En curso` en `docs/PROGRESO.md` (transversal)
   - **Archivos**: `docs/PROGRESO.md`
   - **Dependencias**: Ninguna
   - **Criterios relacionados**: Principio VIII
