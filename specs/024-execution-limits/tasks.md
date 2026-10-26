@@ -28,15 +28,15 @@
 ## Fase 3: CLI y composición (US4, US5)
 
 - [x] T010 [US5] `tests/unit/test_bootstrap_limits.py`: `compose(config)` con `max_turns=2` entrega un bucle que se detiene a la segunda llamada (con `FakeProvider`), los valores por defecto están activos y `max_output_tokens` no se usa como límite. Mapear `config.limits` → `SessionLimits` en `src/harness_agent/bootstrap.py`.
-- [ ] T011 [US1] [US2] [US3] `tests/integration/test_limits_agent_loop.py`: recorrido con `AgentLoop` real, herramientas reales de prueba y `RecordingEventBus` para los tres límites, más la continuidad (otra tarea tras la parada).
+- [x] T011 [US1] [US2] [US3] `tests/integration/test_limits_agent_loop.py`: recorrido con `AgentLoop` real, herramientas reales de prueba y `RecordingEventBus` para los tres límites, más la continuidad (otra tarea tras la parada).
 - [x] T012 [US4] `tests/unit/cli/test_render_limits.py` (una línea por límite con su máximo en español; carga desconocida o incompleta → texto genérico; nunca la carga cruda) y ver fallar; modificar `LIMIT_REACHED` en `src/harness_agent/cli/render.py`.
 
 ## Fase 4: Cierre
 
-- [ ] T013 Verificación de fronteras: `pytest tests/architecture`; ningún archivo viola una regla; comprobar `git diff --exit-code <base> -- src/harness_agent/core/interfaces src/harness_agent/core/events.py tests/doubles docs/archivo`.
-- [ ] T014 Las cuatro puertas: `ruff format --check .`, `ruff check .`, `mypy src tests`, `pytest --cov=harness_agent --cov-report=term-missing` en exit 0.
-- [ ] T015 Actualizar `docs/PROGRESO.md` (fila HU-01-06 → `En revisión`, *Archivos*, *Evidencia*, registro de cambios por tarea, observaciones: reconciliar con A, B y PO) y las skills si el código difiere (`arbol.md`, tabla de guardas en `verificar-fronteras-hexagonales`, en `.claude/` y `.agents/`); `CLAUDE.md` (fila de `core/limits.py`).
-- [ ] T016 Commits convencionales en español con el ID, por unidad de trabajo.
+- [x] T013 Verificación de fronteras: `pytest tests/architecture`; ningún archivo viola una regla; comprobar `git diff --exit-code <base> -- src/harness_agent/core/interfaces src/harness_agent/core/events.py tests/doubles docs/archivo`.
+- [x] T014 Las cuatro puertas: `ruff format --check .`, `ruff check .`, `mypy src tests`, `pytest --cov=harness_agent --cov-report=term-missing` en exit 0.
+- [x] T015 Actualizar `docs/PROGRESO.md` (fila HU-01-06 → `En revisión`, *Archivos*, *Evidencia*, registro de cambios por tarea, observaciones: reconciliar con A, B y PO) y las skills si el código difiere (`arbol.md`, tabla de guardas en `verificar-fronteras-hexagonales`, en `.claude/` y `.agents/`); `CLAUDE.md` (fila de `core/limits.py`).
+- [x] T016 Commits convencionales en español con el ID, por unidad de trabajo.
 
 ## Tareas humanas (Claude NO las marca)
 
