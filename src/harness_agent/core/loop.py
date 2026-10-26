@@ -23,8 +23,9 @@ from harness_agent.core.entities import Message, Role, ToolCall, ToolResult
 from harness_agent.core.events import Event, EventType
 from harness_agent.core.interfaces.event_bus import EventBus
 from harness_agent.core.interfaces.provider import Provider, ProviderResponse, ToolDefinition
-from harness_agent.core.interfaces.security import PermissionDecision, PermissionPolicy
+from harness_agent.core.interfaces.security import Approver, PermissionDecision, PermissionPolicy
 from harness_agent.core.interfaces.tool import Tool, ToolRegistry
+from harness_agent.core.permissions.approvals import ApprovalGate, ApprovalOutcome
 
 MAX_MESSAGE_CHARS = 500
 
@@ -87,6 +88,7 @@ class _Verdict:
     resolved_as: str
     reason: str | None
     rejection: _Outcome | None
+    pending_approval: bool = False
 
 
 def _rejection(call: ToolCall, category: str, content: str) -> _Outcome:
@@ -108,6 +110,7 @@ class AgentLoop:
         registry: ToolRegistry,
         policy: PermissionPolicy,
         bus: EventBus,
+        approver: Approver | None = None,
     ) -> None:
         for name, collaborator in (
             ("provider", provider),
@@ -123,6 +126,9 @@ class AgentLoop:
         self._registry = registry
         self._policy = policy
         self._bus = bus
+        # Without an approver "ask" stays a denial (Sprint 1 behavior); with one, the gate also
+        # holds the session approvals, which live as long as this loop (one per session).
+        self._approvals = None if approver is None else ApprovalGate(approver)
 
     async def run_turn(
         self,
@@ -357,15 +363,22 @@ class AgentLoop:
         )
         if verdict.rejection is not None:
             return verdict.rejection
+        if verdict.pending_approval:
+            progress.phase, progress.call_id = "approval", call.id
+            refused = await self._ask_approval(session_id, call, tool, evaluated_call)
+            if refused is not None:
+                return refused
         progress.phase, progress.call_id = "tool_execution", call.id
         return await self._execute(tool, call, copy.deepcopy(effective))
 
     def _decide(self, call: ToolCall, evaluated_call: ToolCall) -> _Verdict:
         """Ask the policy; the call may only run when the decision is exactly ALLOW.
 
-        The loop is the last barrier (fail closed): DENY, ASK (no approver in Sprint 1),
-        an exception or any unexpected value all mean "do not execute". The policy returns
-        only an enum, so the rejection text is written here.
+        The loop is the last barrier (fail closed): DENY, ASK (without an approver), an
+        exception or any unexpected value all mean "do not execute". ASK with an approver is
+        left pending: the user decides in ``_ask_approval``, and only for ASK (a denial never
+        reaches the approver). The policy returns only an enum, so the rejection text is
+        written here.
         """
         try:
             decision: object = self._policy.evaluate(evaluated_call)
@@ -384,6 +397,8 @@ class AgentLoop:
                     f"[permission_denied] Tool '{call.name}' was denied by the permission policy.",
                 ),
             )
+        if decision is PermissionDecision.ASK and self._approvals is not None:
+            return _Verdict("ask", "ask", None, None, pending_approval=True)
         if decision is PermissionDecision.ASK:
             return _Verdict(
                 "ask",
@@ -407,6 +422,40 @@ class AgentLoop:
                 f"[permission_denied] Tool '{call.name}' could not be evaluated and was "
                 "denied (fail closed).",
             ),
+        )
+
+    async def _ask_approval(
+        self, session_id: str, call: ToolCall, tool: Tool, evaluated_call: ToolCall
+    ) -> _Outcome | None:
+        """Wait for the user's decision; ``None`` means approved, otherwise the rejection.
+
+        Both events are published before anything runs: if either publication fails the tool
+        does not run (Q4). The rejection reason of the user is not forwarded yet (HU-05-04).
+        """
+        assert self._approvals is not None
+        outcome = await self._approvals.resolve(
+            evaluated_call,
+            tool,
+            lambda risk: self._emit(
+                session_id, EventType.APPROVAL_REQUESTED, _approval_requested_payload(call, risk)
+            ),
+        )
+        self._emit(
+            session_id, EventType.APPROVAL_RESOLVED, _approval_resolved_payload(call, outcome)
+        )
+        if outcome.approved:
+            return None
+        if outcome.action is None:
+            return _rejection(
+                call,
+                "approval_failed",
+                f"[approval_failed] Tool '{call.name}' could not be approved and was denied "
+                "(fail closed).",
+            )
+        return _rejection(
+            call,
+            "approval_rejected",
+            f"[approval_rejected] Tool '{call.name}' was rejected by the user.",
         )
 
     @staticmethod
@@ -469,6 +518,21 @@ def _permission_decided_payload(
         "decision": decision,
         "resolved_as": resolved_as,
         "reason": reason,
+    }
+
+
+def _approval_requested_payload(call: ToolCall, risk: str) -> dict[str, Any]:
+    return {"call_id": call.id, "name": call.name, "risk": risk}
+
+
+def _approval_resolved_payload(call: ToolCall, outcome: ApprovalOutcome) -> dict[str, Any]:
+    action = None if outcome.action is None else outcome.action.value
+    return {
+        "call_id": call.id,
+        "name": call.name,
+        "action": action,
+        "approved": outcome.approved,
+        "source": outcome.source,
     }
 
 

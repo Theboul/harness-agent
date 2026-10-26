@@ -226,7 +226,8 @@ async def test_the_next_turn_after_a_provider_failure_is_accepted() -> None:
 def test_the_loop_instance_keeps_no_per_turn_state() -> None:
     rig = make_rig([], [])
     assert isinstance(rig.loop, AgentLoop)
-    assert not [
-        name for name in vars(rig.loop) if name not in {"_provider", "_registry", "_policy", "_bus"}
-    ]
+    # ``_approvals`` is the session-scoped approval gate (HU-05-03); it is None without an approver.
+    allowed = {"_provider", "_registry", "_policy", "_bus", "_approvals"}
+    assert not [name for name in vars(rig.loop) if name not in allowed]
+    assert vars(rig.loop)["_approvals"] is None
     assert SESSION  # the session id is only an opaque label supplied per turn

@@ -58,7 +58,7 @@ def make_tool(name: str = "shell") -> DummyTool:
     return DummyTool(name=name, description="Runs a command", risk=RiskLevel.HIGH)
 
 
-def noop() -> None:
+def noop(risk: str) -> None:
     return None
 
 
@@ -66,7 +66,7 @@ async def resolve(
     gate: ApprovalGate,
     call: ToolCall,
     tool: DummyTool | None = None,
-    emit: Callable[[], None] = noop,
+    emit: Callable[[str], None] = noop,
 ) -> ApprovalOutcome:
     return await gate.resolve(call, tool or make_tool(call.name), emit)
 
@@ -186,14 +186,16 @@ class TestFailClosed:
                 order.append("request")
                 return ApprovalResult(ApprovalAction.APPROVE_ONCE)
 
-        await resolve(ApprovalGate(Recording()), make_call(), emit=lambda: order.append("emit"))
+        await resolve(
+            ApprovalGate(Recording()), make_call(), emit=lambda risk: order.append("emit")
+        )
 
         assert order == ["emit", "request"]
 
     async def test_a_failing_emit_means_nobody_is_asked(self) -> None:
         approver = DummyApprover()
 
-        def failing() -> None:
+        def failing(risk: str) -> None:
             raise RuntimeError("bus down")
 
         with pytest.raises(RuntimeError):
@@ -270,8 +272,8 @@ class TestSessionScope:
         gate = ApprovalGate(ScriptedApprover(ApprovalAction.APPROVE_SESSION))
         emitted: list[str] = []
 
-        await resolve(gate, make_call(command="ls"), emit=lambda: emitted.append("a"))
-        await resolve(gate, make_call(command="ls"), emit=lambda: emitted.append("b"))
+        await resolve(gate, make_call(command="ls"), emit=lambda risk: emitted.append("a"))
+        await resolve(gate, make_call(command="ls"), emit=lambda risk: emitted.append("b"))
 
         assert emitted == ["a", "b"]
 

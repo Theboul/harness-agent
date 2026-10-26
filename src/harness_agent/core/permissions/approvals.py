@@ -99,18 +99,19 @@ class ApprovalGate:
         self._granted: set[tuple[str, str]] = set()
 
     async def resolve(
-        self, call: ToolCall, tool: Tool, emit_requested: Callable[[], None]
+        self, call: ToolCall, tool: Tool, emit_requested: Callable[[str], None]
     ) -> ApprovalOutcome:
         """Decide whether ``call`` may run.
 
         Args:
             call: The validated call, with the arguments that would be executed.
             tool: The tool the call names (for the description and the risk shown).
-            emit_requested: Publishes ``APPROVAL_REQUESTED``; called once, before anything is
-                asked. If it raises, nobody is asked and the exception propagates.
+            emit_requested: Publishes ``APPROVAL_REQUESTED`` (it receives the risk level to
+                show); called once, before anything is asked. If it raises, nobody is asked
+                and the exception propagates.
         """
         details = build_details(call, tool)
-        emit_requested()
+        emit_requested(details["risk"])
         key = _grant_key(call)
         if key is not None and key in self._granted:
             return ApprovalOutcome(True, ApprovalAction.APPROVE_SESSION, SOURCE_SESSION_GRANT)
