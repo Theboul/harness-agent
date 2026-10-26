@@ -224,7 +224,10 @@ class TestCancellation:
                 await call(session, "slow", {"seconds": 20})
 
         task = asyncio.create_task(owner())
+        deadline = time.monotonic() + 30
         while "pid" not in holder:
+            assert not task.done(), "the owner task ended before reporting the server pid"
+            assert time.monotonic() < deadline, "the server pid never arrived"
             await asyncio.sleep(0.1)
         started = time.monotonic()
         task.cancel()
