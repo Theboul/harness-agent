@@ -318,6 +318,14 @@ class SqliteSessionStore(SessionStore):
     ) -> None:
         self.close()
 
+    def connection(self) -> sqlite3.Connection:
+        """The open connection, for sibling stores that must share a transaction (HU-11-01).
+
+        Raises:
+            SessionStoreError: The store is closed.
+        """
+        return self._connection()
+
     def _connection(self) -> sqlite3.Connection:
         if self._conn is None:
             raise SessionStoreError(_CLOSED_ERROR)

@@ -4,6 +4,19 @@ Domain entities, canonical message and event definitions, and abstract
 contracts for the agent harness. Contains zero third-party dependencies.
 """
 
+from harness_agent.core.context import (
+    AssembledContext,
+    ContextAssembler,
+    ContextConfigError,
+    PrefixSpec,
+    StablePrefix,
+    TokenEstimator,
+    build_prefix,
+    estimate_message,
+    estimate_messages,
+    estimate_text,
+    estimate_tool_definition,
+)
 from harness_agent.core.entities import (
     Message,
     Role,
@@ -49,7 +62,19 @@ from harness_agent.core.interfaces import (
     ToolDefinition,
     ToolRegistry,
 )
-from harness_agent.core.permissions import DefaultPermissionPolicy, PermissionRules
+from harness_agent.core.permissions import (
+    DefaultPermissionPolicy,
+    PermissionRules,
+    ProtectedPolicy,
+)
+from harness_agent.core.tasks import (
+    MAX_CRITERIA,
+    CriterionDefinition,
+    CriterionKind,
+    TaskDefinition,
+    TaskFormatError,
+    parse_task,
+)
 from harness_agent.core.tools import (
     DEFAULT_MAX_OUTPUT_CHARS,
     MIN_MAX_OUTPUT_CHARS,
@@ -128,4 +153,24 @@ __all__ = [
     # Permission policy (HU-05-01)
     "DefaultPermissionPolicy",
     "PermissionRules",
+    "ProtectedPolicy",
+    # Task definition and parser (HU-11-01)
+    "MAX_CRITERIA",
+    "CriterionDefinition",
+    "CriterionKind",
+    "TaskDefinition",
+    "TaskFormatError",
+    "parse_task",
+    # Token estimation and stable prefix (HU-02-01)
+    "AssembledContext",
+    "ContextAssembler",
+    "ContextConfigError",
+    "PrefixSpec",
+    "StablePrefix",
+    "TokenEstimator",
+    "build_prefix",
+    "estimate_message",
+    "estimate_messages",
+    "estimate_text",
+    "estimate_tool_definition",
 ]

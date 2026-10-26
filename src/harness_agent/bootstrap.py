@@ -28,11 +28,14 @@ from harness_agent.adapters.providers.litellm_provider import (
     ProviderDependencyError,
 )
 from harness_agent.adapters.storage import (
+    EXPORT_FILE_NAME,
     SessionStoreError,
     SqliteSessionStore,
+    SqliteTaskStore,
     attach_event_recorder,
 )
 from harness_agent.adapters.system import (
+    ProtectedPaths,
     WorkspaceArea,
     environment_notice,
     interpreter_for,
@@ -60,8 +63,10 @@ from harness_agent.core import (
     InMemoryEventBus,
     InMemoryToolRegistry,
     Message,
+    ProtectedPolicy,
     Provider,
     Role,
+    TaskDefinition,
 )
 from harness_agent.core.loop import AgentLoop
 
@@ -84,6 +89,9 @@ TEST_ONLY_PROVIDER_MESSAGE = (
     "elija un modelo real en config.toml (por ejemplo <proveedor>/<modelo>)."
 )
 
+TASKS_DIR_NAME = "tareas"
+_DATABASE_SIDE_FILES = ("-wal", "-shm", "-journal")
+
 ProviderFactory = Callable[[HarnessConfig], Provider]
 
 
@@ -99,7 +107,7 @@ class Composition:
         loop: The agent loop wired with provider, registry, policy and bus.
         bus: The bus the event recorder (and later the terminal) is subscribed to.
         store: The open session store; ``close`` closes it.
-        session_id: Identifier of the session created for this run.
+        session_id: Identifier of the session created for this run (the task's, if there is one).
         notices: Startup notices for the user (missing or unusable work area); usually empty.
         history_prefix: Messages that open every conversation (the environment notice for the
             model); the session history starts as a copy of them.
@@ -111,6 +119,9 @@ class Composition:
     session_id: str
     notices: tuple[str, ...]
     history_prefix: tuple[Message, ...] = ()
+    task_store: SqliteTaskStore | None = None
+    task: TaskDefinition | None = None
+    criteria_export: Path | None = None
 
     def close(self) -> None:
         """Close the session store; safe to call more than once."""
@@ -137,9 +148,36 @@ def _build_area(root: Path | None) -> tuple[AuthorizedArea | None, tuple[str, ..
     return WorkspaceArea(root), ()
 
 
+def _protection(
+    database: Path, workspace: Path | None
+) -> tuple[Path, tuple[Path, ...], tuple[Path, ...], tuple[str, ...]]:
+    """What the agent tools must never reach: ``(exports_dir, files, folders, shell_markers)``.
+
+    The folder of the sessions database is protected whole. If the work area lives inside it (or
+    is it), protecting the whole folder would lock the agent out of its own work, so only the
+    database files and the folder of the criteria copies are protected then.
+    """
+    harness_dir = database.parent
+    exports_dir = harness_dir / TASKS_DIR_NAME
+    files = (database, *(database.with_name(database.name + tail) for tail in _DATABASE_SIDE_FILES))
+    markers = [database.name, EXPORT_FILE_NAME]
+    if workspace is not None and _inside(workspace, harness_dir):
+        return exports_dir, files, (exports_dir,), tuple(markers)
+    markers.append(harness_dir.name)
+    return exports_dir, files, (harness_dir,), tuple(markers)
+
+
+def _inside(path: Path, folder: Path) -> bool:
+    """Whether ``path`` is ``folder`` or lives under it, comparing real, normalized paths."""
+    real_path = os.path.normcase(os.path.realpath(path))
+    real_folder = os.path.normcase(os.path.realpath(folder))
+    return real_path == real_folder or real_path.startswith(real_folder + os.sep)
+
+
 def compose(
     config: HarnessConfig,
     *,
+    task: TaskDefinition | None = None,
     provider_factory: ProviderFactory | None = None,
     clock: Callable[[], datetime] | None = None,
     id_factory: Callable[[], str] | None = None,
@@ -150,6 +188,8 @@ def compose(
 
     Args:
         config: The loaded configuration.
+        task: A validated task to start: its session becomes the run's session and its
+            criteria are stored and exported; without it the run starts a plain session.
         provider_factory: Builds the provider from the configuration; defaults to LiteLLM.
         clock: Clock of the session store; defaults to UTC now.
         id_factory: Identifier factory of the session store; defaults to ``uuid4``.
@@ -182,7 +222,6 @@ def compose(
         ShellTool(shell, area, on_cancel=None if shell is None else shell.terminate_running),
     ):
         registry.register(tool)
-    policy = DefaultPermissionPolicy(registry, area, config.permissions)
     bus = InMemoryEventBus()
     store_options: dict[str, Any] = {}
     if clock is not None:
@@ -191,7 +230,25 @@ def compose(
         store_options["id_factory"] = id_factory
     store = SqliteSessionStore(config.paths.sessions_db, **store_options)
     try:
-        session = store.create_session(model=config.model)
+        exports_dir, files, folders, markers = _protection(
+            config.paths.sessions_db, config.paths.workspace_root
+        )
+        protected = ProtectedPaths(
+            area.root if area is not None else Path(config.paths.sessions_db.anchor or os.sep),
+            files=files,
+            directories=folders,
+        )
+        policy = ProtectedPolicy(
+            DefaultPermissionPolicy(registry, area, config.permissions), protected, markers
+        )
+        task_options: dict[str, Any] = dict(store_options)
+        task_store = SqliteTaskStore(store, exports_dir=exports_dir, bus=bus, **task_options)
+        export: Path | None = None
+        if task is None:
+            session_id = store.create_session(model=config.model).id
+        else:
+            started = task_store.start_task(task, model=config.model)
+            session_id, export = started.session_id, started.export_path
         attach_event_recorder(bus, store)
         loop = AgentLoop(provider, registry, policy, bus)
     except BaseException:
@@ -202,9 +259,12 @@ def compose(
         loop=loop,
         bus=bus,
         store=store,
-        session_id=session.id,
+        session_id=session_id,
         notices=notices,
         history_prefix=(notice,),
+        task_store=task_store,
+        task=task,
+        criteria_export=export,
     )
 
 

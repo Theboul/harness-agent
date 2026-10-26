@@ -42,8 +42,8 @@ def insert_event(conn: sqlite3.Connection, event_id: str, session_id: str, seq: 
     )
 
 
-def test_schema_version_is_one() -> None:
-    assert SCHEMA_VERSION == 1
+def test_schema_version_is_current() -> None:
+    assert SCHEMA_VERSION == 2
 
 
 def test_new_database_gets_both_tables_with_the_documented_columns(

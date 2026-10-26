@@ -42,6 +42,7 @@ SYSTEM_API = {
     "DEFAULT_DENIED_COMMANDS",
     "DeniedCommand",
     "PowerShellShell",
+    "ProtectedPaths",
     "ShellStartError",
     "SubprocessShell",
     "WorkspaceArea",

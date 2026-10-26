@@ -1,4 +1,4 @@
-"""System adapters: the authorized area on disk (HU-01-03) and the shells (HU-01-04).
+"""System adapters: the authorized area (HU-01-03), the shells (HU-01-04), protected paths.
 
 ``select_shell`` returns the shell that fits the operating system; ``environment_notice`` is the
 text that tells the model which one it is talking to. The rest of the modules are internal.
@@ -12,6 +12,7 @@ from harness_agent.adapters.system.denied_commands import (
 )
 from harness_agent.adapters.system.environment_notice import environment_notice
 from harness_agent.adapters.system.powershell_shell import PowerShellShell
+from harness_agent.adapters.system.protected_paths import ProtectedPaths
 from harness_agent.adapters.system.shell_errors import ShellStartError
 from harness_agent.adapters.system.shell_selection import interpreter_for, select_shell
 from harness_agent.adapters.system.subprocess_shell import SubprocessShell
@@ -22,6 +23,7 @@ __all__ = [
     "DEFAULT_DENIED_COMMANDS",
     "DeniedCommand",
     "PowerShellShell",
+    "ProtectedPaths",
     "ShellStartError",
     "SubprocessShell",
     "WorkspaceArea",
