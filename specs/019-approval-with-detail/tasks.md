@@ -31,66 +31,66 @@
 
 ## Phase 2: Foundational — la puerta de aprobación del núcleo (US1)
 
-- [ ] T002 [US1] `ApprovalGate` y `ApprovalOutcome`: una vez, rechazar y falla cerrada, con `build_details`
+- [x] T002 [US1] `ApprovalGate` y `ApprovalOutcome`: una vez, rechazar y falla cerrada, con `build_details`
   - **Archivos**: `src/harness_agent/core/permissions/approvals.py`, `src/harness_agent/core/permissions/__init__.py`, `src/harness_agent/core/__init__.py`, `tests/unit/core/permissions/test_approvals.py` (fila: «regla de negocio → subpaquete de `core/`»)
   - **Primero las pruebas** (rojo esperado: `ImportError` de `ApprovalGate`): approve_once aprueba y no deja rastro; reject deniega y conserva el motivo acotado; el aprobador que lanza `Exception` → `approver_error`; resultado que no es `ApprovalResult` o acción inválida → `invalid_result`; `CancelledError` se propaga; `details` lleva copia de los argumentos, descripción y riesgo; `emit_requested` se llama antes de `request`; si `emit_requested` lanza, no se pregunta.
   - **Implementar** lo mínimo; **~35 min**.
 
 ## Phase 3: User Story 2 — alcance de la sesión (P1)
 
-- [ ] T003 [US2] Aprobaciones de sesión (herramienta + argumentos exactos) en `ApprovalGate`
+- [x] T003 [US2] Aprobaciones de sesión (herramienta + argumentos exactos) en `ApprovalGate`
   - **Archivos**: `src/harness_agent/core/permissions/approvals.py`, `tests/unit/core/permissions/test_approvals.py`
   - **Pruebas** (rojo: la segunda llamada vuelve a preguntar): approve_session recuerda; los mismos argumentos con otro orden de claves coinciden; argumentos distintos vuelven a pedir; otra herramienta vuelve a pedir; argumentos no serializables → se aprueba pero no se recuerda; la coincidencia devuelve `source="session_grant"` sin llamar al aprobador; una puerta nueva no hereda aprobaciones.
   - **~30 min**.
 
 ## Phase 4: User Story 1 y 3 — el bucle espera y falla cerrado
 
-- [ ] T004 [US1] `AgentLoop(…, approver=None)`: emite `APPROVAL_REQUESTED`/`APPROVAL_RESOLVED` y ejecuta o rechaza
+- [x] T004 [US1] `AgentLoop(…, approver=None)`: emite `APPROVAL_REQUESTED`/`APPROVAL_RESOLVED` y ejecuta o rechaza
   - **Archivos**: `src/harness_agent/core/loop.py` (mínimo), `tests/core/test_loop_approval.py`, `tests/architecture/test_loop_boundaries.py` (el bucle puede emitir eventos de aprobación, no los de límite), `tests/integration/test_event_bus_agent_loop.py` (invertir `test_observation_the_loop_does_not_emit_approval_requested_yet`)
   - **Pruebas** (rojo: el bucle sigue devolviendo `[approval_required_unavailable]`): con aprobador y «preguntar», orden `TOOL_REQUESTED, PERMISSION_DECIDED(ask), APPROVAL_REQUESTED, APPROVAL_RESOLVED, TOOL_FINISHED`; aprobar ejecuta con los argumentos mostrados; rechazar → `[approval_rejected]` y no ejecuta; falla del aprobador → `[approval_failed]`; sin aprobador, sin cambios; una denegación de la política no llama al aprobador aunque haya aprobación de sesión previa; cargas sin el centinela de los argumentos; dos «preguntar» se piden de una en una.
   - **~40 min**.
 
-- [ ] T005 [US3] Cancelación y fallo del bus durante la aprobación
+- [x] T005 [US3] Cancelación y fallo del bus durante la aprobación
   - **Archivos**: `src/harness_agent/core/loop.py`, `tests/core/test_loop_approval.py`
   - **Pruebas** (rojo: fase `tool_execution` en `INTERRUPTED` o herramienta ejecutada): cancelar mientras se espera publica `INTERRUPTED` con fase `approval`, no ejecuta y no resuelve como aprobado; un suscriptor que falla en `APPROVAL_REQUESTED`/`APPROVAL_RESOLVED` impide la ejecución y propaga `EventDeliveryError`.
   - **~25 min**.
 
 ## Phase 5: User Story 1 — la CLI muestra el detalle (P1)
 
-- [ ] T006 [US1] `ConsoleApprover` en la CLI
+- [x] T006 [US1] `ConsoleApprover` en la CLI
   - **Archivos**: `src/harness_agent/cli/approval.py`, `src/harness_agent/cli/__init__.py`, `tests/unit/cli/test_approval.py` (fila: «lee de la terminal → `cli/`»)
   - **Pruebas** (rojo: `ImportError`): muestra herramienta, un renglón por argumento (saneado y acotado), efecto y riesgo y las tres opciones; `1`/`2`/`3` → acciones; opción no válida se repite hasta 3 veces y luego rechaza; fin de entrada rechaza; valores de claves con aspecto de secreto salen como `***`; el texto no reproduce el valor de una entrada inválida; usa solo stdlib y la API pública de `core`.
   - **~40 min**.
 
-- [ ] T007 [US4] Render de `APPROVAL_RESOLVED` y de `PERMISSION_DECIDED(ask)` pendiente
+- [x] T007 [US4] Render de `PERMISSION_DECIDED(ask)` pendiente y de las categorías de rechazo (`APPROVAL_RESOLVED` no se añade a `SHOWN_TYPES`: ver observaciones de PROGRESO)
   - **Archivos**: `src/harness_agent/cli/render.py`, `tests/unit/cli/test_render_approval.py`
   - **Pruebas** (rojo: se imprime el error de permiso «ask» aunque haya aprobación): `resolved_as="ask"` no imprime error; `APPROVAL_RESOLVED` imprime una línea en español por cada acción/origen; carga mal formada no rompe.
   - **~25 min**.
 
 ## Phase 6: Cableado e integración
 
-- [ ] T008 [US1] Cablear en `bootstrap.py`: `compose(approver=None)` pasa el aprobador al bucle y `main()` crea el `ConsoleApprover` con los flujos reales
+- [x] T008 [US1] Cablear en `bootstrap.py`: `compose(approver=None)` pasa el aprobador al bucle y `main()` crea el `ConsoleApprover` con los flujos reales
   - **Archivos**: `src/harness_agent/bootstrap.py`, `tests/unit/test_bootstrap_approval.py`; ajustar `tests/architecture/test_bootstrap_boundaries.py` solo si hace falta
   - **Pruebas** (rojo: `compose()` no acepta `approver`): `compose` entrega el aprobador al bucle; `main` con `provider_factory` guionizado que pide una escritura fuera del área y entrada `1` ejecuta; con `3` no; ajustar las pruebas existentes de `main` que contaban con `[approval_required_unavailable]`.
   - **~35 min**.
 
-- [ ] T009 [US2] Integración: bucle real + `DefaultPermissionPolicy` + `ProtectedPolicy` real + `ConsoleApprover`
+- [x] T009 [US2] Integración: bucle real + `DefaultPermissionPolicy` + `ProtectedPolicy` real + `ConsoleApprover`
   - **Archivos**: `tests/integration/test_approval_agent_loop.py`
   - **Pruebas**: aprobar para la sesión una escritura y repetirla (no pregunta) y repetirla con otros argumentos (pregunta); una llamada a la zona protegida sigue denegada con una aprobación de sesión que la «cubriría» (AC-02 de HU-05-02 / FR-008); un turno completo con eventos en el bus real.
   - **~35 min**.
 
 ## Phase 7: Fronteras y documentación
 
-- [ ] T010 Guarda `tests/architecture/test_approvals_boundaries.py` desde la plantilla (stdlib + `harness_agent.core`, sin E/S, sin `print`/`input`, sin `config`; el gate no importa `loop`) con autoprueba y mutación
+- [x] T010 Guarda `tests/architecture/test_approvals_boundaries.py` desde la plantilla (stdlib + `harness_agent.core`, sin E/S, sin `print`/`input`, sin `config`; el gate no importa `loop`) con autoprueba y mutación
   - **Archivos**: `tests/architecture/test_approvals_boundaries.py` (skill `verificar-fronteras-hexagonales`)
   - **~25 min**.
 
-- [ ] T011 Documentación viva: `CLAUDE.md` (tabla «Qué existe hoy» y convenciones), `.claude/skills/verificar-fronteras-hexagonales/SKILL.md` y `estructura-carpetas-harness/references/arbol.md` (ambas copias `.claude` y `.agents`), `docs/guia-contratos-desarrollo.md` (aprobación de sesión)
+- [x] T011 Documentación viva: `CLAUDE.md` (tabla «Qué existe hoy» y convenciones), `.claude/skills/verificar-fronteras-hexagonales/SKILL.md` y `estructura-carpetas-harness/references/arbol.md` (ambas copias `.claude` y `.agents`), `docs/guia-contratos-desarrollo.md` (aprobación de sesión)
   - **~25 min**.
 
 ## Phase 8: Cierre
 
-- [ ] T012 Verificación final y `docs/PROGRESO.md`: cuatro comandos + `pytest tests/architecture`, `git diff --exit-code $base -- src/harness_agent/core/interfaces src/harness_agent/core/events.py tests/doubles docs/archivo` (exit 0), fila de HU-05-03 → `En revisión` (nunca `Hecha`), *Archivos*, *Evidencia*, registro por tarea y bloque **Observaciones de HU-05-03** (los hallazgos del plan)
+- [x] T012 Verificación final y `docs/PROGRESO.md`: cuatro comandos + `pytest tests/architecture`, `git diff --exit-code $base -- src/harness_agent/core/interfaces src/harness_agent/core/events.py tests/doubles docs/archivo` (exit 0), fila de HU-05-03 → `En revisión` (nunca `Hecha`), *Archivos*, *Evidencia*, registro por tarea y bloque **Observaciones de HU-05-03** (los hallazgos del plan)
   - **~30 min**.
 
 ## Phase 9: Tareas humanas finales (Claude **no** las marca)
@@ -116,3 +116,10 @@ git diff --exit-code $base -- src/harness_agent/core/interfaces src/harness_agen
 ## Estrategia
 
 MVP = T001–T005 (núcleo y bucle). Después la CLI (T006–T007), el cableado (T008–T009) y el cierre.
+
+---
+
+## Phase 10: Convergence
+
+- [x] T016 Rechazar de inmediato cuando la persona escribe `/salir` durante una petición de aprobación, en lugar de contarlo como opción no válida, en `src/harness_agent/cli/approval.py` y `tests/unit/cli/test_approval.py` per Assumptions de la spec («`/salir` ... se trata como entrada agotada») (partial)
+- [x] T017 Corregir en `specs/019-approval-with-detail/quickstart.md` y `plan.md` la ruta de la prueba de `main()` (`tests/unit/test_bootstrap_approval.py`, no `tests/integration/...`) per plan: Project Structure (partial)

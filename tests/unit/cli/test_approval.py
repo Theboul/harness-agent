@@ -130,6 +130,12 @@ class TestChoice:
 
         assert result.action is ApprovalAction.REJECT
 
+    async def test_slash_exit_rejects_at_once_without_reading_more(self) -> None:
+        result, shown = await ask("/salir\n1\n")
+
+        assert result.action is ApprovalAction.REJECT
+        assert "Opción no válida" not in shown
+
     async def test_a_blank_line_is_invalid_not_an_approval(self) -> None:
         result, _ = await ask("\n\n\n")
 

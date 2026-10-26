@@ -8,6 +8,6 @@ Prerrequisitos: entorno de desarrollo (`pip install -r requirements-dev.txt; pip
 4. Bus: `pytest tests/integration/test_event_bus_agent_loop.py` → `APPROVAL_REQUESTED` llega con aprobador (test invertido).
 5. Fronteras: `pytest tests/architecture`.
 6. Calidad: `ruff format --check .`, `ruff check .`, `mypy src tests`, `pytest --cov=harness_agent --cov-report=term-missing`.
-7. Manual (opcional, con `fake`/doble inyectado vía `main(provider_factory=…)`): ver los tests de `tests/integration/test_bootstrap_approval.py`.
+7. Manual (opcional, con `fake`/doble inyectado vía `main(provider_factory=…)`): ver los tests de `tests/unit/test_bootstrap_approval.py`.
 
 Contratos: [approval_flow.md](contracts/approval_flow.md). Modelo: [data-model.md](data-model.md).

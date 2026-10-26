@@ -102,7 +102,7 @@ Cada solicitud y cada resolución quedan registradas como eventos (`APPROVAL_REQ
 - Argumentos muy largos o con caracteres de control en la presentación: se muestran acotados y saneados, sin ejecutar nada.
 - Argumentos con secretos (`api_key` y similares): la presentación no reproduce valores con aspecto de clave; los eventos nunca llevan valores de argumentos.
 - Una herramienta sin descripción de efecto conocida: se muestra su descripción y su nivel de riesgo; nunca un efecto inventado.
-- El usuario escribe `/salir` mientras se le pide una decisión: se rechaza la acción y termina la sesión por el camino normal (o se trata como entrada no válida; ver Asumpciones).
+- El usuario escribe `/salir` mientras se le pide una decisión: se rechaza la acción y termina la sesión por el camino normal (o se trata como entrada no válida; ver Assumptions).
 - Un patrón de sesión que quedaría vacío o demasiado amplio: no se crea (ver FR-009).
 
 ## Requirements *(mandatory)*

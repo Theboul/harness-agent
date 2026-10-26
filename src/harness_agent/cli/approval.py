@@ -33,6 +33,7 @@ UNKNOWN_RISK = "desconocido"
 OPTIONS_LINE = "  [1] aprobar una vez  [2] aprobar para la sesión  [3] rechazar"
 PROMPT = "opción> "
 INVALID_OPTION = "Opción no válida: escribe 1, 2 o 3."
+EXIT_COMMAND = "/salir"
 CHOICES = {
     "1": ApprovalAction.APPROVE_ONCE,
     "2": ApprovalAction.APPROVE_SESSION,
@@ -105,6 +106,8 @@ class ConsoleApprover(Approver):
             answer = source.readline()
             if answer == "":  # end of the input
                 put_line(stream, "")
+                return ApprovalResult(ApprovalAction.REJECT)
+            if answer.strip() == EXIT_COMMAND:  # the user wants out: nothing is approved
                 return ApprovalResult(ApprovalAction.REJECT)
             action = CHOICES.get(answer.strip())
             if action is not None:
