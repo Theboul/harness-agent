@@ -36,11 +36,12 @@ Cargar al:
 | `test_cli_boundaries.py` | `core/` no importa `cli`; `cli/` solo stdlib y API pública del núcleo |
 | `test_core_reads_no_config.py` | Todo `core/`: no lee `config`, `tomllib`, entorno ni archivos (`find_config_reads`) |
 | `test_core_no_terminal.py` | Todo `core/`: no imprime ni usa la terminal (`terminal_uses`); el bus en memoria no define eventos |
-| `test_loop_boundaries.py` | `core/loop.py`: solo stdlib y núcleo (`forbidden_imports`), sin consola, sin eventos de límite/aprobación, sin ciclos |
+| `test_loop_boundaries.py` | `core/loop.py`: solo stdlib y núcleo (`forbidden_imports`), sin consola, sin eventos de límite (los de aprobación sí, desde HU-05-03), sin ciclos |
 | `test_core_tools_stdlib_only.py` | `core/tools/`: lista blanca stdlib + núcleo |
 | `test_output_limit_boundaries.py` | `core/tools/output_limit.py` (HU-02-02): solo stdlib y la API del núcleo (`entities`, `interfaces.tool`), sin E/S (ni `os`), sin config ni terminal, sin importar adaptadores |
 | `test_permissions_boundaries.py` | `core/permissions/`: lista blanca, sin E/S, todo «permitir» protegido por `AuthorizedArea.contains` |
 | `test_tasks_boundaries.py` | `core/tasks/` (HU-11-01): lista blanca stdlib + núcleo, sin E/S (ni `pathlib`, `subprocess`, `sqlite3`), sin entorno ni terminal |
+| `test_approvals_boundaries.py` | `core/permissions/approvals.py` (HU-05-03): stdlib y núcleo, sin E/S, sin capturar la cancelación, nunca nombra `PermissionDecision`; en `core/loop.py` la puerta solo se alcanza desde `_ask_approval`, que solo se llama con un veredicto «pendiente», marcado únicamente en la rama `ASK` de `_decide` (una aprobación no anula una denegación) |
 | `test_protected_policy_boundaries.py` | `core/permissions/protected.py` (HU-11-01): sin E/S, nunca nombra `ALLOW` y todo `except` devuelve `DENY` (solo puede endurecer) |
 | `test_adapters_boundaries.py` | `adapters/`: ninguno importa `cli`; `adapters/system/`, `adapters/tools/`, `adapters/storage/` y `adapters/tasks/` solo stdlib, API pública del núcleo y su paquete, sin config ni terminal ni otro adaptador (HU-01-03, HU-03-01); `core/` no importa `sqlite3` (HU-03-01) |
 | `test_providers_boundaries.py` | `adapters/providers/` (HU-07-02): ningún SDK importado en `src/` (`litellm` solo con `importlib` dentro de una función de `providers/`, nunca a nivel de módulo), imports permitidos (stdlib, API pública del núcleo y de `adapters.converters`, su paquete), sin entorno ni archivos ni terminal, sin nombres de proveedor en literales (se leen de `PROVIDER_KEY_VARIABLES`) y `__init__.py` solo con docstring |
