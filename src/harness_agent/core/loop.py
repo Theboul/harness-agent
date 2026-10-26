@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import copy
 import dataclasses
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
@@ -25,6 +26,7 @@ from harness_agent.core.interfaces.event_bus import EventBus
 from harness_agent.core.interfaces.provider import Provider, ProviderResponse, ToolDefinition
 from harness_agent.core.interfaces.security import Approver, PermissionDecision, PermissionPolicy
 from harness_agent.core.interfaces.tool import Tool, ToolRegistry
+from harness_agent.core.limits import LimitTracker, SessionLimits
 from harness_agent.core.permissions.approvals import ApprovalGate, ApprovalOutcome
 
 MAX_MESSAGE_CHARS = 500
@@ -36,6 +38,7 @@ class TurnStatus(str, Enum):
     COMPLETED = "completed"
     PROVIDER_FAILED = "provider_failed"
     INVALID_PROVIDER_RESPONSE = "invalid_provider_response"
+    LIMIT_REACHED = "limit_reached"
 
 
 @dataclass(frozen=True)
@@ -111,6 +114,9 @@ class AgentLoop:
         policy: PermissionPolicy,
         bus: EventBus,
         approver: Approver | None = None,
+        *,
+        limits: SessionLimits | None = None,
+        clock: Callable[[], float] | None = None,
     ) -> None:
         for name, collaborator in (
             ("provider", provider),
@@ -129,6 +135,8 @@ class AgentLoop:
         # Without an approver "ask" stays a denial (Sprint 1 behavior); with one, the gate also
         # holds the session approvals, which live as long as this loop (one per session).
         self._approvals = None if approver is None else ApprovalGate(approver)
+        # Counters of the session (HU-01-06); without limits nothing is applied.
+        self._tracker = None if limits is None else LimitTracker(limits, clock)
 
     async def run_turn(
         self,
@@ -144,11 +152,16 @@ class AgentLoop:
         exception raised by ``EventBus.emit`` (Q4) and ``asyncio.CancelledError``.
         """
         progress = _Progress()
+        if self._tracker is not None:
+            self._tracker.begin_task()
         try:
             return await self._run(session_id, task, history, progress)
         except asyncio.CancelledError as cancelled:
             self._publish_interruption(session_id, progress, cancelled)
             raise
+        finally:
+            if self._tracker is not None:
+                self._tracker.end_task()
 
     def _publish_interruption(
         self, session_id: str, progress: _Progress, cancelled: asyncio.CancelledError
@@ -182,11 +195,16 @@ class AgentLoop:
         history.append(Message(Role.USER, task))
         self._emit(session_id, EventType.USER_MESSAGE, _user_message_payload(task))
         while True:
+            stopped = self._stop_at_limit(session_id, history)
+            if stopped is not None:
+                return stopped
             progress.phase, progress.call_id = "provider_call", None
             # Built before the try: a registry/tool-declaration failure is structural, not a
             # provider failure (T033). It propagates; the provider is not queried and no
             # PROVIDER_ERROR is published.
             definitions = self._tool_definitions()
+            if self._tracker is not None:
+                self._tracker.start_turn()
             try:
                 response = await self._provider.complete(copy.deepcopy(history), definitions)
             except Exception as exc:
@@ -212,6 +230,8 @@ class AgentLoop:
                 return TurnResult(
                     TurnStatus.INVALID_PROVIDER_RESPONSE, None, tuple(history), invalid
                 )
+            if self._tracker is not None:
+                self._tracker.add_usage(response.usage)
             # Own copies: the provider keeps no live reference to the arguments recorded in
             # the caller's history (T034).
             calls = tuple(copy.deepcopy(response.tool_calls))
@@ -241,6 +261,29 @@ class AgentLoop:
                     EventType.TOOL_FINISHED,
                     _tool_finished_payload(call, outcome.result.is_error, outcome.category),
                 )
+
+    def _stop_at_limit(self, session_id: str, history: list[Message]) -> TurnResult | None:
+        """Check the session limits before a call to the model (HU-01-06, FR-003).
+
+        Returns ``None`` when the call may go ahead. Otherwise it publishes ``LIMIT_REACHED``
+        once and returns the result that stops the task; the provider is not queried.
+        """
+        if self._tracker is None:
+            return None
+        reached = self._tracker.reached()
+        if reached is None:
+            return None
+        self._emit(
+            session_id,
+            EventType.LIMIT_REACHED,
+            {"limit": reached.kind.value, "used": reached.used, "maximum": reached.maximum},
+        )
+        return TurnResult(
+            TurnStatus.LIMIT_REACHED,
+            None,
+            tuple(history),
+            f"Session limit '{reached.kind.value}' reached ({reached.used} of {reached.maximum}).",
+        )
 
     # ----------------------------------------------------------------- history
 

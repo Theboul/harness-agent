@@ -227,7 +227,9 @@ def test_the_loop_instance_keeps_no_per_turn_state() -> None:
     rig = make_rig([], [])
     assert isinstance(rig.loop, AgentLoop)
     # ``_approvals`` is the session-scoped approval gate (HU-05-03); it is None without an approver.
-    allowed = {"_provider", "_registry", "_policy", "_bus", "_approvals"}
+    # ``_tracker`` holds the session counters of the limits (HU-01-06); None without limits.
+    allowed = {"_provider", "_registry", "_policy", "_bus", "_approvals", "_tracker"}
     assert not [name for name in vars(rig.loop) if name not in allowed]
     assert vars(rig.loop)["_approvals"] is None
+    assert vars(rig.loop)["_tracker"] is None
     assert SESSION  # the session id is only an opaque label supplied per turn

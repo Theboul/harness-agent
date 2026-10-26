@@ -38,7 +38,7 @@ harness-agent/
 │   │   ├── tools/          # InMemoryToolRegistry, validador JSON Schema propio, errores (HU-01-02); output_limit.py: recorte general de salidas, TruncatingTool (HU-02-02)
 │   │   ├── permissions/    # DefaultPermissionPolicy, PermissionRules (HU-05-01); protected.py: ProtectedPolicy, decorador que solo deniega (HU-11-01); approvals.py: ApprovalGate, aprobación una vez/sesión con falla cerrada (HU-05-03)
 │   │   ├── tasks/          # TaskDefinition, CriterionDefinition, parse_task, TaskFormatError: formato y validación de la tarea (HU-11-01)
-│   │   ├── limits.py       # (planeado: HU-01-06) turnos, tiempo y consumo
+│   │   ├── limits.py       # HU-01-06: SessionLimits, LimitTracker (turnos = llamadas al modelo, tiempo, tokens)
 │   │   ├── context/        # HU-02-01: estimación, prefijo estable, ContextAssembler (planeado: HU-02-03 ContextManager, compactación)
 │   │   └── subagents/      # (planeado: HU-09-01) SubagentRunner, perfiles, resultado estructurado
 │   ├── adapters/           # implementaciones de los puertos
