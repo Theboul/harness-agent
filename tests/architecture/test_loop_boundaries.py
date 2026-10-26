@@ -2,8 +2,8 @@
 
 ``core/loop.py`` must stay a pure core module: stdlib plus ``harness_agent.core`` only, no
 console output, ``LIMIT_REACHED`` only from one method (HU-01-06), only the agreed limit
-parameters and no cycles with the rest of the core. The guards are exercised against in-memory samples too, so we know they
-would fail if the rule were broken.
+parameters and no cycles with the rest of the core. The guards are exercised against
+in-memory samples too, so we know they would fail if the rule were broken.
 """
 
 from __future__ import annotations

@@ -28,10 +28,8 @@ def make(**payload: Any) -> Event:
 def test_each_limit_is_named_with_its_maximum(limit: str, cause: str) -> None:
     line = render_event(make(limit=limit, used=9, maximum=3))
 
-    assert (
-        line
-        == f"x Límite: {cause} Sugerencia: Ajusta [limits] en la configuración y empieza una sesión nueva."
-    )
+    suggestion = "Ajusta [limits] en la configuración y empieza una sesión nueva."
+    assert line == f"x Límite: {cause} Sugerencia: {suggestion}"
 
 
 def test_the_line_is_a_single_line_without_the_raw_payload() -> None:

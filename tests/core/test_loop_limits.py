@@ -83,7 +83,7 @@ class TestTurnLimit:
         assert _limit_events(rig) == []
 
     async def test_the_last_allowed_call_may_still_complete(self) -> None:
-        script = [ProviderResponse(content="done")]
+        script: list[ProviderResponse | BaseException] = [ProviderResponse(content="done")]
         rig = _rig(script, SessionLimits(max_turns=1, max_seconds=999, max_tokens=999_999))
         assert (await rig.run()).status is TurnStatus.COMPLETED
 
@@ -147,7 +147,10 @@ class TestTimeLimit:
 
     async def test_the_wait_between_tasks_does_not_count(self) -> None:
         clock = FakeClock()
-        script = [ProviderResponse(content="a"), ProviderResponse(content="b")]
+        script: list[ProviderResponse | BaseException] = [
+            ProviderResponse(content="a"),
+            ProviderResponse(content="b"),
+        ]
         rig = _rig(script, SessionLimits(99, 10, 999_999), clock)
         assert (await rig.run("one")).status is TurnStatus.COMPLETED
         clock.now += 10_000
