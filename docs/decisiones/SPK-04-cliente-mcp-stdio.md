@@ -14,7 +14,7 @@
 
 | Tipo | Contenido |
 |---|---|
-| **Comprobado en pruebas automáticas** (`tests/spikes/test_mcp_stdio_spike.py`, 27 pruebas, sin red ni claves) | Negociación y listado (AC-01); forma de los resultados y de los errores; fallo de arranque; caída a mitad de llamada; tiempo de espera por llamada y de la negociación; cancelación de una llamada y de la tarea dueña de la sesión; ausencia de proceso hijo vivo tras cada salida; compatibilidad de esquemas con `check_schema` |
+| **Comprobado en pruebas automáticas** (`tests/spikes/test_mcp_stdio_spike.py`, 28 pruebas, sin red ni claves) | Negociación y listado (AC-01); forma de los resultados y de los errores; fallo de arranque; caída a mitad de llamada; tiempo de espera por llamada y de la negociación; cancelación de una llamada y de la tarea dueña de la sesión; ausencia de proceso hijo vivo tras cada salida; compatibilidad de esquemas con `check_schema` |
 | **Medido a mano, una sola vez** (2026-10-25, Windows 10, Python 3.12.10, `mcp 2.3.0`) | Arranque en frío del servidor propio; `server-everything` por `npx`; `mcp-server-time` por `uvx`; cierre de la conexión desde otra tarea (§5.3) |
 | **No comprobado** | Linux (lo cubre la CI al fusionar: T011); macOS; transporte HTTP/SSE (HU-08-06); recursos, prompts y muestreo; servidores de terceros bajo carga; otras versiones del SDK; el comportamiento de un modelo real al usar herramientas MCP |
 
