@@ -7,9 +7,11 @@ No es una API pública del proyecto; documenta la forma del apoyo para las prueb
 async def open_session(server: ProbeServer, *, read_timeout_s: float | None = None,
                        errlog: TextIO | None = None) -> AsyncIterator[ClientSession]: ...
 
-async def handshake(session: ClientSession) -> Handshake: ...
+async def handshake(session: ClientSession) -> Handshake: ...   # no timing field: the tests measure time themselves
 async def list_tools(session: ClientSession) -> list[ListedTool]: ...
-async def call(session: ClientSession, name: str, arguments: dict[str, Any]) -> CallOutcome: ...
+async def call(session: ClientSession, name: str, arguments: dict[str, Any], *,
+               timeout_s: float | None = None) -> CallOutcome: ...   # per-call timeout
+def leaf_exceptions(error: BaseException) -> list[BaseException]: ...   # flattens ExceptionGroup
 def demo_server() -> ProbeServer: ...      # sys.executable + mcp_demo_server.py
 def process_alive(pid: int) -> bool: ...   # sin dependencias nuevas, Windows y POSIX
 ```

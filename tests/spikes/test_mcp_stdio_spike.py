@@ -19,7 +19,7 @@ import pytest
 
 pytest.importorskip("mcp")
 
-from mcp import ClientSession, MCPError  # noqa: E402
+from mcp import Client, ClientSession, MCPError, StdioServerParameters  # noqa: E402
 
 from harness_agent.core.tools import check_schema, validate_arguments  # noqa: E402
 from tests.spikes.mcp_probe import (  # noqa: E402
@@ -307,3 +307,22 @@ class TestSchemaCompatibility:
     )
     def test_schema_features_the_core_accepts(self, schema: dict[str, Any]) -> None:
         assert check_schema(schema) == []
+
+
+class TestHighLevelClient:
+    """The 2.x ``mcp.Client`` does the same in fewer lines; the adapter keeps the low level."""
+
+    async def test_client_negotiates_lists_and_calls(self) -> None:
+        params = demo_server()
+        async with Client(
+            StdioServerParameters(command=params.command, args=list(params.args))
+        ) as client:
+            info = client.server_info
+            server_name = info.name if info is not None else None
+            tools = await client.list_tools()
+            result = await client.call_tool("add", {"a": 2, "b": 5})
+
+        assert server_name == "harness-demo"
+        assert "add" in {tool.name for tool in tools.tools}
+        assert result.is_error is False
+        assert result.structured_content == {"result": 7}
