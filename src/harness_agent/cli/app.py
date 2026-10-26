@@ -58,6 +58,11 @@ def _write_line(stream: TextIO, text: str) -> None:
     _put(stream, text + "\n")
 
 
+def put_line(stream: TextIO, text: str, *, end: str = "\n") -> None:
+    """Write ``text`` plus ``end`` as the CLI does (shared with the approval prompt)."""
+    _put(stream, text + end)
+
+
 def attach_renderer(bus: EventBus, output: TextIO | None = None) -> None:
     """Subscribe the CLI to the bus: every shown event type writes its line on ``output``.
 
