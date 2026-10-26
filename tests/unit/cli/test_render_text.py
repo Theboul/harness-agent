@@ -38,7 +38,14 @@ BIDI_CONTROLS = [*range(0x202A, 0x202F), *range(0x2066, 0x206A)]
 CONTROL_CODES = [
     code for code in [*range(0x20), 0x7F, *range(0x80, 0xA0)] if code not in (ord("\n"), ord("\t"))
 ]
-FINAL_STATE_ONLY = frozenset({"permission_denied", "approval_required_unavailable"})
+FINAL_STATE_ONLY = frozenset(
+    {
+        "permission_denied",
+        "approval_required_unavailable",
+        "approval_rejected",
+        "approval_failed",
+    }
+)
 # The categories that the loop publishes in TOOL_FINISHED besides the ones in square brackets.
 OTHER_LOOP_CATEGORIES = {"ok", "tool_error", "invalid_tool_result"}
 

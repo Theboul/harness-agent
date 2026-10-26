@@ -3,10 +3,10 @@
 AC-01 (literal): "Dado un turno completo, cuando corre, entonces el núcleo emite eventos de
 mensaje, herramienta solicitada, herramienta terminada, aprobación pedida y error."
 
-The loop (``core/loop.py``, not modified) is wired to ``InMemoryEventBus`` and a scripted provider.
-One subscriber per event type records what arrives. The loop does not emit ``APPROVAL_REQUESTED``
-yet (HU-05-03, Sprint 2): that is an observation, not a failure of this story; the bus does
-deliver that type as soon as somebody emits it.
+The loop (``core/loop.py``) is wired to ``InMemoryEventBus`` and a scripted provider. One
+subscriber per event type records what arrives. Since HU-05-03 the loop emits
+``APPROVAL_REQUESTED`` and ``APPROVAL_RESOLVED`` when the policy asks and an approver is
+configured; without an approver it still does not (the Sprint 1 behavior).
 """
 
 from __future__ import annotations
@@ -16,9 +16,10 @@ import pytest
 from harness_agent.core.events import Event, EventType
 from harness_agent.core.in_memory_event_bus import EventDeliveryError, InMemoryEventBus
 from harness_agent.core.interfaces.provider import ProviderResponse
-from harness_agent.core.loop import TurnStatus
+from harness_agent.core.interfaces.security import PermissionDecision
+from harness_agent.core.loop import AgentLoop, TurnStatus
 from tests.core.support import Rig, call, make_rig, response
-from tests.doubles import RecordingTool
+from tests.doubles import DummyApprover, RecordingTool
 
 ET = EventType
 PER_CALL = [ET.TOOL_REQUESTED, ET.PERMISSION_DECIDED, ET.TOOL_FINISHED]
@@ -186,9 +187,36 @@ class TestCriterioAC01:
             ET.PROVIDER_ERROR,
         } <= seen
 
-    async def test_observation_the_loop_does_not_emit_approval_requested_yet(self) -> None:
-        # Observation (not a failure of HU-01-05): the loop emits APPROVAL_REQUESTED with
-        # HU-05-03 (Sprint 2). When that story lands this assertion must be inverted.
+    async def test_the_loop_emits_approval_requested_when_the_policy_asks_with_an_approver(
+        self,
+    ) -> None:
+        bus = InMemoryEventBus()
+        received = subscribe_to_every_type(bus)
+        script: list[ProviderResponse | BaseException] = [
+            response(call("c1", "step_1", n=1)),
+            ProviderResponse(content="all done"),
+        ]
+        rig = make_rig(
+            script,
+            [RecordingTool("step_1")],
+            decisions={"step_1": PermissionDecision.ASK},
+            bus=bus,
+        )
+        rig.loop = AgentLoop(rig.provider, rig.registry, rig.policy, bus, approver=DummyApprover())
+
+        await rig.run("start")
+
+        assert types_of(received) == [
+            ET.USER_MESSAGE,
+            ET.TOOL_REQUESTED,
+            ET.PERMISSION_DECIDED,
+            ET.APPROVAL_REQUESTED,
+            ET.APPROVAL_RESOLVED,
+            ET.TOOL_FINISHED,
+            ET.ASSISTANT_MESSAGE,
+        ]
+
+    async def test_the_loop_does_not_emit_approval_requested_without_an_approver(self) -> None:
         bus = InMemoryEventBus()
         received = subscribe_to_every_type(bus)
         await tool_turn_rig(bus).run("start")

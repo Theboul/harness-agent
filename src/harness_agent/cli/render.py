@@ -144,7 +144,14 @@ SHOWN_TYPES: tuple[EventType, ...] = (
     EventType.LIMIT_REACHED,
 )
 # Categories whose error was already reported by the permission decision: only the final state.
-_FINAL_STATE_ONLY = frozenset({"permission_denied", "approval_required_unavailable"})
+_FINAL_STATE_ONLY = frozenset(
+    {
+        "permission_denied",
+        "approval_required_unavailable",
+        "approval_rejected",
+        "approval_failed",
+    }
+)
 _SENTENCE_ENDINGS = (".", "!", "?")
 
 
@@ -201,6 +208,8 @@ def _permission_decided(payload: Mapping[str, Any]) -> str | None:
         case = "policy_error" if payload.get("reason") == "policy_error" else "deny"
         return _error_line("Permiso", PERMISSION_GUIDE[case], name=name)
     if decision == "ask":
+        if payload.get("resolved_as") == "ask":
+            return None  # waiting for the user: the approver shows the question (HU-05-03)
         return _error_line("Permiso", PERMISSION_GUIDE["ask"], name=name)
     return _error_line("Permiso", UNKNOWN_PERMISSION_GUIDE, name=name)
 

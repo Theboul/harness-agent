@@ -48,7 +48,7 @@ from harness_agent.adapters.tools import (
     ShellTool,
     WriteFileTool,
 )
-from harness_agent.cli import run_cli
+from harness_agent.cli import ConsoleApprover, run_cli
 from harness_agent.config import (
     PROVIDER_KEY_VARIABLES,
     ConfigError,
@@ -57,6 +57,7 @@ from harness_agent.config import (
     process_environment,
 )
 from harness_agent.core import (
+    Approver,
     AuthorizedArea,
     DefaultPermissionPolicy,
     EventBus,
@@ -183,6 +184,7 @@ def compose(
     id_factory: Callable[[], str] | None = None,
     environ: Mapping[str, str] | None = None,
     system_name: str | None = None,
+    approver: Approver | None = None,
 ) -> Composition:
     """Build the connected system from ``config``; nothing is left half open on failure.
 
@@ -196,6 +198,8 @@ def compose(
         environ: Environment the shell commands start from (without the provider keys); defaults
             to the one of the running process.
         system_name: Operating system name as ``platform.system()`` gives it; that is the default.
+        approver: Asks the user about the actions the policy asks about; without one those
+            actions are denied (``main`` passes the terminal one).
 
     Raises:
         ProviderDependencyError: The optional dependency of the real provider is missing.
@@ -250,7 +254,7 @@ def compose(
             started = task_store.start_task(task, model=config.model)
             session_id, export = started.session_id, started.export_path
         attach_event_recorder(bus, store)
-        loop = AgentLoop(provider, registry, policy, bus)
+        loop = AgentLoop(provider, registry, policy, bus, approver=approver)
     except BaseException:
         store.close()
         raise
@@ -349,6 +353,7 @@ def main(
                 clock=clock,
                 id_factory=id_factory,
                 environ=environ,
+                approver=ConsoleApprover(input_stream, output),
             )
         except (ConfigError, ProviderDependencyError, SessionStoreError, StartupError) as problem:
             return _report_startup_failure(failures, str(problem))

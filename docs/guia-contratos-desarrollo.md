@@ -286,6 +286,7 @@ composition.task_store.verify_export(composition.session_id)  # restaura la copi
 ```
 
 - Los criterios viven en SQLite (`criterios`); `tareas/<sesión>/criterios.json` es solo una copia de solo lectura con huella. Si cambia, `verify_export` la restaura y emite `criteria_tampered` con el motivo (sin contenido ni rutas).
+- Aprobación (HU-05-03): `AgentLoop(..., approver=...)` solo consulta al `Approver` cuando la política devolvió `ASK`; `details` lleva `{tool, arguments, effect, risk}`. «Aprobar para la sesión» recuerda herramienta + argumentos exactos mientras vive el bucle; una denegación posterior de la política sigue siendo denegación. Sin `approver` el comportamiento es el de Sprint 1.
 - `ProtectedPolicy` solo puede endurecer: deniega lo que toque la carpeta del harness y delega el resto. Para `shell` es coincidencia literal con el nombre de la base, de la copia o de la carpeta; no analiza comandos compuestos (HU-05-02) ni sustituye al entorno aislado (PD-06).
 - Una historia que añada una herramienta con `path` queda protegida sin cambios; una con varias rutas debe declararlas todas en `path` o aportar su propia comprobación.
 

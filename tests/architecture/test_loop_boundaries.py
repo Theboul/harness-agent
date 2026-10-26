@@ -1,7 +1,7 @@
 """AST guards for the agentic loop module (HU-01-01, T028).
 
 ``core/loop.py`` must stay a pure core module: stdlib plus ``harness_agent.core`` only, no
-console output, no limit/approval events, no turn-limit parameter and no cycles with the
+console output, no limit events, no turn-limit parameter and no cycles with the
 rest of the core. The guards are exercised against in-memory samples too, so we know they
 would fail if the rule were broken.
 """
@@ -19,7 +19,9 @@ from tests.architecture.test_core_boundaries import FORBIDDEN_PACKAGES
 CORE_DIR = Path(__file__).resolve().parents[2] / "src" / "harness_agent" / "core"
 LOOP_FILE = CORE_DIR / "loop.py"
 FORBIDDEN_LAYERS = {"adapters", "cli", "observability"}
-FORBIDDEN_EVENTS = {"LIMIT_REACHED", "APPROVAL_REQUESTED", "APPROVAL_RESOLVED"}
+# HU-05-03 lets the loop publish the two approval events; limit events stay out (HU-01-06).
+FORBIDDEN_EVENTS = {"LIMIT_REACHED"}
+APPROVAL_EVENTS = {"APPROVAL_REQUESTED", "APPROVAL_RESOLVED"}
 LIMIT_WORDS = ("limit", "max_", "turns", "iterations", "budget")
 
 
@@ -78,8 +80,19 @@ def test_loop_module_only_imports_stdlib_and_core() -> None:
     assert forbidden_imports(LOOP_FILE.read_text(encoding="utf-8")) == []
 
 
-def test_loop_module_never_publishes_limit_or_approval_events() -> None:
+def test_loop_module_never_publishes_limit_events() -> None:
     assert forbidden_event_uses(LOOP_FILE.read_text(encoding="utf-8")) == []
+
+
+def test_loop_module_publishes_both_approval_events() -> None:
+    source = LOOP_FILE.read_text(encoding="utf-8")
+    used = {
+        node.attr
+        for node in ast.walk(ast.parse(source))
+        if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name)
+        if node.value.id == "EventType"
+    }
+    assert APPROVAL_EVENTS <= used
 
 
 def test_loop_has_no_turn_or_iteration_limit_parameter() -> None:
@@ -125,7 +138,8 @@ def test_guards_detect_forbidden_imports_in_samples() -> None:
 
 def test_guards_detect_forbidden_events_in_samples() -> None:
     assert forbidden_event_uses("EventType.LIMIT_REACHED")
-    assert forbidden_event_uses("x = EventType.APPROVAL_REQUESTED")
+    assert forbidden_event_uses("x = EventType.LIMIT_REACHED")
+    assert forbidden_event_uses("EventType.APPROVAL_REQUESTED") == []
     assert forbidden_event_uses("EventType.TOOL_FINISHED") == []
 
 

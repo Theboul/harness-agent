@@ -36,7 +36,7 @@ harness-agent/
 │   │   ├── loop.py         # AgentLoop: bucle razonar–actuar–observar (HU-01-01)
 │   │   ├── in_memory_event_bus.py  # InMemoryEventBus, EventDeliveryError (HU-01-05)
 │   │   ├── tools/          # InMemoryToolRegistry, validador JSON Schema propio, errores (HU-01-02); output_limit.py: recorte general de salidas, TruncatingTool (HU-02-02)
-│   │   ├── permissions/    # DefaultPermissionPolicy, PermissionRules (HU-05-01); protected.py: ProtectedPolicy, decorador que solo deniega (HU-11-01)
+│   │   ├── permissions/    # DefaultPermissionPolicy, PermissionRules (HU-05-01); protected.py: ProtectedPolicy, decorador que solo deniega (HU-11-01); approvals.py: ApprovalGate, aprobación una vez/sesión con falla cerrada (HU-05-03)
 │   │   ├── tasks/          # TaskDefinition, CriterionDefinition, parse_task, TaskFormatError: formato y validación de la tarea (HU-11-01)
 │   │   ├── limits.py       # (planeado: HU-01-06) turnos, tiempo y consumo
 │   │   ├── context/        # HU-02-01: estimación, prefijo estable, ContextAssembler (planeado: HU-02-03 ContextManager, compactación)
@@ -59,6 +59,7 @@ harness-agent/
 │   └── cli/                # terminal: se suscribe al bus (HU-06-01)
 │       ├── app.py          # run_cli, attach_renderer, comandos /ayuda y /salir
 │       ├── render.py       # render_event: texto de cada evento, sanitizado y acotado
+│       ├── approval.py     # ConsoleApprover: muestra el detalle y lee la decisión (HU-05-03)
 │       └── approver.py     # (planeado: HU-05-03) pregunta de aprobación en terminal
 └── tests/
     ├── litellm_offline.py  # sustituye el codificador de LiteLLM en memoria para que ninguna prueba descargue nada (HU-07-02)
