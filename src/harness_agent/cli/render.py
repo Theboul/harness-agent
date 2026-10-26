@@ -131,6 +131,21 @@ LIMIT_GUIDE = ErrorGuide(
     "Se alcanzó un límite de la sesión.",
     "Revisa los límites en la configuración y empieza una tarea nueva.",
 )
+# One guide per limit of the session (HU-01-06); the maximum is the only value read from the event.
+LIMIT_SUGGESTION = "Ajusta [limits] en la configuración y empieza una sesión nueva."
+LIMIT_KIND_GUIDE: Mapping[str, ErrorGuide] = MappingProxyType(
+    {
+        "turns": ErrorGuide(
+            "Se alcanzó el máximo de {maximum} turnos de la sesión.", LIMIT_SUGGESTION
+        ),
+        "time": ErrorGuide(
+            "Se alcanzó el tiempo máximo de {maximum} segundos de la sesión.", LIMIT_SUGGESTION
+        ),
+        "tokens": ErrorGuide(
+            "Se alcanzó el presupuesto de {maximum} tokens de la sesión.", LIMIT_SUGGESTION
+        ),
+    }
+)
 
 
 # ---------------------------------------------------------------------- events
@@ -242,6 +257,16 @@ def _provider_error(payload: Mapping[str, Any]) -> str:
     return _error_line("Error", UNKNOWN_PROVIDER_GUIDE, error_type=error_type)
 
 
+def _limit_reached(payload: Mapping[str, Any]) -> str:
+    """Name the limit and its maximum; anything unexpected keeps the generic line."""
+    limit = payload.get("limit")
+    maximum = payload.get("maximum")
+    guide = LIMIT_KIND_GUIDE.get(limit) if isinstance(limit, str) else None
+    if guide is None or isinstance(maximum, bool) or not isinstance(maximum, int) or maximum <= 0:
+        return _error_line("Límite", LIMIT_GUIDE)
+    return _error_line("Límite", guide, maximum=str(maximum))
+
+
 def render_event(event: Event) -> str | None:
     """The text to show for ``event``, or ``None`` when the type is not shown or has nothing.
 
@@ -261,7 +286,7 @@ def render_event(event: Event) -> str | None:
     if event.type is EventType.PROVIDER_ERROR:
         return _provider_error(payload)
     if event.type is EventType.LIMIT_REACHED:
-        return _error_line("Límite", LIMIT_GUIDE)
+        return _limit_reached(payload)
     return None
 
 

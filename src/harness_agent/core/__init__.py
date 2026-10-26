@@ -62,6 +62,13 @@ from harness_agent.core.interfaces import (
     ToolDefinition,
     ToolRegistry,
 )
+from harness_agent.core.limits import (
+    InvalidLimitsError,
+    LimitKind,
+    LimitReached,
+    LimitTracker,
+    SessionLimits,
+)
 from harness_agent.core.permissions import (
     ApprovalGate,
     ApprovalOutcome,
@@ -177,4 +184,10 @@ __all__ = [
     "estimate_messages",
     "estimate_text",
     "estimate_tool_definition",
+    # Session limits (HU-01-06)
+    "InvalidLimitsError",
+    "LimitKind",
+    "LimitReached",
+    "LimitTracker",
+    "SessionLimits",
 ]

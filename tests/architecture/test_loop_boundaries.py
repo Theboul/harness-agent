@@ -1,9 +1,9 @@
 """AST guards for the agentic loop module (HU-01-01, T028).
 
 ``core/loop.py`` must stay a pure core module: stdlib plus ``harness_agent.core`` only, no
-console output, no limit events, no turn-limit parameter and no cycles with the
-rest of the core. The guards are exercised against in-memory samples too, so we know they
-would fail if the rule were broken.
+console output, ``LIMIT_REACHED`` only from one method (HU-01-06), only the agreed limit
+parameters and no cycles with the rest of the core. The guards are exercised against
+in-memory samples too, so we know they would fail if the rule were broken.
 """
 
 from __future__ import annotations
@@ -19,8 +19,11 @@ from tests.architecture.test_core_boundaries import FORBIDDEN_PACKAGES
 CORE_DIR = Path(__file__).resolve().parents[2] / "src" / "harness_agent" / "core"
 LOOP_FILE = CORE_DIR / "loop.py"
 FORBIDDEN_LAYERS = {"adapters", "cli", "observability"}
-# HU-05-03 lets the loop publish the two approval events; limit events stay out (HU-01-06).
-FORBIDDEN_EVENTS = {"LIMIT_REACHED"}
+# HU-05-03 lets the loop publish the two approval events; HU-01-06 lets it publish LIMIT_REACHED,
+# but only from the method that checks the limits before a call to the model.
+LIMIT_EVENT = "LIMIT_REACHED"
+LIMIT_METHOD = "_stop_at_limit"
+LIMIT_PARAMETERS = {"limits", "clock"}
 APPROVAL_EVENTS = {"APPROVAL_REQUESTED", "APPROVAL_RESOLVED"}
 LIMIT_WORDS = ("limit", "max_", "turns", "iterations", "budget")
 
@@ -65,11 +68,23 @@ def forbidden_imports(source: str) -> list[str]:
 
 
 def forbidden_event_uses(source: str) -> list[str]:
-    return [
-        f"EventType.{node.attr}"
-        for node in ast.walk(ast.parse(source))
-        if isinstance(node, ast.Attribute) and node.attr in FORBIDDEN_EVENTS
-    ]
+    """Return uses of ``LIMIT_REACHED`` outside the one method allowed to publish it."""
+    found: list[str] = []
+
+    def visit(node: ast.AST, function: str | None) -> None:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            function = node.name
+        if (
+            isinstance(node, ast.Attribute)
+            and node.attr == LIMIT_EVENT
+            and function != LIMIT_METHOD
+        ):
+            found.append(f"EventType.{node.attr} at line {node.lineno}")
+        for child in ast.iter_child_nodes(node):
+            visit(child, function)
+
+    visit(ast.parse(source), None)
+    return found
 
 
 def test_loop_module_never_writes_to_the_console() -> None:
@@ -80,7 +95,7 @@ def test_loop_module_only_imports_stdlib_and_core() -> None:
     assert forbidden_imports(LOOP_FILE.read_text(encoding="utf-8")) == []
 
 
-def test_loop_module_never_publishes_limit_events() -> None:
+def test_loop_module_publishes_the_limit_event_only_from_the_limit_check() -> None:
     assert forbidden_event_uses(LOOP_FILE.read_text(encoding="utf-8")) == []
 
 
@@ -95,12 +110,21 @@ def test_loop_module_publishes_both_approval_events() -> None:
     assert APPROVAL_EVENTS <= used
 
 
-def test_loop_has_no_turn_or_iteration_limit_parameter() -> None:
-    names = [
-        *inspect.signature(AgentLoop.__init__).parameters,
-        *inspect.signature(AgentLoop.run_turn).parameters,
-    ]
-    assert not [n for n in names if any(word in n.lower() for word in LIMIT_WORDS)]
+def test_loop_publishes_the_limit_event_from_the_limit_check() -> None:
+    source = LOOP_FILE.read_text(encoding="utf-8")
+    assert LIMIT_METHOD in source
+    assert f"EventType.{LIMIT_EVENT}" in source
+
+
+def test_the_only_limit_parameters_are_the_agreed_ones() -> None:
+    init = inspect.signature(AgentLoop.__init__).parameters
+    names = [*init, *inspect.signature(AgentLoop.run_turn).parameters]
+    limit_like = {n for n in names if any(word in n.lower() for word in LIMIT_WORDS)}
+    assert limit_like == {"limits"}
+    # Keyword-only and optional: code written before HU-01-06 keeps working unchanged.
+    for name in LIMIT_PARAMETERS:
+        assert init[name].kind is inspect.Parameter.KEYWORD_ONLY
+        assert init[name].default is None
 
 
 def test_no_other_core_module_imports_the_loop_so_there_is_no_cycle() -> None:
@@ -138,7 +162,8 @@ def test_guards_detect_forbidden_imports_in_samples() -> None:
 
 def test_guards_detect_forbidden_events_in_samples() -> None:
     assert forbidden_event_uses("EventType.LIMIT_REACHED")
-    assert forbidden_event_uses("x = EventType.LIMIT_REACHED")
+    assert forbidden_event_uses("def other():\n    x = EventType.LIMIT_REACHED")
+    assert forbidden_event_uses("def _stop_at_limit():\n    x = EventType.LIMIT_REACHED") == []
     assert forbidden_event_uses("EventType.APPROVAL_REQUESTED") == []
     assert forbidden_event_uses("EventType.TOOL_FINISHED") == []
 
