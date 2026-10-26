@@ -120,7 +120,7 @@ Como usuario operador, quiero fijar los límites en `[limits]` de `config.toml` 
 
 **Acceptance Scenarios**:
 
-1. **Given** `config.limits`, **When** `compose()` arma el bucle, **Then** mapea `config.Limits` al `core.Limits` del núcleo (el núcleo no importa `config`).
+1. **Given** `config.limits`, **When** `compose()` arma el bucle, **Then** mapea `config.Limits` al `SessionLimits` del núcleo (el núcleo no importa `config`).
 2. **Given** un límite no positivo o no entero entregado directamente al núcleo, **When** se construye, **Then** falla cerrado con un error en español sin reproducir el valor (la configuración ya los rechaza antes).
 
 ### Edge Cases
@@ -150,7 +150,7 @@ Como usuario operador, quiero fijar los límites en `[limits]` de `config.toml` 
 
 ### Key Entities
 
-- **`Limits`** (`core/limits.py`): máximos de la sesión (`max_turns`, `max_seconds`, `max_tokens`).
+- **`SessionLimits`** (`core/limits.py`): máximos de la sesión (`max_turns`, `max_seconds`, `max_tokens`).
 - **`LimitKind`** (`core/limits.py`): `turns`, `time`, `tokens`.
 - **`LimitTracker`** (`core/limits.py`): cuenta turnos, consumo y tiempo, y responde cuál límite se cumple (`reached() -> LimitReached | None`); lógica pura, sin E/S.
 - **`TurnStatus.LIMIT_REACHED`** (`core/loop.py`): nuevo estado terminal de una tarea.

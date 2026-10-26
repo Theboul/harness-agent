@@ -13,7 +13,7 @@
 - [x] T003 [US1] En `tests/unit/core/test_limits.py` añadir pruebas de `LimitTracker` para turnos (`start_turn`, `>=`, `used`/`maximum`) y verlas fallar; implementar `LimitTracker.start_turn/reached` para `TURNS` en `core/limits.py`.
 - [x] T004 [US2] Pruebas de consumo: `add_usage` suma `total_tokens`; `None`, negativo y no entero cuentan 0; `reached` con `TOKENS` en `>=`; verlas fallar e implementar `add_usage` y la rama `TOKENS`.
 - [x] T005 [US3] Pruebas de tiempo con reloj falso: `begin_task`/`end_task` acumulan, la pausa entre tareas no cuenta, la tarea en curso sí, `end_task` idempotente, `TIME` en `>=`; implementar la rama `TIME`. Orden fijo turnos → tiempo → consumo cuando varios se cumplen; un límite cumplido sigue cumplido.
-- [x] T006 Exportar `SessionLimits`, `LimitKind`, `LimitReached`, `LimitTracker`, `InvalidLimitsError` en `src/harness_agent/core/__init__.py` (`__all__`), actualizando `tests/integration/test_core_public_api.py`; cobertura 100 % de `core/limits.py`.
+- [x] T006 Exportar `SessionLimits`, `LimitKind`, `LimitReached`, `LimitTracker`, `InvalidLimitsError` en `src/harness_agent/core/__init__.py` (`__all__`). (`test_core_public_api.py` no cambia: solo cubre `core.tools`.) Cobertura 100 % de `core/limits.py`.
 
 **Checkpoint**: `pytest tests/unit/core/test_limits.py tests/architecture -q` en verde.
 

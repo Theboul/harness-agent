@@ -105,6 +105,7 @@ class LimitTracker:
         try:
             total = usage.total_tokens
         except TypeError:
+            # A provider that reports non-numeric counts gives no usable data: count zero.
             return
         if isinstance(total, int) and not isinstance(total, bool) and total > 0:
             self._tokens += total

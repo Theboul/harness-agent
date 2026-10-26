@@ -61,7 +61,7 @@ Un módulo nuevo y puro, `core/limits.py`, lleva la regla: `SessionLimits` (máx
 | `src/harness_agent/cli/render.py` (modif., desviación) | «Imprime o lee de la terminal» → `cli/render.py` |
 | `src/harness_agent/bootstrap.py` (modif.) | Unir piezas |
 | `tests/unit/core/test_limits.py`, `tests/core/test_loop_limits.py`, `tests/integration/test_limits_agent_loop.py`, `tests/unit/cli/test_render_limits.py`, `tests/unit/test_bootstrap_limits.py`, `tests/architecture/test_limits_boundaries.py` (nuevos) | Espejo de `src/` en `tests/` |
-| `tests/architecture/test_loop_boundaries.py`, `tests/core/test_loop_events.py`, `tests/integration/test_core_public_api.py` (modif.) | Las guardas de la Sprint 1 prohibían el evento y los parámetros de límite; se actualizan como hizo HU-05-03 |
+| `tests/architecture/test_loop_boundaries.py` y `tests/core/test_loop_history.py` (modif.; `test_loop_events.py` y `test_core_public_api.py` siguen válidos) | Las guardas de la Sprint 1 prohibían el evento y los parámetros de límite; se actualizan como hizo HU-05-03 |
 
 ## Riesgos y coordinación
 
