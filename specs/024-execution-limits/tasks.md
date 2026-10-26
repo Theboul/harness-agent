@@ -27,9 +27,9 @@
 
 ## Fase 3: CLI y composición (US4, US5)
 
-- [ ] T010 [US5] `tests/unit/test_bootstrap_limits.py`: `compose(config)` con `max_turns=2` entrega un bucle que se detiene a la segunda llamada (con `FakeProvider`), los valores por defecto están activos y `max_output_tokens` no se usa como límite. Mapear `config.limits` → `SessionLimits` en `src/harness_agent/bootstrap.py`.
+- [x] T010 [US5] `tests/unit/test_bootstrap_limits.py`: `compose(config)` con `max_turns=2` entrega un bucle que se detiene a la segunda llamada (con `FakeProvider`), los valores por defecto están activos y `max_output_tokens` no se usa como límite. Mapear `config.limits` → `SessionLimits` en `src/harness_agent/bootstrap.py`.
 - [ ] T011 [US1] [US2] [US3] `tests/integration/test_limits_agent_loop.py`: recorrido con `AgentLoop` real, herramientas reales de prueba y `RecordingEventBus` para los tres límites, más la continuidad (otra tarea tras la parada).
-- [ ] T012 [US4] `tests/unit/cli/test_render_limits.py` (una línea por límite con su máximo en español; carga desconocida o incompleta → texto genérico; nunca la carga cruda) y ver fallar; modificar `LIMIT_REACHED` en `src/harness_agent/cli/render.py`.
+- [x] T012 [US4] `tests/unit/cli/test_render_limits.py` (una línea por límite con su máximo en español; carga desconocida o incompleta → texto genérico; nunca la carga cruda) y ver fallar; modificar `LIMIT_REACHED` en `src/harness_agent/cli/render.py`.
 
 ## Fase 4: Cierre
 

@@ -67,6 +67,7 @@ from harness_agent.core import (
     ProtectedPolicy,
     Provider,
     Role,
+    SessionLimits,
     TaskDefinition,
 )
 from harness_agent.core.loop import AgentLoop
@@ -254,7 +255,14 @@ def compose(
             started = task_store.start_task(task, model=config.model)
             session_id, export = started.session_id, started.export_path
         attach_event_recorder(bus, store)
-        loop = AgentLoop(provider, registry, policy, bus, approver=approver)
+        # The limits of the session are mapped here: the core does not import ``config`` (HU-01-06).
+        # ``max_tokens`` is the budget of the whole run, never the cap of one call.
+        limits = SessionLimits(
+            max_turns=config.limits.max_turns,
+            max_seconds=config.limits.max_seconds,
+            max_tokens=config.limits.max_tokens,
+        )
+        loop = AgentLoop(provider, registry, policy, bus, approver=approver, limits=limits)
     except BaseException:
         store.close()
         raise
