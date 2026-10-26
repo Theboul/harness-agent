@@ -50,7 +50,7 @@ def catches_cancellation(source: str) -> list[int]:
     for node in ast.walk(ast.parse(source)):
         if not isinstance(node, ast.ExceptHandler):
             continue
-        caught = [] if node.type is None else ast.walk(node.type)
+        caught = [] if node.type is None else list(ast.walk(node.type))
         names = {n.id for n in caught if isinstance(n, ast.Name)} | {
             n.attr for n in caught if isinstance(n, ast.Attribute)
         }
@@ -197,7 +197,10 @@ class TestSelfTests:
     def test_the_detectors_see_a_second_user_of_the_gate_or_an_unguarded_call(self) -> None:
         extra = "class A:\n    def other(self):\n        return self._approvals\n"
         loose = "class A:\n    def go(self):\n        self._ask_approval()\n"
-        guarded = "class A:\n    def go(self, v):\n        if v.pending_approval:\n            self._ask_approval()\n"
+        guarded = (
+            "class A:\n    def go(self, v):\n        if v.pending_approval:\n"
+            "            self._ask_approval()\n"
+        )
 
         assert gate_users(extra) == {"other"}
         assert not guarded_by_pending(loose, "_ask_approval")

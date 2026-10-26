@@ -18,7 +18,7 @@ from harness_agent.core import (
     ToolCall,
 )
 from tests.doubles import DummyApprover, FakeProvider
-from tests.unit.bootstrap_support import build, make_config, one_turn
+from tests.unit.bootstrap_support import SENTINEL, build, make_config, one_turn
 
 CONTENT = "contenido-del-archivo"
 
@@ -112,7 +112,7 @@ class TestMain:
         (tmp_path / "a.txt").write_text(CONTENT, encoding="utf-8")
         output = io.StringIO()
         code = main(
-            environ={"OPENAI_API_KEY": "VALOR-DE-PRUEBA-123"},
+            environ={"OPENAI_API_KEY": SENTINEL},
             config_path=write_toml(tmp_path),
             input_stream=io.StringIO(typed),
             output=output,
