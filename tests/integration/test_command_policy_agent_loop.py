@@ -273,7 +273,7 @@ async def test_neither_events_nor_results_carry_the_denied_command(
 
 CHAINED = {
     "bash": [
-        ("git status && git diff", ASKED),
+        ("git status && git diff", RAN),  # git reads run alone since HU-11-02 (AC-01)
         ("python -m pytest || echo falló", ASKED),
         ("ls; pwd", ASKED),
         ("cat a.txt | grep x", ASKED),
@@ -288,7 +288,7 @@ CHAINED = {
         ("echo $(whoami) && ls", ASKED),
     ],
     "powershell": [
-        ("git status; git diff", ASKED),
+        ("git status; git diff", RAN),  # git reads run alone since HU-11-02 (AC-01)
         ("Get-ChildItem | Select-Object Name", ASKED),
         ("python -m pytest || echo fallo", ASKED),
         ("dir && dir", ASKED),
@@ -317,4 +317,4 @@ async def test_chained_examples_through_the_loop(
 
     for (command, expected), answer in zip(examples, answers, strict=True):
         assert answer.startswith(expected), (command, answer)
-    assert run.shell.commands == []
+    assert run.shell.commands == [command for command, expected in examples if expected == RAN]

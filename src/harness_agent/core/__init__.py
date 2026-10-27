@@ -80,14 +80,19 @@ from harness_agent.core.permissions import (
     DenyList,
     Dialect,
     ExactCallPolicy,
+    GitClass,
+    GitPolicy,
     ParsedCommand,
     PermissionRules,
     ProtectedPolicy,
     RuleError,
     RuleKind,
+    classify_git,
     compile_rule,
+    git_instructions,
     parse_command,
 )
+from harness_agent.core.redaction import HIDDEN_SECRET, hide_url_credentials
 from harness_agent.core.tasks import (
     DEFAULT_COMMAND_TIMEOUT_SECONDS,
     MAX_COMMAND_TIMEOUT_SECONDS,
@@ -196,6 +201,14 @@ __all__ = [
     "RuleError",
     "RuleKind",
     "compile_rule",
+    # Git through the shell (HU-11-02)
+    "GitClass",
+    "GitPolicy",
+    "classify_git",
+    "git_instructions",
+    # Hiding of credentials in URLs (HU-11-02; HU-10-02 must absorb it)
+    "HIDDEN_SECRET",
+    "hide_url_credentials",
     # Task definition and parser (HU-11-01)
     "MAX_CRITERIA",
     "CriterionDefinition",

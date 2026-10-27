@@ -163,7 +163,7 @@ class TestThePrefix:
             system_name="Windows",
         )
 
-        assert len(composition.history_prefix) == 1
+        assert len(composition.history_prefix) == 2
         message = composition.history_prefix[0]
         assert message.role is Role.SYSTEM
         assert message.content == environment_notice("Windows", interpreter_for("Windows"))
@@ -199,7 +199,7 @@ class TestThePrefix:
         assert [m.content for m in provider.received[1]][0] == notice
         assert provider.received[0][0].role is Role.SYSTEM
         assert composition.history_prefix == before
-        assert len(composition.history_prefix) == 1
+        assert len(composition.history_prefix) == 2
 
 
 class TestMain:
@@ -234,6 +234,6 @@ def test_compose_accepts_no_environment_and_still_builds(tmp_path: Path) -> None
         make_config(tmp_path, workspace=tmp_path), provider_factory=lambda _config: scripted("x")
     )
     try:
-        assert len(composition.history_prefix) == 1
+        assert len(composition.history_prefix) == 2
     finally:
         composition.close()

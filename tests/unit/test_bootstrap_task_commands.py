@@ -227,8 +227,8 @@ def test_with_commands_a_system_message_lists_them(
 
     composition = build(opened, config, task=task)
 
-    assert len(composition.history_prefix) == 2
-    notice = composition.history_prefix[1]
+    assert len(composition.history_prefix) == 3
+    notice = composition.history_prefix[2]
     assert notice.role is Role.SYSTEM
     assert notice.content == commands_notice(task.commands)
 
@@ -241,7 +241,7 @@ def test_without_commands_the_prefix_is_only_the_environment_notice(
 
     composition = build(opened, config, task=TASK if with_task else None)
 
-    assert len(composition.history_prefix) == 1
+    assert len(composition.history_prefix) == 2
 
 
 # --- the names and limits agree with the shell tool -------------------------------------------

@@ -297,6 +297,6 @@ def test_the_model_is_told_the_exact_commands(
 ) -> None:
     run = Run(tmp_path, opened, project, parse_task(task_text(TESTS)), calls({"command": TESTS}))
 
-    (_, notice) = run.composition.history_prefix
+    (_, _, notice) = run.composition.history_prefix
     assert f"`{TESTS}` (tiempo máximo: 300 s)" in notice.content
     assert f"`{LINT}` (tiempo máximo: 300 s)" in notice.content

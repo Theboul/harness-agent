@@ -72,6 +72,7 @@ from harness_agent.core import (
     Dialect,
     EventBus,
     ExactCallPolicy,
+    GitPolicy,
     InMemoryEventBus,
     InMemoryToolRegistry,
     Message,
@@ -84,6 +85,7 @@ from harness_agent.core import (
     TaskDefinition,
     commands_notice,
     compile_rule,
+    git_instructions,
 )
 from harness_agent.core.loop import AgentLoop
 
@@ -101,6 +103,7 @@ DENY_COMMANDS_NOT_UNDERSTOOD = (
     "una entrada de permissions.deny_commands no se entiende para {interpreter}."
 )
 ADDED_BY_CONFIGURATION = "Añadido por la configuración."
+GIT_FOLDER_NAME = ".git"
 EXIT_INTERRUPTED = 130
 STARTUP_FAILURE_PREFIX = "No se pudo iniciar: "
 
@@ -177,15 +180,21 @@ def _protection(
     The folder of the sessions database is protected whole. If the work area lives inside it (or
     is it), protecting the whole folder would lock the agent out of its own work, so only the
     database files and the folder of the criteria copies are protected then.
+
+    The ``.git`` folder of the work area is protected too (HU-11-02): its configuration could make
+    a git read that runs without asking execute a program. The protected area does not tell reads
+    from writes, so the file tools cannot read it either; ``git status``/``log``/``show`` can. It
+    is not a shell marker (``.git`` appears in harmless commands such as ``cat .gitignore``).
     """
     harness_dir = database.parent
     exports_dir = harness_dir / TASKS_DIR_NAME
     files = (database, *(database.with_name(database.name + tail) for tail in _DATABASE_SIDE_FILES))
     markers = [database.name, EXPORT_FILE_NAME]
+    repository = () if workspace is None else (workspace / GIT_FOLDER_NAME,)
     if workspace is not None and _inside(workspace, harness_dir):
-        return exports_dir, files, (exports_dir,), tuple(markers)
+        return exports_dir, files, (exports_dir, *repository), tuple(markers)
     markers.append(harness_dir.name)
-    return exports_dir, files, (harness_dir,), tuple(markers)
+    return exports_dir, files, (harness_dir, *repository), tuple(markers)
 
 
 def _inside(path: Path, folder: Path) -> bool:
@@ -320,13 +329,21 @@ def compose(
         commands = () if task is None else task.commands
         # Deny > ask > allow: the protection decides first; then the deny list of the shell
         # (HU-05-02) denies before anything else is asked and never lets a command it does not
-        # understand be allowed; only then may the exact commands of the task turn the "ask" of
-        # the default policy into "allow" (HU-11-03).
+        # understand be allowed; then the git rules (HU-11-02) deny destructive git calls, ask
+        # writes without asking further in and allow pure reads; only then may the exact commands
+        # of the task turn the "ask" of the default policy into "allow" (HU-11-03).
         policy = ProtectedPolicy(
             CommandPolicy(
-                ExactCallPolicy(
-                    DefaultPermissionPolicy(registry, area, config.permissions),
-                    _allowed_commands(commands, shell_tool.name),
+                GitPolicy(
+                    ExactCallPolicy(
+                        DefaultPermissionPolicy(registry, area, config.permissions),
+                        _allowed_commands(commands, shell_tool.name),
+                        ask_names=config.permissions.ask,
+                    ),
+                    dialect=deny_list.dialect,
+                    tool=shell_tool.name,
+                    argument=COMMAND_ARGUMENT,
+                    deny_names=config.permissions.deny,
                     ask_names=config.permissions.ask,
                 ),
                 deny_list,
@@ -358,6 +375,9 @@ def compose(
         raise
     notice = Message(role=Role.SYSTEM, content=environment_notice(system, interpreter_for(system)))
     prefix = [notice]
+    if area is not None:
+        # How to use git in the task (HU-11-02, Sp2-44); provisional until HU-02-01 assembles it.
+        prefix.append(Message(role=Role.SYSTEM, content=git_instructions()))
     commands_text = commands_notice(commands)
     if commands_text is not None:
         prefix.append(Message(role=Role.SYSTEM, content=commands_text))

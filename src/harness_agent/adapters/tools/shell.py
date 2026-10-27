@@ -3,6 +3,7 @@
 The tool has high risk and no ``path`` argument, so the permission policy always asks before it
 runs; this module neither applies nor replaces that policy. It turns every outcome into a
 ``ToolResult`` with a labelled message and never repeats the command or the text of an exception.
+The credentials of URLs in the output are hidden before it reaches the model (HU-11-02).
 """
 
 from __future__ import annotations
@@ -17,7 +18,14 @@ from harness_agent.adapters.tools._limits import (
     MAX_SHELL_TIMEOUT_SECONDS,
 )
 from harness_agent.adapters.tools._paths import bounded_text, error_result
-from harness_agent.core import AuthorizedArea, RiskLevel, Shell, Tool, ToolResult
+from harness_agent.core import (
+    AuthorizedArea,
+    RiskLevel,
+    Shell,
+    Tool,
+    ToolResult,
+    hide_url_credentials,
+)
 
 _NO_OUTPUT = "(sin salida)"
 # Names of the arguments; the composition root uses them to allow the commands of a task exactly
@@ -120,7 +128,12 @@ class ShellTool(Tool):
             )
         except Exception:
             return error_result("error_de_shell", "El comando no se pudo ejecutar.")
-        output = bounded_text(result.output) if result.output.strip() else _NO_OUTPUT
+        # The credentials of URLs never reach the model (HU-11-02; HU-10-02 must absorb this).
+        output = (
+            hide_url_credentials(bounded_text(result.output))
+            if result.output.strip()
+            else _NO_OUTPUT
+        )
         if result.timed_out:
             return ToolResult(
                 call_id="",
