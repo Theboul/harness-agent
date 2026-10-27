@@ -2,10 +2,11 @@
 
 The version lives in ``PRAGMA user_version``. A new database gets the current schema; a database
 at version 1 (sessions and events, HU-03-01) is migrated to the current one without touching its
-data (version 2 adds the ``criterios`` tables, HU-11-01; version 3 adds the ``resumenes`` table of
-the automatic compaction, HU-02-03); a database at the current version is
-accepted as is; anything else (a newer version, or a database that has tables but no version) is
-refused without being modified. Every change runs in one transaction.
+data. Version 2 adds the ``criterios`` tables (HU-11-01), version 3 the ``resumenes`` table of the
+automatic compaction (HU-02-03) and version 4 the ``contexto_esencial`` table (HU-02-06.1). A
+database at the current version is accepted as is; anything else (a newer version, or a database
+that has tables but no version) is refused without being modified. Every change runs in one
+transaction.
 """
 
 from __future__ import annotations
@@ -14,7 +15,7 @@ import sqlite3
 
 from harness_agent.adapters.storage.errors import SchemaVersionError
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 _V1 = """
 CREATE TABLE sessions (
@@ -74,8 +75,23 @@ CREATE TABLE resumenes (
 CREATE INDEX idx_resumenes_sesion ON resumenes (sesion_id, evento_hasta);
 """
 
+# Essential context of a task (HU-02-06.1): the elements are written once, when the session of the
+# task is created, and only read afterwards. ``clave`` is not restricted here on purpose (the
+# decisions of HU-02-06.2 will need no new schema); the core validates the keys.
+_V4 = """
+CREATE TABLE contexto_esencial (
+    sesion_id  TEXT NOT NULL REFERENCES sessions(id),
+    clave      TEXT NOT NULL CHECK (length(trim(clave)) > 0),
+    orden      INTEGER NOT NULL CHECK (orden >= 1),
+    valor      TEXT NOT NULL CHECK (length(trim(valor)) > 0),
+    origen     TEXT NOT NULL CHECK (length(trim(origen)) > 0),
+    creado     TEXT NOT NULL,
+    PRIMARY KEY (sesion_id, clave, orden)
+);
+"""
+
 # What each version adds on top of the one before it.
-_STEPS = {1: _V1, 2: _V2, 3: _V3}
+_STEPS = {1: _V1, 2: _V2, 3: _V3, 4: _V4}
 
 
 def _script(first: int) -> str:

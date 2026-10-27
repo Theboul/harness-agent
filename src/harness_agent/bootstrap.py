@@ -32,6 +32,7 @@ from harness_agent.adapters.storage import (
     EXPORT_FILE_NAME,
     SessionStoreError,
     SqliteCompactionArchive,
+    SqliteEssentialStore,
     SqliteSessionStore,
     SqliteTaskStore,
     attach_event_recorder,
@@ -76,6 +77,9 @@ from harness_agent.core import (
     DefaultPermissionPolicy,
     DenyList,
     Dialect,
+    EssentialContextError,
+    EssentialItem,
+    EssentialRenewer,
     Event,
     EventBus,
     EventType,
@@ -94,9 +98,12 @@ from harness_agent.core import (
     TaskDefinition,
     ToolDefinition,
     VerifyingRunner,
+    check_creation,
     commands_notice,
     compile_rule,
+    criteria_reference,
     git_instructions,
+    make_items,
 )
 from harness_agent.core.loop import AgentLoop, TurnResult
 
@@ -175,6 +182,7 @@ class Composition:
     runner: VerifyingRunner[TurnResult] | None = None
     compactor: ContextCompactor | None = None
     warning_sink: WarningSink = field(default_factory=WarningSink)
+    essential: EssentialRenewer | None = None
 
     def close(self) -> None:
         """Close the session store; safe to call more than once."""
@@ -283,6 +291,29 @@ def _deny_list(interpreter: str, added: tuple[str, ...]) -> DenyList:
     return DenyList(dialect, base, extra, aliases=aliases, synonyms=synonyms)
 
 
+def _provisional_prefix(
+    system: str, area: AuthorizedArea | None, commands: tuple[TaskCommand, ...]
+) -> list[tuple[str, Message]]:
+    """The system messages that open every conversation, each with the origin it is recorded under.
+
+    They are the instructions of the model (HU-01-04, HU-11-02, HU-11-03) and depend on nothing
+    that is opened later, so they are built before the store is.
+    """
+    pairs = [
+        (
+            "entorno",
+            Message(role=Role.SYSTEM, content=environment_notice(system, interpreter_for(system))),
+        )
+    ]
+    if area is not None:
+        # How to use git in the task (HU-11-02, Sp2-44); provisional until HU-02-01 assembles it.
+        pairs.append(("git", Message(role=Role.SYSTEM, content=git_instructions())))
+    commands_text = commands_notice(commands)
+    if commands_text is not None:
+        pairs.append(("comandos", Message(role=Role.SYSTEM, content=commands_text)))
+    return pairs
+
+
 def compose(
     config: HarnessConfig,
     *,
@@ -339,6 +370,27 @@ def compose(
         shell_tool,
     ):
         registry.register(tool)
+    commands = () if task is None else task.commands
+    provisional = _provisional_prefix(system, area, commands)
+    essential: tuple[EssentialItem, ...] = ()
+    if task is not None:
+        # The essential context of the task (HU-02-06.1) is checked before anything is opened, so a
+        # value over its cap or a block that does not fit never leaves a session behind.
+        try:
+            essential = make_items(
+                ticket=task.title,
+                objective=task.objective,
+                rules=task.rules,
+                instructions=[(origin, message.content) for origin, message in provisional],
+            )
+            check_creation(
+                essential,
+                [criterion.description for criterion in task.criteria],
+                config.context,
+                config.model,
+            )
+        except EssentialContextError as error:
+            raise StartupError(str(error)) from None
     bus = InMemoryEventBus()
     store_options: dict[str, Any] = {}
     if clock is not None:
@@ -355,7 +407,6 @@ def compose(
             files=files,
             directories=folders,
         )
-        commands = () if task is None else task.commands
         # Deny > ask > allow: the protection decides first; then the deny list of the shell
         # (HU-05-02) denies before anything else is asked and never lets a command it does not
         # understand be allowed; then the git rules (HU-11-02) deny destructive git calls, ask
@@ -383,6 +434,8 @@ def compose(
             markers,
         )
         task_options: dict[str, Any] = dict(store_options)
+        clock_options: dict[str, Any] = {} if clock is None else {"clock": clock}
+        renewer: EssentialRenewer | None = None
         task_store = SqliteTaskStore(store, exports_dir=exports_dir, bus=bus, **task_options)
         export: Path | None = None
         if task is None:
@@ -390,6 +443,17 @@ def compose(
         else:
             started = task_store.start_task(task, model=config.model)
             session_id, export = started.session_id, started.export_path
+            # A second transaction (the task store is not touched): if it fails the start stops, the
+            # store is closed below and no composition exists (R17). The reference is the session.
+            elements = SqliteEssentialStore(store, **clock_options)
+            elements.save_items(session_id, (*essential, criteria_reference(session_id)))
+            renewer = EssentialRenewer(
+                elements,
+                task_store,
+                config.context,
+                session_id=session_id,
+                model=lambda: config.model,
+            )
         # The archive stores ``context_compacted`` in its own transaction (HU-02-03): the recorder
         # must not store it again. The ``skip`` goes by position.
         attach_event_recorder(bus, store, (EventType.CONTEXT_COMPACTED,))
@@ -419,18 +483,13 @@ def compose(
                 approver,
                 clock,
                 id_factory,
+                renewer,
+                warning_sink,
             )
     except BaseException:
         store.close()
         raise
-    notice = Message(role=Role.SYSTEM, content=environment_notice(system, interpreter_for(system)))
-    prefix = [notice]
-    if area is not None:
-        # How to use git in the task (HU-11-02, Sp2-44); provisional until HU-02-01 assembles it.
-        prefix.append(Message(role=Role.SYSTEM, content=git_instructions()))
-    commands_text = commands_notice(commands)
-    if commands_text is not None:
-        prefix.append(Message(role=Role.SYSTEM, content=commands_text))
+    prefix = [message for _, message in provisional]
     return Composition(
         loop=loop,
         bus=bus,
@@ -444,6 +503,7 @@ def compose(
         runner=runner,
         compactor=compactor,
         warning_sink=warning_sink,
+        essential=renewer,
     )
 
 
@@ -509,6 +569,8 @@ def _verifying_runner(
     approver: Approver | None,
     clock: Callable[[], datetime] | None,
     id_factory: Callable[[], str] | None,
+    renewer: EssentialRenewer | None,
+    warning_sink: WarningSink,
 ) -> VerifyingRunner[TurnResult]:
     """The runner that verifies the criteria of ``task`` each time the agent proposes to finish.
 
@@ -544,9 +606,28 @@ def _verifying_runner(
     )
 
     async def run_turn(text: str, history: list[Message]) -> TurnResult:
+        # Before each round: the criteria the verifier marked after the last one show in the block.
+        _renew_or_report(renewer, history, warning_sink)
         return await loop.run_turn(session_id=session_id, task=text, history=history)
 
     return VerifyingRunner(run_turn, verifier, session_id)
+
+
+def _renew_or_report(
+    renewer: EssentialRenewer | None, history: list[Message], sink: WarningSink
+) -> None:
+    """Renew the essential block; if it cannot be, write the fixed message and let it fail.
+
+    A session without a task has no renewer and nothing happens. With a task, a block that does not
+    fit or elements that cannot be read stop the request before the model sees it (HU-02-06.1).
+    """
+    if renewer is None:
+        return
+    try:
+        renewer.renew(history)
+    except EssentialContextError as error:
+        sink.write(str(error))
+        raise
 
 
 def _write_notice(stream: TextIO, text: str) -> None:
@@ -584,6 +665,8 @@ async def run_session(
     runner = composition.runner
 
     async def run_turn(task: str) -> object:
+        # First the block (so the estimate of the compaction sees it), then the compaction.
+        _renew_or_report(composition.essential, history, composition.warning_sink)
         if composition.compactor is not None:
             # Before the request reaches the loop (and the verifier): the view is replaced in place.
             await composition.compactor.before_turn(history)

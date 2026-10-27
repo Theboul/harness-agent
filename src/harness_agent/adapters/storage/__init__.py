@@ -14,6 +14,7 @@ from harness_agent.adapters.storage.errors import (
     SessionNotFound,
     SessionStoreError,
 )
+from harness_agent.adapters.storage.essential_store import SqliteEssentialStore
 from harness_agent.adapters.storage.event_recorder import attach_event_recorder
 from harness_agent.adapters.storage.sqlite_session_store import SqliteSessionStore, StoredSession
 from harness_agent.adapters.storage.task_store import SqliteTaskStore, StartedTask
@@ -31,6 +32,7 @@ __all__ = [
     "SessionNotFound",
     "SessionStoreError",
     "SqliteCompactionArchive",
+    "SqliteEssentialStore",
     "SqliteSessionStore",
     "SqliteTaskStore",
     "StartedTask",

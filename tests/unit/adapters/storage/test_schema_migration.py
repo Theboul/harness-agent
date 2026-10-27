@@ -81,13 +81,13 @@ def add_criterion(conn: sqlite3.Connection, **overrides: object) -> None:
 
 
 def test_schema_version_is_two() -> None:
-    assert SCHEMA_VERSION == 3
+    assert SCHEMA_VERSION == 4
 
 
 def test_new_database_gets_the_criteria_tables(conn: sqlite3.Connection) -> None:
     ensure_schema(conn)
 
-    assert user_version(conn) == 3
+    assert user_version(conn) == 4
     assert {"sessions", "events", "criterios", "criterios_sello"} <= tables(conn)
     assert columns(conn, "criterios") == [
         "id",
@@ -121,7 +121,7 @@ def test_version_one_database_migrates_without_losing_data(tmp_path: Path) -> No
     conn = sqlite3.connect(path)
     try:
         ensure_schema(conn)
-        assert user_version(conn) == 3
+        assert user_version(conn) == 4
         assert conn.execute("SELECT id, goal FROM sessions").fetchall() == [("s1", "g")]
         assert conn.execute("SELECT id FROM events").fetchall() == [("e1",)]
         assert "criterios" in tables(conn)
@@ -155,7 +155,7 @@ def test_failed_migration_leaves_the_database_at_version_one(conn: sqlite3.Conne
 
 def test_unknown_versions_are_still_refused(conn: sqlite3.Connection) -> None:
     conn.execute("CREATE TABLE marker (x INTEGER)")
-    conn.execute("PRAGMA user_version = 4")
+    conn.execute("PRAGMA user_version = 5")
     with pytest.raises(SchemaVersionError):
         ensure_schema(conn)
 
