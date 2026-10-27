@@ -8,4 +8,18 @@ from __future__ import annotations
 
 
 class ContextConfigError(ValueError):
-    """The prefix configuration or a tool declaration is invalid; nothing was built."""
+    """The prefix, compaction or tool configuration is invalid; nothing was built."""
+
+
+class SummaryRejected(ValueError):
+    """The text that came back as a summary cannot be used; nothing was changed.
+
+    The messages are fixed sentences: they never repeat the text of the summary.
+    """
+
+
+class CompactionError(RuntimeError):
+    """The history could not be compacted safely; nothing was changed.
+
+    The messages are fixed sentences: they never repeat the history or the summary.
+    """

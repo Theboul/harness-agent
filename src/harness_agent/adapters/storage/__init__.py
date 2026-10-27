@@ -1,6 +1,7 @@
-"""SQLite storage adapters: sessions, persisted events and task criteria (HU-03-01 to HU-11-01)."""
+"""SQLite storage adapters: sessions, events, task criteria and compaction (HU-03-01 to 02-03)."""
 
 from harness_agent.adapters.storage._schema import SCHEMA_VERSION
+from harness_agent.adapters.storage.compaction_archive import SqliteCompactionArchive
 from harness_agent.adapters.storage.criteria_export import EXPORT_FILE_NAME
 from harness_agent.adapters.storage.errors import (
     CriteriaIntegrityError,
@@ -29,6 +30,7 @@ __all__ = [
     "SchemaVersionError",
     "SessionNotFound",
     "SessionStoreError",
+    "SqliteCompactionArchive",
     "SqliteSessionStore",
     "SqliteTaskStore",
     "StartedTask",

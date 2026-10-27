@@ -17,8 +17,9 @@ import asyncio
 import os
 import platform
 import sys
+import uuid
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, TextIO
@@ -30,6 +31,7 @@ from harness_agent.adapters.providers.litellm_provider import (
 from harness_agent.adapters.storage import (
     EXPORT_FILE_NAME,
     SessionStoreError,
+    SqliteCompactionArchive,
     SqliteSessionStore,
     SqliteTaskStore,
     attach_event_recorder,
@@ -69,6 +71,7 @@ from harness_agent.core import (
     Approver,
     AuthorizedArea,
     CommandPolicy,
+    ContextCompactor,
     CriteriaVerifier,
     DefaultPermissionPolicy,
     DenyList,
@@ -89,6 +92,7 @@ from harness_agent.core import (
     SessionLimits,
     TaskCommand,
     TaskDefinition,
+    ToolDefinition,
     VerifyingRunner,
     commands_notice,
     compile_rule,
@@ -130,6 +134,21 @@ class StartupError(Exception):
     """The system cannot start because of a choice of the user; the message is for the user."""
 
 
+class WarningSink:
+    """Where the compactor writes its warnings: the output of the session once it runs.
+
+    The compactor is built before the session has an output, so it writes through this sink;
+    ``run_session`` points it at the stream it was given (standard output until then).
+    """
+
+    def __init__(self) -> None:
+        self.stream: TextIO | None = None
+
+    def write(self, text: str) -> None:
+        """Write one line of warning to the stream of the session."""
+        _write_notice(sys.stdout if self.stream is None else self.stream, text)
+
+
 @dataclass(frozen=True)
 class Composition:
     """Everything one run needs, already connected; built once per run and never shared.
@@ -154,6 +173,8 @@ class Composition:
     task: TaskDefinition | None = None
     criteria_export: Path | None = None
     runner: VerifyingRunner[TurnResult] | None = None
+    compactor: ContextCompactor | None = None
+    warning_sink: WarningSink = field(default_factory=WarningSink)
 
     def close(self) -> None:
         """Close the session store; safe to call more than once."""
@@ -369,7 +390,9 @@ def compose(
         else:
             started = task_store.start_task(task, model=config.model)
             session_id, export = started.session_id, started.export_path
-        attach_event_recorder(bus, store)
+        # The archive stores ``context_compacted`` in its own transaction (HU-02-03): the recorder
+        # must not store it again. The ``skip`` goes by position.
+        attach_event_recorder(bus, store, (EventType.CONTEXT_COMPACTED,))
         # The limits of the session are mapped here: the core does not import ``config`` (HU-01-06).
         # ``max_tokens`` is the budget of the whole run, never the cap of one call.
         limits = SessionLimits(
@@ -378,6 +401,10 @@ def compose(
             max_tokens=config.limits.max_tokens,
         )
         loop = AgentLoop(provider, registry, policy, bus, approver=approver, limits=limits)
+        warning_sink = WarningSink()
+        compactor = _compactor(
+            provider, store, config, session_id, registry, bus, warning_sink, clock, id_factory
+        )
         runner: VerifyingRunner[TurnResult] | None = None
         if task is not None:
             runner = _verifying_runner(
@@ -415,6 +442,58 @@ def compose(
         task=task,
         criteria_export=export,
         runner=runner,
+        compactor=compactor,
+        warning_sink=warning_sink,
+    )
+
+
+def _compactor(
+    provider: Provider,
+    store: SqliteSessionStore,
+    config: HarnessConfig,
+    session_id: str,
+    registry: InMemoryToolRegistry,
+    bus: EventBus,
+    warning_sink: WarningSink,
+    clock: Callable[[], datetime] | None,
+    id_factory: Callable[[], str] | None,
+) -> ContextCompactor:
+    """The compactor of the context (HU-02-03), connected to the pieces of the session.
+
+    It only connects: the archive works on the session store, the model and the window come from
+    the configuration, the tool declarations are the ones the loop sends, and the summary event
+    (already stored by the archive) goes out through the bus.
+    """
+    archive_options: dict[str, Any] = {} if clock is None else {"clock": clock}
+
+    def emit(kind: EventType, payload: dict[str, Any]) -> None:
+        bus.emit(
+            Event.create(
+                session_id,
+                kind,
+                payload,
+                event_id=None if id_factory is None else id_factory(),
+                timestamp=None if clock is None else clock(),
+            )
+        )
+
+    def definitions() -> list[ToolDefinition]:
+        return [
+            ToolDefinition(name=tool.name, description=tool.description, parameters=tool.schema)
+            for tool in registry.list()
+        ]
+
+    return ContextCompactor(
+        provider,
+        SqliteCompactionArchive(store, **archive_options),
+        config.context,
+        session_id=session_id,
+        model=lambda: config.model,
+        definitions=definitions,
+        emit=emit,
+        publish=bus.emit,
+        warn=warning_sink.write,
+        new_id=id_factory if id_factory is not None else lambda: str(uuid.uuid4()),
     )
 
 
@@ -497,6 +576,7 @@ async def run_session(
         output: Where the notices and the events are written; defaults to standard output.
     """
     stream = sys.stdout if output is None else output
+    composition.warning_sink.stream = stream
     for notice in composition.notices:
         _write_notice(stream, notice)
     history: list[Message] = list(composition.history_prefix)
@@ -504,6 +584,9 @@ async def run_session(
     runner = composition.runner
 
     async def run_turn(task: str) -> object:
+        if composition.compactor is not None:
+            # Before the request reaches the loop (and the verifier): the view is replaced in place.
+            await composition.compactor.before_turn(history)
         if runner is not None:
             return await runner.run(task, history)
         return await composition.loop.run_turn(
