@@ -36,7 +36,7 @@ harness-agent/
 │   │   ├── loop.py         # AgentLoop: bucle razonar–actuar–observar (HU-01-01)
 │   │   ├── in_memory_event_bus.py  # InMemoryEventBus, EventDeliveryError (HU-01-05)
 │   │   ├── tools/          # InMemoryToolRegistry, validador JSON Schema propio, errores (HU-01-02); output_limit.py: recorte general de salidas, TruncatingTool (HU-02-02)
-│   │   ├── permissions/    # DefaultPermissionPolicy, PermissionRules (HU-05-01); protected.py: ProtectedPolicy, decorador que solo deniega (HU-11-01); exact_calls.py: AllowedCall, ExactCallPolicy, permite solo la llamada exacta declarada tras un «preguntar» (HU-11-03); approvals.py: ApprovalGate, aprobación una vez/sesión con falla cerrada (HU-05-03)
+│   │   ├── permissions/    # DefaultPermissionPolicy, PermissionRules (HU-05-01); protected.py: ProtectedPolicy, decorador que solo deniega (HU-11-01); exact_calls.py: AllowedCall, ExactCallPolicy, permite solo la llamada exacta declarada tras un «preguntar» (HU-11-03); command_parser.py (analizador de comandos bash/PowerShell, sin shlex), command_rules.py (CompiledRule, DenyList, lista de denegados compilada) y command_policy.py (CommandPolicy, solo endurece) (HU-05-02); approvals.py: ApprovalGate, aprobación una vez/sesión con falla cerrada (HU-05-03)
 │   │   ├── tasks/          # TaskDefinition, CriterionDefinition, parse_task, TaskFormatError: formato y validación de la tarea (HU-11-01); commands.py: TaskCommand, CommandKind, commands_notice, sección «## Comandos» (HU-11-03)
 │   │   ├── limits.py       # HU-01-06: SessionLimits, LimitTracker (turnos = llamadas al modelo, tiempo, tokens)
 │   │   ├── context/        # HU-02-01: estimación, prefijo estable, ContextAssembler (planeado: HU-02-03 ContextManager, compactación)

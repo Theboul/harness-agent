@@ -7,8 +7,12 @@ text that tells the model which one it is talking to. The rest of the modules ar
 from harness_agent.adapters.system.bash_shell import BashShell
 from harness_agent.adapters.system.denied_commands import (
     DEFAULT_DENIED_COMMANDS,
+    OPTION_SYNONYMS,
+    PROGRAM_ALIASES,
     DeniedCommand,
     denied_commands_for,
+    option_synonyms_for,
+    program_aliases_for,
 )
 from harness_agent.adapters.system.environment_notice import environment_notice
 from harness_agent.adapters.system.powershell_shell import PowerShellShell
@@ -22,6 +26,8 @@ __all__ = [
     "BashShell",
     "DEFAULT_DENIED_COMMANDS",
     "DeniedCommand",
+    "OPTION_SYNONYMS",
+    "PROGRAM_ALIASES",
     "PowerShellShell",
     "ProtectedPaths",
     "ShellStartError",
@@ -30,6 +36,8 @@ __all__ = [
     "denied_commands_for",
     "environment_notice",
     "interpreter_for",
+    "option_synonyms_for",
+    "program_aliases_for",
     "select_shell",
     "windows_path_problem",
 ]

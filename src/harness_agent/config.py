@@ -57,6 +57,12 @@ _LIMIT_FIELDS = (
 _LIMIT_MINIMUMS = {"max_tool_output_chars": MIN_MAX_OUTPUT_CHARS}
 _PATH_FIELDS = ("workspace_root", "sessions_db")
 _PERMISSION_FIELDS = ("deny", "ask")
+# Shell commands added to the base deny list (HU-05-02); kept apart from ``PermissionRules``.
+_DENY_COMMANDS_FIELD = "deny_commands"
+_MAX_DENY_COMMAND_CHARS = 500
+_NOT_A_COMMAND_LIST = (
+    "debe ser una lista de comandos no vacíos, de hasta 500 caracteres y sin caracteres de control."
+)
 _MISSING_FIELD = "falta el campo obligatorio."
 _MODEL_FORM = "debe ser un texto con la forma <proveedor>/<modelo>."
 _NOT_AN_INTEGER = "debe ser un entero mayor que 0."
@@ -67,7 +73,11 @@ _NOT_A_NAME_LIST = "debe ser una lista de textos no vacíos."
 _KEY_NAME_MARKERS = ("key", "secret", "token", "password", "passwd", "credential")
 _UNKNOWN_FIELD = "campo desconocido en el esquema."
 _TABLE_FIELDS: Mapping[str, tuple[str, ...]] = MappingProxyType(
-    {"limits": _LIMIT_FIELDS, "paths": _PATH_FIELDS, "permissions": _PERMISSION_FIELDS}
+    {
+        "limits": _LIMIT_FIELDS,
+        "paths": _PATH_FIELDS,
+        "permissions": (*_PERMISSION_FIELDS, _DENY_COMMANDS_FIELD),
+    }
 )
 
 _ELLIPSIS = "…"
@@ -318,6 +328,8 @@ class HarnessConfig:
         key_variable: Name of the environment variable of the key, or ``None``.
         permissions: Tools that are always denied or asked (HU-05-01); empty by default. The
             configuration cannot define a rule to allow.
+        deny_commands: Shell commands added to the base deny list of the platform (HU-05-02);
+            empty by default. They can only add: the base list cannot be removed.
     """
 
     model: str
@@ -327,6 +339,7 @@ class HarnessConfig:
     api_key: Secret | None = None
     key_variable: str | None = None
     permissions: PermissionRules = PermissionRules()
+    deny_commands: tuple[str, ...] = ()
 
 
 def _locate(path: str | os.PathLike[str] | None, environ: Mapping[str, str]) -> tuple[Path, str]:
@@ -439,6 +452,23 @@ def _check_permissions(table: Mapping[str, Any], present: list[ConfigProblem]) -
     return PermissionRules(**values)
 
 
+def _check_deny_commands(table: Mapping[str, Any], present: list[ConfigProblem]) -> tuple[str, ...]:
+    """Shell commands to add to the deny list: short, non-empty texts on one line each."""
+    if _DENY_COMMANDS_FIELD not in table:
+        return ()
+    value = table[_DENY_COMMANDS_FIELD]
+    if isinstance(value, list) and all(
+        isinstance(text, str)
+        and text.strip()
+        and len(text) <= _MAX_DENY_COMMAND_CHARS
+        and not any(ord(char) < 32 or ord(char) == 127 for char in text)
+        for text in value
+    ):
+        return tuple(dict.fromkeys(value))
+    present.append(ConfigProblem(f"permissions.{_DENY_COMMANDS_FIELD}", _NOT_A_COMMAND_LIST))
+    return ()
+
+
 def _table(data: Mapping[str, Any], name: str, present: list[ConfigProblem]) -> Mapping[str, Any]:
     """The table ``name`` (empty if absent); a value that is not a table is a problem."""
     value = data.get(name, {})
@@ -530,7 +560,9 @@ def load_config(
     model = _check_model(data, missing, present)
     limits = _check_limits(_table(data, "limits", present), present)
     paths = _check_paths(_table(data, "paths", present), file_path.parent, present)
-    permissions = _check_permissions(_table(data, "permissions", present), present)
+    permissions_table = _table(data, "permissions", present)
+    permissions = _check_permissions(permissions_table, present)
+    deny_commands = _check_deny_commands(permissions_table, present)
     unknown = [ConfigProblem(name, _UNKNOWN_FIELD) for name in reported]
     problems = [*missing, *present, *unknown]
     if problems:
@@ -539,7 +571,12 @@ def load_config(
     variable = PROVIDER_KEY_VARIABLES[provider]
     if variable is None:
         return HarnessConfig(
-            model=model, limits=limits, paths=paths, source=file_path, permissions=permissions
+            model=model,
+            limits=limits,
+            paths=paths,
+            source=file_path,
+            permissions=permissions,
+            deny_commands=deny_commands,
         )
     value = environment.get(variable)
     if value is None or not value.strip():
@@ -552,4 +589,5 @@ def load_config(
         api_key=Secret(value),
         key_variable=variable,
         permissions=permissions,
+        deny_commands=deny_commands,
     )
