@@ -38,7 +38,8 @@ harness-agent/
 │   │   ├── redaction.py    # hide_url_credentials, HIDDEN_SECRET (HU-11-02); provisional: HU-10-02 la absorberá (observability/ no es importable desde adapters/tools ni bootstrap)
 │   │   ├── tools/          # InMemoryToolRegistry, validador JSON Schema propio, errores (HU-01-02); output_limit.py: recorte general de salidas, TruncatingTool (HU-02-02)
 │   │   ├── permissions/    # DefaultPermissionPolicy, PermissionRules (HU-05-01); protected.py: ProtectedPolicy, decorador que solo deniega (HU-11-01); exact_calls.py: AllowedCall, ExactCallPolicy, permite solo la llamada exacta declarada tras un «preguntar» (HU-11-03); command_parser.py (analizador de comandos bash/PowerShell, sin shlex), command_rules.py (CompiledRule, DenyList, lista de denegados compilada) y command_policy.py (CommandPolicy, solo endurece) (HU-05-02); git_table.py (tabla de subcomandos de git, solo datos, la revisa el PO) y git_rules.py (classify_git, GitPolicy, git_instructions) (HU-11-02); approvals.py: ApprovalGate, aprobación una vez/sesión con falla cerrada (HU-05-03), y `clean_reason`/`rejection_message`, que componen el texto del rechazo con el motivo saneado (HU-05-04)
-│   │   ├── tasks/          # TaskDefinition, CriterionDefinition, parse_task, TaskFormatError: formato y validación de la tarea (HU-11-01); commands.py: TaskCommand, CommandKind, commands_notice, sección «## Comandos» (HU-11-03)
+│   │   ├── tasks/          # TaskDefinition, CriterionDefinition, parse_task, TaskFormatError: formato y validación de la tarea (HU-11-01); commands.py: TaskCommand, CommandKind, commands_notice, sección «## Comandos» (HU-11-03); condition.py: Condition, parse_condition, condition_met: la condición esperada de un criterio (`codigo_salida == N` / `!= N`, HU-11-04.1)
+│   │   ├── verification/   # HU-11-04.1: CriteriaVerifier (único escritor de passes), VerifyingRunner (ronda de corrección), compose_feedback, evidence_text, task_state, CommandOutcome
 │   │   ├── limits.py       # HU-01-06: SessionLimits, LimitTracker (turnos = llamadas al modelo, tiempo, tokens)
 │   │   ├── context/        # HU-02-01: estimación, prefijo estable, ContextAssembler (planeado: HU-02-03 ContextManager, compactación)
 │   │   └── subagents/      # (planeado: HU-09-01) SubagentRunner, perfiles, resultado estructurado
@@ -47,7 +48,7 @@ harness-agent/
 │   │   ├── providers/      # LiteLLMProvider: un adaptador para cualquier <proveedor>/<modelo>, sin ramas por proveedor; litellm (dependencia opcional) solo aquí y con importlib (HU-07-02); el FakeProvider de HU-00-03 vive en tests/doubles/fake_provider.py
 │   │   ├── storage/        # SqliteSessionStore: esquema sessions/events, creación de sesión (HU-03-01), save_event/load_session y attach_event_recorder (HU-03-02); esquema v2 con criterios (migración), SqliteTaskStore y copia de solo lectura con huella (HU-11-01)
 │   │   ├── tasks/          # load_task_file, load_github_issue (gh inyectable), TaskSourceError (HU-11-01)
-│   │   ├── tools/          # leer_archivo, escribir_archivo, listar_archivos, buscar_texto (HU-01-03); shell (HU-01-04); planeado: otras herramientas, …
+│   │   ├── tools/          # leer_archivo, escribir_archivo, listar_archivos, buscar_texto (HU-01-03); shell (HU-01-04); planeado: otras herramientas, …; shell_outcome.py: make_command_runner, outcome_from_result (lee el resultado de `shell`, HU-11-04.1)
 │   │   ├── system/         # WorkspaceArea: AuthorizedArea real (rutas reales, «..», enlaces, reglas de Windows) (HU-01-03);
 │   │   │                   # shells (HU-01-04): SubprocessShell (tiempo máximo, árbol de procesos, salida acotada), BashShell,
 │   │   │                   # PowerShellShell, select_shell/interpreter_for, environment_notice, denied_commands (dato);
@@ -61,6 +62,7 @@ harness-agent/
 │       ├── app.py          # run_cli, attach_renderer, comandos /ayuda y /salir
 │       ├── render.py       # render_event: texto de cada evento, sanitizado y acotado
 │       ├── approval.py     # ConsoleApprover: muestra el detalle, lee la decisión y el motivo del rechazo (HU-05-03, HU-05-04)
+│       ├── criteria.py     # criterion_line, CriteriaBoard, attach_criteria_status: estado de cada criterio y `/criterios` (HU-11-04.1)
 │       └── approver.py     # (planeado: HU-05-03) pregunta de aprobación en terminal
 └── tests/
     ├── litellm_offline.py  # sustituye el codificador de LiteLLM en memoria para que ninguna prueba descargue nada (HU-07-02)

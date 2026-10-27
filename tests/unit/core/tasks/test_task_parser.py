@@ -70,9 +70,9 @@ def test_section_names_ignore_case_and_spaces_and_order() -> None:
 
 
 def test_key_lines_accept_dash_prefix_and_any_case() -> None:
-    text = "## Objetivo\nx\n## Criterios\n- c\n  - Comando: ls\n\t* ESPERA : ok\n"
+    text = "## Objetivo\nx\n## Criterios\n- c\n  - Comando: ls\n\t* ESPERA : codigo_salida == 0\n"
     criterion = parse_task(text).criteria[0]
-    assert (criterion.command, criterion.expectation) == ("ls", "ok")
+    assert (criterion.command, criterion.expectation) == ("ls", "codigo_salida == 0")
 
 
 def test_crlf_line_endings_are_accepted() -> None:
@@ -242,3 +242,32 @@ def test_with_title_fills_only_a_missing_title() -> None:
     titled = parse_task(VALID)
     assert titled.with_title("Otro") is titled
     assert task.with_title("  ") is task
+
+
+# --- the expected condition (HU-11-04.1) ----------------------------------------------------------
+
+CONDITION_TASK = "## Objetivo\nx\n## Criterios\n- a\n  - comando: ls\n  - espera: {condition}\n"
+
+
+@pytest.mark.parametrize(
+    "condition", ["salida 0", "ok", "codigo_salida >= 0", "codigo_salida == -1"]
+)
+def test_an_unsupported_condition_makes_the_task_invalid(condition: str) -> None:
+    assert code_of(CONDITION_TASK.format(condition=condition)) == "condicion_no_soportada"
+
+
+def test_the_unsupported_condition_message_does_not_repeat_the_text() -> None:
+    with pytest.raises(TaskFormatError) as caught:
+        parse_task(CONDITION_TASK.format(condition=SENTINEL))
+    assert SENTINEL not in str(caught.value)
+    assert "codigo_salida == N" in str(caught.value)
+
+
+def test_a_not_equal_condition_is_accepted() -> None:
+    task = parse_task(CONDITION_TASK.format(condition="codigo_salida != 1"))
+    assert task.criteria[0].expectation == "codigo_salida != 1"
+
+
+def test_the_pair_check_comes_before_the_condition_check() -> None:
+    text = "## Objetivo\nx\n## Criterios\n- a\n  - comando: ls\n"
+    assert code_of(text) == "criterio_incompleto"

@@ -8,6 +8,15 @@ returns the exit code of the session) and ``ConsoleApprover`` (the approval prom
 
 from harness_agent.cli.app import attach_renderer, run_cli
 from harness_agent.cli.approval import ConsoleApprover
+from harness_agent.cli.criteria import CriteriaBoard, attach_criteria_status, criterion_line
 from harness_agent.cli.render import render_event
 
-__all__ = ["ConsoleApprover", "attach_renderer", "render_event", "run_cli"]
+__all__ = [
+    "ConsoleApprover",
+    "CriteriaBoard",
+    "attach_criteria_status",
+    "attach_renderer",
+    "criterion_line",
+    "render_event",
+    "run_cli",
+]

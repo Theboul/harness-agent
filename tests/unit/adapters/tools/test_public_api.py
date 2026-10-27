@@ -39,6 +39,9 @@ TOOLS_API = {
     # HU-11-03: argument names of the shell, used to allow the commands of a task.
     "COMMAND_ARGUMENT",
     "TIMEOUT_ARGUMENT",
+    # HU-11-04.1: runs a verification command through the shell tool.
+    "make_command_runner",
+    "outcome_from_result",
 }
 SYSTEM_API = {
     "BashShell",

@@ -11,6 +11,12 @@ from harness_agent.core.tasks.commands import (
     TaskCommand,
     commands_notice,
 )
+from harness_agent.core.tasks.condition import (
+    MAX_EXIT_CODE,
+    Condition,
+    condition_met,
+    parse_condition,
+)
 from harness_agent.core.tasks.definition import (
     MAX_CRITERIA,
     MAX_FIELD_CHARS,
@@ -33,6 +39,10 @@ __all__ = [
     "TaskDefinition",
     "TaskFormatError",
     "parse_task",
+    "MAX_EXIT_CODE",
+    "Condition",
+    "condition_met",
+    "parse_condition",
     "DEFAULT_COMMAND_TIMEOUT_SECONDS",
     "MAX_COMMAND_TEXT_CHARS",
     "MAX_COMMAND_TIMEOUT_SECONDS",

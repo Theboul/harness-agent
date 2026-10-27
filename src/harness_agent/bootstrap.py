@@ -53,8 +53,9 @@ from harness_agent.adapters.tools import (
     SearchTextTool,
     ShellTool,
     WriteFileTool,
+    make_command_runner,
 )
-from harness_agent.cli import ConsoleApprover, run_cli
+from harness_agent.cli import ConsoleApprover, attach_criteria_status, run_cli
 from harness_agent.config import (
     PROVIDER_KEY_VARIABLES,
     ConfigError,
@@ -64,18 +65,23 @@ from harness_agent.config import (
 )
 from harness_agent.core import (
     AllowedCall,
+    ApprovalGate,
     Approver,
     AuthorizedArea,
     CommandPolicy,
+    CriteriaVerifier,
     DefaultPermissionPolicy,
     DenyList,
     Dialect,
+    Event,
     EventBus,
+    EventType,
     ExactCallPolicy,
     GitPolicy,
     InMemoryEventBus,
     InMemoryToolRegistry,
     Message,
+    PermissionPolicy,
     ProtectedPolicy,
     Provider,
     Role,
@@ -83,11 +89,12 @@ from harness_agent.core import (
     SessionLimits,
     TaskCommand,
     TaskDefinition,
+    VerifyingRunner,
     commands_notice,
     compile_rule,
     git_instructions,
 )
-from harness_agent.core.loop import AgentLoop
+from harness_agent.core.loop import AgentLoop, TurnResult
 
 NO_AREA_NOTICE = (
     "Aviso: no hay área de trabajo configurada (paths.workspace_root); "
@@ -146,6 +153,7 @@ class Composition:
     task_store: SqliteTaskStore | None = None
     task: TaskDefinition | None = None
     criteria_export: Path | None = None
+    runner: VerifyingRunner[TurnResult] | None = None
 
     def close(self) -> None:
         """Close the session store; safe to call more than once."""
@@ -370,6 +378,21 @@ def compose(
             max_tokens=config.limits.max_tokens,
         )
         loop = AgentLoop(provider, registry, policy, bus, approver=approver, limits=limits)
+        runner: VerifyingRunner[TurnResult] | None = None
+        if task is not None:
+            runner = _verifying_runner(
+                loop,
+                task,
+                task_store,
+                policy,
+                registry,
+                shell_tool,
+                bus,
+                session_id,
+                approver,
+                clock,
+                id_factory,
+            )
     except BaseException:
         store.close()
         raise
@@ -391,7 +414,60 @@ def compose(
         task_store=task_store,
         task=task,
         criteria_export=export,
+        runner=runner,
     )
+
+
+def _verifying_runner(
+    loop: AgentLoop,
+    task: TaskDefinition,
+    task_store: SqliteTaskStore,
+    policy: PermissionPolicy,
+    registry: InMemoryToolRegistry,
+    shell_tool: ShellTool,
+    bus: EventBus,
+    session_id: str,
+    approver: Approver | None,
+    clock: Callable[[], datetime] | None,
+    id_factory: Callable[[], str] | None,
+) -> VerifyingRunner[TurnResult]:
+    """The runner that verifies the criteria of ``task`` each time the agent proposes to finish.
+
+    It only connects pieces (HU-11-04.1): the policy and the shell tool are the ones of the agent,
+    the approver is the one of the session (the verifier keeps its own gate) and the time limits
+    of the commands the task declares are handed over so an identical criterion command inherits
+    them.
+    """
+
+    def emit(kind: EventType, payload: dict[str, Any]) -> None:
+        bus.emit(
+            Event.create(
+                session_id,
+                kind,
+                payload,
+                event_id=None if id_factory is None else id_factory(),
+                timestamp=None if clock is None else clock(),
+            )
+        )
+
+    verifier = CriteriaVerifier(
+        task_store,
+        task,
+        policy,
+        shell_tool,
+        make_command_runner(registry, shell_tool.name),
+        emit,
+        gate=None if approver is None else ApprovalGate(approver),
+        tool_name=shell_tool.name,
+        command_argument=COMMAND_ARGUMENT,
+        timeout_argument=TIMEOUT_ARGUMENT,
+        declared_timeouts={command.command: command.timeout_seconds for command in task.commands},
+    )
+
+    async def run_turn(text: str, history: list[Message]) -> TurnResult:
+        return await loop.run_turn(session_id=session_id, task=text, history=history)
+
+    return VerifyingRunner(run_turn, verifier, session_id)
 
 
 def _write_notice(stream: TextIO, text: str) -> None:
@@ -425,12 +501,26 @@ async def run_session(
         _write_notice(stream, notice)
     history: list[Message] = list(composition.history_prefix)
 
+    runner = composition.runner
+
     async def run_turn(task: str) -> object:
+        if runner is not None:
+            return await runner.run(task, history)
         return await composition.loop.run_turn(
             session_id=composition.session_id, task=task, history=history
         )
 
-    return await run_cli(composition.bus, run_turn, input_stream=input_stream, output=stream)
+    commands = None
+    if runner is not None:
+        board = attach_criteria_status(composition.bus, stream)
+        commands = {"/criterios": ("Muestra el estado de los criterios.", board.report)}
+    return await run_cli(
+        composition.bus,
+        run_turn,
+        input_stream=input_stream,
+        output=stream,
+        commands=commands,
+    )
 
 
 def _report_startup_failure(error: TextIO, text: str) -> int:
