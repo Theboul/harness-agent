@@ -37,7 +37,7 @@ harness-agent/
 │   │   ├── in_memory_event_bus.py  # InMemoryEventBus, EventDeliveryError (HU-01-05)
 │   │   ├── redaction.py    # hide_url_credentials, HIDDEN_SECRET (HU-11-02); provisional: HU-10-02 la absorberá (observability/ no es importable desde adapters/tools ni bootstrap)
 │   │   ├── tools/          # InMemoryToolRegistry, validador JSON Schema propio, errores (HU-01-02); output_limit.py: recorte general de salidas, TruncatingTool (HU-02-02)
-│   │   ├── permissions/    # DefaultPermissionPolicy, PermissionRules (HU-05-01); protected.py: ProtectedPolicy, decorador que solo deniega (HU-11-01); exact_calls.py: AllowedCall, ExactCallPolicy, permite solo la llamada exacta declarada tras un «preguntar» (HU-11-03); command_parser.py (analizador de comandos bash/PowerShell, sin shlex), command_rules.py (CompiledRule, DenyList, lista de denegados compilada) y command_policy.py (CommandPolicy, solo endurece) (HU-05-02); git_table.py (tabla de subcomandos de git, solo datos, la revisa el PO) y git_rules.py (classify_git, GitPolicy, git_instructions) (HU-11-02); approvals.py: ApprovalGate, aprobación una vez/sesión con falla cerrada (HU-05-03)
+│   │   ├── permissions/    # DefaultPermissionPolicy, PermissionRules (HU-05-01); protected.py: ProtectedPolicy, decorador que solo deniega (HU-11-01); exact_calls.py: AllowedCall, ExactCallPolicy, permite solo la llamada exacta declarada tras un «preguntar» (HU-11-03); command_parser.py (analizador de comandos bash/PowerShell, sin shlex), command_rules.py (CompiledRule, DenyList, lista de denegados compilada) y command_policy.py (CommandPolicy, solo endurece) (HU-05-02); git_table.py (tabla de subcomandos de git, solo datos, la revisa el PO) y git_rules.py (classify_git, GitPolicy, git_instructions) (HU-11-02); approvals.py: ApprovalGate, aprobación una vez/sesión con falla cerrada (HU-05-03), y `clean_reason`/`rejection_message`, que componen el texto del rechazo con el motivo saneado (HU-05-04)
 │   │   ├── tasks/          # TaskDefinition, CriterionDefinition, parse_task, TaskFormatError: formato y validación de la tarea (HU-11-01); commands.py: TaskCommand, CommandKind, commands_notice, sección «## Comandos» (HU-11-03)
 │   │   ├── limits.py       # HU-01-06: SessionLimits, LimitTracker (turnos = llamadas al modelo, tiempo, tokens)
 │   │   ├── context/        # HU-02-01: estimación, prefijo estable, ContextAssembler (planeado: HU-02-03 ContextManager, compactación)
@@ -60,7 +60,7 @@ harness-agent/
 │   └── cli/                # terminal: se suscribe al bus (HU-06-01)
 │       ├── app.py          # run_cli, attach_renderer, comandos /ayuda y /salir
 │       ├── render.py       # render_event: texto de cada evento, sanitizado y acotado
-│       ├── approval.py     # ConsoleApprover: muestra el detalle y lee la decisión (HU-05-03)
+│       ├── approval.py     # ConsoleApprover: muestra el detalle, lee la decisión y el motivo del rechazo (HU-05-03, HU-05-04)
 │       └── approver.py     # (planeado: HU-05-03) pregunta de aprobación en terminal
 └── tests/
     ├── litellm_offline.py  # sustituye el codificador de LiteLLM en memoria para que ninguna prueba descargue nada (HU-07-02)

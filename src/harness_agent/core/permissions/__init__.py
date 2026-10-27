@@ -5,7 +5,15 @@ Only the standard library and ``harness_agent.core`` are used here; the configur
 outside the core and arrives as an immutable ``PermissionRules``.
 """
 
-from harness_agent.core.permissions.approvals import ApprovalGate, ApprovalOutcome
+from harness_agent.core.permissions.approvals import (
+    MAX_REASON_CHARS,
+    MAX_REJECTION_CHARS,
+    REJECTED_MARK,
+    ApprovalGate,
+    ApprovalOutcome,
+    clean_reason,
+    rejection_message,
+)
 from harness_agent.core.permissions.command_parser import (
     CommandPart,
     Dialect,
@@ -35,6 +43,11 @@ __all__ = [
     "AllowedCall",
     "ApprovalGate",
     "ApprovalOutcome",
+    "MAX_REASON_CHARS",
+    "MAX_REJECTION_CHARS",
+    "REJECTED_MARK",
+    "clean_reason",
+    "rejection_message",
     "CommandPart",
     "CommandPolicy",
     "CompiledRule",

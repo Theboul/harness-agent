@@ -150,6 +150,19 @@ class TestReject:
         assert outcome.approved is False
         assert outcome.reason is None
 
+    async def test_the_reason_leaves_the_gate_clean(self) -> None:
+        dirty = "usa" + chr(10) + "pytest" + chr(27) + ' y "no" ejecutes'
+        gate = ApprovalGate(DummyApprover(ApprovalAction.REJECT, dirty))
+
+        outcome = await resolve(gate, make_call())
+
+        assert outcome.reason == f"usa pytest y {chr(0x2019)}no{chr(0x2019)} ejecutes"
+
+    async def test_a_reason_that_is_only_control_characters_is_none(self) -> None:
+        gate = ApprovalGate(DummyApprover(ApprovalAction.REJECT, chr(27) + chr(0x200B)))
+
+        assert (await resolve(gate, make_call())).reason is None
+
 
 class TestFailClosed:
     async def test_an_ordinary_exception_is_a_denial_without_the_message(self) -> None:

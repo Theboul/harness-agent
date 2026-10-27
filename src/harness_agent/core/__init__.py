@@ -70,6 +70,9 @@ from harness_agent.core.limits import (
     SessionLimits,
 )
 from harness_agent.core.permissions import (
+    MAX_REASON_CHARS,
+    MAX_REJECTION_CHARS,
+    REJECTED_MARK,
     AllowedCall,
     ApprovalGate,
     ApprovalOutcome,
@@ -88,9 +91,11 @@ from harness_agent.core.permissions import (
     RuleError,
     RuleKind,
     classify_git,
+    clean_reason,
     compile_rule,
     git_instructions,
     parse_command,
+    rejection_message,
 )
 from harness_agent.core.redaction import HIDDEN_SECRET, hide_url_credentials
 from harness_agent.core.tasks import (
@@ -150,6 +155,11 @@ __all__ = [
     "ApprovalResult",
     "ApprovalGate",
     "ApprovalOutcome",
+    "MAX_REASON_CHARS",
+    "MAX_REJECTION_CHARS",
+    "REJECTED_MARK",
+    "clean_reason",
+    "rejection_message",
     "SessionStore",
     "MemoryStore",
     "SessionSummary",

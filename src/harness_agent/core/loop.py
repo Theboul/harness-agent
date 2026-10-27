@@ -27,7 +27,11 @@ from harness_agent.core.interfaces.provider import Provider, ProviderResponse, T
 from harness_agent.core.interfaces.security import Approver, PermissionDecision, PermissionPolicy
 from harness_agent.core.interfaces.tool import Tool, ToolRegistry
 from harness_agent.core.limits import LimitTracker, SessionLimits
-from harness_agent.core.permissions.approvals import ApprovalGate, ApprovalOutcome
+from harness_agent.core.permissions.approvals import (
+    ApprovalGate,
+    ApprovalOutcome,
+    rejection_message,
+)
 
 MAX_MESSAGE_CHARS = 500
 
@@ -473,7 +477,8 @@ class AgentLoop:
         """Wait for the user's decision; ``None`` means approved, otherwise the rejection.
 
         Both events are published before anything runs: if either publication fails the tool
-        does not run (Q4). The rejection reason of the user is not forwarded yet (HU-05-04).
+        does not run (Q4). A rejection carries the user's reason, cleaned and framed by
+        ``rejection_message`` (HU-05-04); a failed approval never does.
         """
         assert self._approvals is not None
         outcome = await self._approvals.resolve(
@@ -495,11 +500,7 @@ class AgentLoop:
                 f"[approval_failed] Tool '{call.name}' could not be approved and was denied "
                 "(fail closed).",
             )
-        return _rejection(
-            call,
-            "approval_rejected",
-            f"[approval_rejected] Tool '{call.name}' was rejected by the user.",
-        )
+        return _rejection(call, "approval_rejected", rejection_message(call.name, outcome.reason))
 
     @staticmethod
     async def _execute(tool: Tool, call: ToolCall, authorized: dict[str, Any]) -> _Outcome:
