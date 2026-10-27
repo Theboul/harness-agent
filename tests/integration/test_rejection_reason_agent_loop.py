@@ -292,7 +292,14 @@ async def test_the_reason_is_not_stored_in_the_database(
         }
         rows = [str(row) for row in connection.execute("SELECT * FROM events")]
     connection.close()
-    assert tables == {"sessions", "events", "criterios", "criterios_sello", "resumenes"}
+    assert tables == {
+        "sessions",
+        "events",
+        "criterios",
+        "criterios_sello",
+        "resumenes",
+        "contexto_esencial",
+    }
     assert rows
     assert not any(SENTINEL in row for row in rows)
 

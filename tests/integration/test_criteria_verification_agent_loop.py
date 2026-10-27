@@ -256,8 +256,15 @@ async def test_a_tampered_database_runs_nothing(
 ) -> None:
     rig = Rig(tmp_path, opened, monkeypatch, ticket("check-a", "check-b", None))
     connection = rig.composition.store.connection()
-    connection.execute("UPDATE criterios SET comando = 'otro' WHERE orden = 1")
-    connection.commit()
+
+    def tamper(event: Event) -> None:
+        # After the first round has gone out: the essential block fails closed on a tampered source
+        # before any round (HU-02-06.1, FR-010), so the verifier is shown the database tampered
+        # only once the agent has proposed to finish.
+        connection.execute("UPDATE criterios SET comando = 'otro' WHERE orden = 1")
+        connection.commit()
+
+    rig.composition.bus.subscribe(EventType.ASSISTANT_MESSAGE, tamper)
 
     await rig.propose()
 

@@ -17,6 +17,7 @@ EXPECTED = {
     "SessionNotFound",
     "SessionStoreError",
     "SqliteCompactionArchive",
+    "SqliteEssentialStore",
     "SqliteSessionStore",
     "SqliteTaskStore",
     "StartedTask",
