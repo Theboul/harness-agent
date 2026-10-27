@@ -21,6 +21,12 @@ from harness_agent.core.permissions.command_rules import (
     compile_rule,
 )
 from harness_agent.core.permissions.exact_calls import AllowedCall, ExactCallPolicy
+from harness_agent.core.permissions.git_rules import (
+    GitClass,
+    GitPolicy,
+    classify_git,
+    git_instructions,
+)
 from harness_agent.core.permissions.policy import DefaultPermissionPolicy
 from harness_agent.core.permissions.protected import ProtectedPolicy
 from harness_agent.core.permissions.rules import PermissionRules
@@ -41,6 +47,10 @@ __all__ = [
     "parse_command",
     "DefaultPermissionPolicy",
     "ExactCallPolicy",
+    "GitClass",
+    "GitPolicy",
+    "classify_git",
+    "git_instructions",
     "PermissionRules",
     "ProtectedPolicy",
 ]
