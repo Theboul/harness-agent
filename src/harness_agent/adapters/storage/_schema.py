@@ -2,7 +2,8 @@
 
 The version lives in ``PRAGMA user_version``. A new database gets the current schema; a database
 at version 1 (sessions and events, HU-03-01) is migrated to the current one without touching its
-data (version 2 adds the ``criterios`` tables, HU-11-01); a database at the current version is
+data (version 2 adds the ``criterios`` tables, HU-11-01; version 3 adds the ``resumenes`` table of
+the automatic compaction, HU-02-03); a database at the current version is
 accepted as is; anything else (a newer version, or a database that has tables but no version) is
 refused without being modified. Every change runs in one transaction.
 """
@@ -13,7 +14,7 @@ import sqlite3
 
 from harness_agent.adapters.storage.errors import SchemaVersionError
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 _V1 = """
 CREATE TABLE sessions (
@@ -59,8 +60,22 @@ CREATE TABLE criterios_sello (
 );
 """
 
+# Summaries of the automatic compaction (HU-02-03). The events a summary covers carry its id in
+# ``events.compacted_by`` (a column since version 1); nothing else changes.
+_V3 = """
+CREATE TABLE resumenes (
+    id            TEXT PRIMARY KEY,
+    sesion_id     TEXT NOT NULL REFERENCES sessions(id),
+    evento_desde  INTEGER NOT NULL CHECK (evento_desde >= 1),
+    evento_hasta  INTEGER NOT NULL CHECK (evento_hasta >= evento_desde),
+    texto         TEXT NOT NULL CHECK (length(trim(texto)) > 0),
+    creado        TEXT NOT NULL
+);
+CREATE INDEX idx_resumenes_sesion ON resumenes (sesion_id, evento_hasta);
+"""
+
 # What each version adds on top of the one before it.
-_STEPS = {1: _V1, 2: _V2}
+_STEPS = {1: _V1, 2: _V2, 3: _V3}
 
 
 def _script(first: int) -> str:

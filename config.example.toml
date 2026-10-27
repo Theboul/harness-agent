@@ -49,3 +49,23 @@ sessions_db = ".harness/sessions.db"
 # comandos: la lista base no se puede quitar ni vaciar. Se escriben como el comando real
 # (por ejemplo "terraform destroy").
 # deny_commands = []
+
+# Compactación automática del contexto (opcional). Sin esta sección rigen los valores de abajo. Si el
+# contexto estimado supera el umbral del modelo, al empezar una petición se resume lo antiguo y se
+# conserva íntegro lo reciente; el historial original no se borra. Cada valor es un entero y uno
+# inválido detiene el arranque. Los números de ejemplo son valores por defecto, no una promesa del
+# tamaño real de ningún modelo: ajústelos al modelo que use.
+# [context]
+# Ventana de un modelo que no aparece en [context.windows] (de 1000 a 10000000 tokens).
+# window_tokens = 32000
+# El umbral es este porcentaje de la ventana (de 10 a 95).
+# threshold_percent = 80
+# Los mensajes recientes que se conservan suman como mucho este porcentaje del umbral (de 5 a 60).
+# recent_percent = 30
+# Y nunca son menos de estos mensajes (de 1 a 50).
+# min_recent_messages = 4
+# Tamaño pedido al resumen, en tokens (de 100 a 8000); se acepta hasta el doble.
+# summary_tokens = 2000
+# Ventana de cada modelo por su nombre completo, entre comillas (de 1000 a 10000000 tokens).
+# [context.windows]
+# "openai/gpt-4o" = 128000

@@ -90,7 +90,9 @@ class TestTheRecorder:
             composition.bus.emit(make_event(event_type, composition.session_id, index))
 
         saved = composition.store.load_session(composition.session_id)
-        assert [event.type for event in saved] == list(EventType)
+        # context_compacted is stored by the compaction archive, not by the recorder (R5, HU-02-03).
+        expected = [kind for kind in EventType if kind is not EventType.CONTEXT_COMPACTED]
+        assert [event.type for event in saved] == expected
 
     async def test_the_events_of_a_real_turn_are_saved_before_anyone_else_sees_them(
         self, tmp_path: Path, opened: list[Composition]

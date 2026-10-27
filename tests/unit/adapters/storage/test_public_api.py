@@ -16,6 +16,7 @@ EXPECTED = {
     "SchemaVersionError",
     "SessionNotFound",
     "SessionStoreError",
+    "SqliteCompactionArchive",
     "SqliteSessionStore",
     "SqliteTaskStore",
     "StartedTask",

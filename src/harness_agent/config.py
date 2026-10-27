@@ -23,7 +23,13 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, NoReturn
 
-from harness_agent.core import DEFAULT_MAX_OUTPUT_CHARS, MIN_MAX_OUTPUT_CHARS
+from harness_agent.core import (
+    CONTEXT_FIELD_RANGES,
+    DEFAULT_MAX_OUTPUT_CHARS,
+    MIN_MAX_OUTPUT_CHARS,
+    ContextSettings,
+    requirement_of,
+)
 from harness_agent.core.permissions import PermissionRules
 
 MAX_FIELD_DISPLAY = 64
@@ -57,6 +63,8 @@ _LIMIT_FIELDS = (
 _LIMIT_MINIMUMS = {"max_tool_output_chars": MIN_MAX_OUTPUT_CHARS}
 _PATH_FIELDS = ("workspace_root", "sessions_db")
 _PERMISSION_FIELDS = ("deny", "ask")
+# Optional ``[context]`` section (HU-02-03): the fields, in the order they are reported.
+_CONTEXT_FIELDS = tuple(CONTEXT_FIELD_RANGES)
 # Shell commands added to the base deny list (HU-05-02); kept apart from ``PermissionRules``.
 _DENY_COMMANDS_FIELD = "deny_commands"
 _MAX_DENY_COMMAND_CHARS = 500
@@ -75,6 +83,7 @@ _UNKNOWN_FIELD = "campo desconocido en el esquema."
 _TABLE_FIELDS: Mapping[str, tuple[str, ...]] = MappingProxyType(
     {
         "limits": _LIMIT_FIELDS,
+        "context": _CONTEXT_FIELDS,
         "paths": _PATH_FIELDS,
         "permissions": (*_PERMISSION_FIELDS, _DENY_COMMANDS_FIELD),
     }
@@ -330,6 +339,8 @@ class HarnessConfig:
             configuration cannot define a rule to allow.
         deny_commands: Shell commands added to the base deny list of the platform (HU-05-02);
             empty by default. They can only add: the base list cannot be removed.
+        context: Size of the context window and when to compact it (HU-02-03); the defaults
+            apply without a ``[context]`` section.
     """
 
     model: str
@@ -340,6 +351,7 @@ class HarnessConfig:
     key_variable: str | None = None
     permissions: PermissionRules = PermissionRules()
     deny_commands: tuple[str, ...] = ()
+    context: ContextSettings = ContextSettings()
 
 
 def _locate(path: str | os.PathLike[str] | None, environ: Mapping[str, str]) -> tuple[Path, str]:
@@ -415,6 +427,37 @@ def _check_limits(table: Mapping[str, Any], present: list[ConfigProblem]) -> Lim
             message = _NOT_AN_INTEGER if minimum == 1 else _INTEGER_AT_LEAST.format(minimum=minimum)
             present.append(ConfigProblem(f"limits.{field}", message))
     return Limits(**values)
+
+
+def _is_integer_in_range(field: str, value: object) -> bool:
+    low, high = CONTEXT_FIELD_RANGES[field]
+    return isinstance(value, int) and not isinstance(value, bool) and low <= value <= high
+
+
+def _check_context(table: Mapping[str, Any], present: list[ConfigProblem]) -> ContextSettings:
+    """The ``[context]`` section: integers in their range and a table of window sizes per model.
+
+    A problem names the field and says what is valid; it never repeats the value or a model name.
+    """
+    values: dict[str, Any] = {}
+    for field in _CONTEXT_FIELDS:
+        if field not in table:
+            continue
+        value = table[field]
+        if field == "windows":
+            valid = isinstance(value, dict) and all(
+                isinstance(name, str) and name and _is_integer_in_range(field, size)
+                for name, size in value.items()
+            )
+            if valid:
+                values[field] = tuple(value.items())
+        else:
+            valid = _is_integer_in_range(field, value)
+            if valid:
+                values[field] = value
+        if not valid:
+            present.append(ConfigProblem(f"context.{field}", requirement_of(field)))
+    return ContextSettings(**values)
 
 
 def _check_paths(table: Mapping[str, Any], base: Path, present: list[ConfigProblem]) -> Paths:
@@ -559,6 +602,7 @@ def load_config(
         raise SecretInConfigFileError(file_path, key_fields)
     model = _check_model(data, missing, present)
     limits = _check_limits(_table(data, "limits", present), present)
+    context = _check_context(_table(data, "context", present), present)
     paths = _check_paths(_table(data, "paths", present), file_path.parent, present)
     permissions_table = _table(data, "permissions", present)
     permissions = _check_permissions(permissions_table, present)
@@ -577,6 +621,7 @@ def load_config(
             source=file_path,
             permissions=permissions,
             deny_commands=deny_commands,
+            context=context,
         )
     value = environment.get(variable)
     if value is None or not value.strip():
@@ -590,4 +635,5 @@ def load_config(
         key_variable=variable,
         permissions=permissions,
         deny_commands=deny_commands,
+        context=context,
     )
