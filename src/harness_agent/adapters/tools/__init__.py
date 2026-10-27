@@ -19,7 +19,7 @@ from harness_agent.adapters.tools._limits import (
 from harness_agent.adapters.tools.list_files import ListFilesTool
 from harness_agent.adapters.tools.read_file import ReadFileTool
 from harness_agent.adapters.tools.search_text import SearchTextTool
-from harness_agent.adapters.tools.shell import ShellTool
+from harness_agent.adapters.tools.shell import COMMAND_ARGUMENT, TIMEOUT_ARGUMENT, ShellTool
 from harness_agent.adapters.tools.write_file import WriteFileTool
 
 __all__ = [
@@ -38,4 +38,6 @@ __all__ = [
     "DEFAULT_SHELL_TIMEOUT_SECONDS",
     "MAX_SHELL_TIMEOUT_SECONDS",
     "MAX_COMMAND_CHARS",
+    "COMMAND_ARGUMENT",
+    "TIMEOUT_ARGUMENT",
 ]

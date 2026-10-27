@@ -36,6 +36,9 @@ TOOLS_API = {
     "DEFAULT_SHELL_TIMEOUT_SECONDS",
     "MAX_SHELL_TIMEOUT_SECONDS",
     "MAX_COMMAND_CHARS",
+    # HU-11-03: argument names of the shell, used to allow the commands of a task.
+    "COMMAND_ARGUMENT",
+    "TIMEOUT_ARGUMENT",
 }
 SYSTEM_API = {
     "BashShell",

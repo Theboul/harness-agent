@@ -21,8 +21,13 @@ _MESSAGES = {
     ),
     "seccion_repetida": "La tarea repite una sección.",
     "seccion_desconocida": (
-        "La tarea tiene una sección desconocida: solo se admiten Objetivo, Contexto, Reglas y "
-        "Criterios de aceptación."
+        "La tarea tiene una sección desconocida: solo se admiten Objetivo, Contexto, Reglas, "
+        "Criterios de aceptación y Comandos."
+    ),
+    "comando_no_valido": (
+        "La sección 'Comandos' no sigue el formato: usa '- pruebas: <comando>' o "
+        "'- lint: <comando>' (cada uno una vez y con texto) y, si quieres, debajo y con sangría "
+        "'- tiempo: <segundos>' entre 1 y 600."
     ),
     "criterio_incompleto": (
         "Un criterio está incompleto: 'comando:' y 'espera:' van juntos, con texto, una sola vez."

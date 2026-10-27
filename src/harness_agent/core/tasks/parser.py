@@ -1,7 +1,9 @@
 """Parser of the task format: Markdown text in, validated ``TaskDefinition`` out (HU-11-01).
 
 Pure function over text: the same format serves a task file and the body of a GitHub issue. The
-format is in ``specs/021-task-protected-criteria/contracts/task_format.md``. It fails closed:
+format is in ``specs/021-task-protected-criteria/contracts/task_format.md``; the optional
+``## Comandos`` section (HU-11-03) in ``specs/025-test-lint-shell-commands/contracts/
+task_commands_format.md``. It fails closed:
 anything that does not fit the format is rejected with a ``TaskFormatError`` that says what is
 missing and never repeats the received text.
 """
@@ -10,6 +12,13 @@ from __future__ import annotations
 
 import re
 
+from harness_agent.core.tasks.commands import (
+    DEFAULT_COMMAND_TIMEOUT_SECONDS,
+    MAX_COMMAND_TEXT_CHARS,
+    MAX_COMMAND_TIMEOUT_SECONDS,
+    CommandKind,
+    TaskCommand,
+)
 from harness_agent.core.tasks.definition import (
     MAX_CRITERIA,
     MAX_FIELD_CHARS,
@@ -26,8 +35,12 @@ _SECTION_BY_NAME = {
     "reglas": "reglas",
     "criterios de aceptación": "criterios",
     "criterios": "criterios",
+    "comandos": "comandos",
 }
 _KEY_LINE = re.compile(r"^(?:[-*]\s+)?(comando|espera)\s*:\s*(.*)$", re.IGNORECASE)
+_COMMAND_LINE = re.compile(r"^[-*]\s+(pruebas|lint)\s*:(.*)$", re.IGNORECASE)
+_TIME_LINE = re.compile(r"^(?:[-*]\s+)?tiempo\s*:(.*)$", re.IGNORECASE)
+_SECONDS = re.compile(r"[0-9]{1,6}")
 _SPACES = re.compile(r"\s+")
 _ALLOWED_CONTROLS = frozenset("\n\r\t")
 
@@ -87,6 +100,54 @@ class _CriteriaReader:
         self._keys = {}
 
 
+class _CommandsReader:
+    """Collects the commands of the ``## Comandos`` section, line by line (HU-11-03)."""
+
+    def __init__(self) -> None:
+        self.commands: list[TaskCommand] = []
+        self._kind: CommandKind | None = None
+        self._command = ""
+        self._seconds: int | None = None
+
+    def line(self, raw: str) -> None:
+        if not raw.strip():
+            return
+        if raw[0] not in " \t":
+            match = _COMMAND_LINE.match(raw)
+            if match is None:
+                raise TaskFormatError("comando_no_valido")
+            self._close()
+            kind = CommandKind(match.group(1).lower())
+            command = match.group(2).strip()
+            if not command or any(item.kind is kind for item in self.commands):
+                raise TaskFormatError("comando_no_valido")
+            self._kind, self._command = kind, _bounded(command, MAX_COMMAND_TEXT_CHARS)
+            return
+        match = _TIME_LINE.match(raw.strip())
+        if match is None or self._kind is None or self._seconds is not None:
+            raise TaskFormatError("comando_no_valido")
+        value = match.group(1).strip()
+        if _SECONDS.fullmatch(value) is None:
+            raise TaskFormatError("comando_no_valido")
+        seconds = int(value)
+        if not 1 <= seconds <= MAX_COMMAND_TIMEOUT_SECONDS:
+            raise TaskFormatError("comando_no_valido")
+        self._seconds = seconds
+
+    def finish(self) -> tuple[TaskCommand, ...]:
+        self._close()
+        if not self.commands:
+            raise TaskFormatError("comando_no_valido")
+        return tuple(self.commands)
+
+    def _close(self) -> None:
+        if self._kind is None:
+            return
+        seconds = DEFAULT_COMMAND_TIMEOUT_SECONDS if self._seconds is None else self._seconds
+        self.commands.append(TaskCommand(self._kind, self._command, seconds))
+        self._kind, self._command, self._seconds = None, "", None
+
+
 def parse_task(text: str) -> TaskDefinition:
     """Validate ``text`` and return the task it describes.
 
@@ -107,6 +168,7 @@ def parse_task(text: str) -> TaskDefinition:
     seen: set[str] = set()
     texts: dict[str, list[str]] = {"objetivo": [], "contexto": [], "reglas": []}
     reader = _CriteriaReader()
+    commands = _CommandsReader()
     for raw in text.splitlines():
         if raw.startswith("## "):
             name = _SECTION_BY_NAME.get(_SPACES.sub(" ", raw[3:].strip()).casefold())
@@ -130,6 +192,8 @@ def parse_task(text: str) -> TaskDefinition:
                 raise TaskFormatError("formato_no_valido")
         elif section == "criterios":
             reader.line(raw)
+        elif section == "comandos":
+            commands.line(raw)
         else:
             texts[section].append(raw)
 
@@ -145,4 +209,5 @@ def parse_task(text: str) -> TaskDefinition:
         context=_bounded("\n".join(texts["contexto"]).strip(), MAX_SECTION_CHARS),
         rules=_bounded("\n".join(texts["reglas"]).strip(), MAX_SECTION_CHARS),
         criteria=tuple(criteria),
+        commands=commands.finish() if "comandos" in seen else (),
     )
