@@ -54,6 +54,11 @@ SYSTEM_API = {
     "interpreter_for",
     "select_shell",
     "windows_path_problem",
+    # HU-05-02: tables that help compare the commands with the deny list.
+    "OPTION_SYNONYMS",
+    "PROGRAM_ALIASES",
+    "option_synonyms_for",
+    "program_aliases_for",
 }
 
 

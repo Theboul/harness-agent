@@ -73,10 +73,20 @@ from harness_agent.core.permissions import (
     AllowedCall,
     ApprovalGate,
     ApprovalOutcome,
+    CommandPart,
+    CommandPolicy,
+    CompiledRule,
     DefaultPermissionPolicy,
+    DenyList,
+    Dialect,
     ExactCallPolicy,
+    ParsedCommand,
     PermissionRules,
     ProtectedPolicy,
+    RuleError,
+    RuleKind,
+    compile_rule,
+    parse_command,
 )
 from harness_agent.core.tasks import (
     DEFAULT_COMMAND_TIMEOUT_SECONDS,
@@ -175,6 +185,17 @@ __all__ = [
     # Exact declared calls (HU-11-03)
     "AllowedCall",
     "ExactCallPolicy",
+    # Shell command analysis and deny list (HU-05-02)
+    "CommandPart",
+    "Dialect",
+    "ParsedCommand",
+    "parse_command",
+    "CommandPolicy",
+    "CompiledRule",
+    "DenyList",
+    "RuleError",
+    "RuleKind",
+    "compile_rule",
     # Task definition and parser (HU-11-01)
     "MAX_CRITERIA",
     "CriterionDefinition",

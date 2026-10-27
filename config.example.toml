@@ -45,3 +45,7 @@ sessions_db = ".harness/sessions.db"
 # deny = []
 # Herramientas que siempre se preguntan (hoy, sin interfaz de aprobación, se deniegan con motivo).
 # ask = []
+# Comandos del shell que se añaden a la lista base de denegados de la plataforma. Solo añaden
+# comandos: la lista base no se puede quitar ni vaciar. Se escriben como el comando real
+# (por ejemplo "terraform destroy").
+# deny_commands = []

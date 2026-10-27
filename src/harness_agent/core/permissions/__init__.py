@@ -6,6 +6,20 @@ outside the core and arrives as an immutable ``PermissionRules``.
 """
 
 from harness_agent.core.permissions.approvals import ApprovalGate, ApprovalOutcome
+from harness_agent.core.permissions.command_parser import (
+    CommandPart,
+    Dialect,
+    ParsedCommand,
+    parse_command,
+)
+from harness_agent.core.permissions.command_policy import CommandPolicy
+from harness_agent.core.permissions.command_rules import (
+    CompiledRule,
+    DenyList,
+    RuleError,
+    RuleKind,
+    compile_rule,
+)
 from harness_agent.core.permissions.exact_calls import AllowedCall, ExactCallPolicy
 from harness_agent.core.permissions.policy import DefaultPermissionPolicy
 from harness_agent.core.permissions.protected import ProtectedPolicy
@@ -15,6 +29,16 @@ __all__ = [
     "AllowedCall",
     "ApprovalGate",
     "ApprovalOutcome",
+    "CommandPart",
+    "CommandPolicy",
+    "CompiledRule",
+    "DenyList",
+    "Dialect",
+    "ParsedCommand",
+    "RuleError",
+    "RuleKind",
+    "compile_rule",
+    "parse_command",
     "DefaultPermissionPolicy",
     "ExactCallPolicy",
     "PermissionRules",

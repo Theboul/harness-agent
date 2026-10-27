@@ -37,8 +37,11 @@ from harness_agent.adapters.storage import (
 from harness_agent.adapters.system import (
     ProtectedPaths,
     WorkspaceArea,
+    denied_commands_for,
     environment_notice,
     interpreter_for,
+    option_synonyms_for,
+    program_aliases_for,
     select_shell,
 )
 from harness_agent.adapters.tools import (
@@ -63,7 +66,10 @@ from harness_agent.core import (
     AllowedCall,
     Approver,
     AuthorizedArea,
+    CommandPolicy,
     DefaultPermissionPolicy,
+    DenyList,
+    Dialect,
     EventBus,
     ExactCallPolicy,
     InMemoryEventBus,
@@ -72,10 +78,12 @@ from harness_agent.core import (
     ProtectedPolicy,
     Provider,
     Role,
+    RuleError,
     SessionLimits,
     TaskCommand,
     TaskDefinition,
     commands_notice,
+    compile_rule,
 )
 from harness_agent.core.loop import AgentLoop
 
@@ -89,6 +97,10 @@ AREA_NOT_A_FOLDER_NOTICE = (
 )
 
 EXIT_STARTUP = 2
+DENY_COMMANDS_NOT_UNDERSTOOD = (
+    "una entrada de permissions.deny_commands no se entiende para {interpreter}."
+)
+ADDED_BY_CONFIGURATION = "Añadido por la configuración."
 EXIT_INTERRUPTED = 130
 STARTUP_FAILURE_PREFIX = "No se pudo iniciar: "
 
@@ -202,6 +214,37 @@ def _allowed_commands(commands: tuple[TaskCommand, ...], tool: str) -> tuple[All
     )
 
 
+def _deny_list(interpreter: str, added: tuple[str, ...]) -> DenyList:
+    """The deny list of the interpreter: its base list plus what the configuration adds.
+
+    Raises:
+        StartupError: An added entry is not understood (the message never repeats it).
+    """
+    dialect = Dialect(interpreter)
+    aliases = program_aliases_for(interpreter)
+    synonyms = option_synonyms_for(interpreter)
+    base = [
+        compile_rule(
+            entry.pattern,
+            entry.reason,
+            dialect,
+            aliases=aliases,
+            synonyms=synonyms,
+            allow_literal=True,
+        )
+        for entry in denied_commands_for(interpreter)
+    ]
+    try:
+        extra = [
+            compile_rule(text, ADDED_BY_CONFIGURATION, dialect, aliases=aliases, synonyms=synonyms)
+            for text in added
+        ]
+    except RuleError:
+        message = DENY_COMMANDS_NOT_UNDERSTOOD.format(interpreter=interpreter)
+        raise StartupError(message) from None
+    return DenyList(dialect, base, extra, aliases=aliases, synonyms=synonyms)
+
+
 def compose(
     config: HarnessConfig,
     *,
@@ -244,6 +287,8 @@ def compose(
             environ=process_environment() if environ is None else environ,
             removed_env={name for name in PROVIDER_KEY_VARIABLES.values() if name},
         )
+    # Compiled before anything is opened: a bad entry of the configuration stops the start.
+    deny_list = _deny_list(interpreter_for(system), config.deny_commands)
     registry = InMemoryToolRegistry(max_output_chars=config.limits.max_tool_output_chars)
     shell_tool = ShellTool(
         shell, area, on_cancel=None if shell is None else shell.terminate_running
@@ -273,13 +318,20 @@ def compose(
             directories=folders,
         )
         commands = () if task is None else task.commands
-        # Deny > ask > allow: the protection decides first, then the exact commands of the task
-        # may turn the "ask" of the default policy into "allow" (HU-11-03).
+        # Deny > ask > allow: the protection decides first; then the deny list of the shell
+        # (HU-05-02) denies before anything else is asked and never lets a command it does not
+        # understand be allowed; only then may the exact commands of the task turn the "ask" of
+        # the default policy into "allow" (HU-11-03).
         policy = ProtectedPolicy(
-            ExactCallPolicy(
-                DefaultPermissionPolicy(registry, area, config.permissions),
-                _allowed_commands(commands, shell_tool.name),
-                ask_names=config.permissions.ask,
+            CommandPolicy(
+                ExactCallPolicy(
+                    DefaultPermissionPolicy(registry, area, config.permissions),
+                    _allowed_commands(commands, shell_tool.name),
+                    ask_names=config.permissions.ask,
+                ),
+                deny_list,
+                tool=shell_tool.name,
+                argument=COMMAND_ARGUMENT,
             ),
             protected,
             markers,
