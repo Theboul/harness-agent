@@ -7,7 +7,13 @@ from typing import Any
 
 import pytest
 
-from harness_agent.core import ApprovalAction, ApprovalResult, Approver, ToolCall
+from harness_agent.core import (
+    ApprovalAction,
+    ApprovalResult,
+    Approver,
+    ToolCall,
+    rejection_message,
+)
 from harness_agent.core.entities import Role
 from harness_agent.core.events import EventType
 from harness_agent.core.interfaces.provider import ProviderResponse
@@ -204,7 +210,8 @@ class TestRejectedAndFailedClosed:
         message = tool_message(result)
         assert message.content.startswith("[approval_rejected]")
         assert message.tool_result.is_error is True
-        assert SENTINEL not in message.content
+        assert SENTINEL in message.content
+        assert message.content == rejection_message("act", SENTINEL)
         finished = next(
             e.payload for e in rig.recording_bus.emitted_events if e.type is EventType.TOOL_FINISHED
         )

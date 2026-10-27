@@ -2,10 +2,11 @@
 
 ``ConsoleApprover`` implements the ``Approver`` port for the CLI. It shows the tool, its arguments
 and the expected effect, then reads ``1`` (approve once), ``2`` (approve for the session) or ``3``
-(reject). It fails closed on its own: the end of the input, or an invalid option repeated
-``max_attempts`` times, is a rejection; the invalid text is never echoed. The values of arguments
-whose name looks like a secret are hidden. A broken stream raises; the approval gate of the core
-turns that into a denial.
+(reject). After ``3`` it asks for an optional reason (HU-05-04): an empty line, the end of the
+input or ``/salir`` mean no reason, and the reason is never written back. It fails closed on its
+own: the end of the input, or an invalid option repeated ``max_attempts`` times, is a rejection;
+the invalid text is never echoed. The values of arguments whose name looks like a secret are
+hidden. A broken stream raises; the approval gate of the core turns that into a denial.
 
 The input is read with the same blocking ``readline`` that ``run_cli`` uses, from the same stream.
 """
@@ -15,7 +16,7 @@ from __future__ import annotations
 import sys
 from typing import Any, TextIO
 
-from harness_agent.core import ApprovalAction, ApprovalResult, Approver, ToolCall
+from harness_agent.core import ApprovalAction, ApprovalResult, Approver, ToolCall, clean_reason
 
 from .app import put_line
 from .render import bounded, sanitize
@@ -33,6 +34,7 @@ UNKNOWN_RISK = "desconocido"
 OPTIONS_LINE = "  [1] aprobar una vez  [2] aprobar para la sesión  [3] rechazar"
 PROMPT = "opción> "
 INVALID_OPTION = "Opción no válida: escribe 1, 2 o 3."
+REASON_PROMPT = "motivo (opcional, Enter para omitir)> "
 EXIT_COMMAND = "/salir"
 CHOICES = {
     "1": ApprovalAction.APPROVE_ONCE,
@@ -110,7 +112,24 @@ class ConsoleApprover(Approver):
             if answer.strip() == EXIT_COMMAND:  # the user wants out: nothing is approved
                 return ApprovalResult(ApprovalAction.REJECT)
             action = CHOICES.get(answer.strip())
+            if action is ApprovalAction.REJECT:
+                return ApprovalResult(action, self._read_reason(source, stream))
             if action is not None:
                 return ApprovalResult(action)
             put_line(stream, INVALID_OPTION)
         return ApprovalResult(ApprovalAction.REJECT)
+
+    @staticmethod
+    def _read_reason(source: TextIO, stream: TextIO) -> str | None:
+        """Ask why; an empty line, the end of the input or ``/salir`` mean no reason.
+
+        The reason is cleaned here too, and it is never written back to the output.
+        """
+        put_line(stream, REASON_PROMPT, end="")
+        answer = source.readline()
+        if answer == "":
+            put_line(stream, "")
+            return None
+        if answer.strip() == EXIT_COMMAND:
+            return None
+        return clean_reason(answer)
