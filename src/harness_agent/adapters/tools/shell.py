@@ -20,6 +20,10 @@ from harness_agent.adapters.tools._paths import bounded_text, error_result
 from harness_agent.core import AuthorizedArea, RiskLevel, Shell, Tool, ToolResult
 
 _NO_OUTPUT = "(sin salida)"
+# Names of the arguments; the composition root uses them to allow the commands of a task exactly
+# (HU-11-03).
+COMMAND_ARGUMENT = "command"
+TIMEOUT_ARGUMENT = "timeout_seconds"
 
 
 class ShellTool(Tool):
@@ -64,13 +68,13 @@ class ShellTool(Tool):
         return {
             "type": "object",
             "properties": {
-                "command": {
+                COMMAND_ARGUMENT: {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": MAX_COMMAND_CHARS,
                     "description": "Comando a ejecutar, con la sintaxis del intérprete.",
                 },
-                "timeout_seconds": {
+                TIMEOUT_ARGUMENT: {
                     "type": "number",
                     "minimum": 1,
                     "maximum": MAX_SHELL_TIMEOUT_SECONDS,
@@ -79,7 +83,7 @@ class ShellTool(Tool):
                     ),
                 },
             },
-            "required": ["command"],
+            "required": [COMMAND_ARGUMENT],
             "additionalProperties": False,
         }
 
@@ -95,8 +99,8 @@ class ShellTool(Tool):
                 "No hay un área de trabajo configurada, así que no se puede ejecutar el comando. "
                 "Configura 'workspace_root' en config.toml.",
             )
-        command = args.get("command")
-        timeout = _timeout(args.get("timeout_seconds"))
+        command = args.get(COMMAND_ARGUMENT)
+        timeout = _timeout(args.get(TIMEOUT_ARGUMENT))
         if not isinstance(command, str) or not command.strip() or timeout is None:
             return error_result(
                 "argumentos_invalidos",

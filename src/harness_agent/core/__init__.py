@@ -70,18 +70,25 @@ from harness_agent.core.limits import (
     SessionLimits,
 )
 from harness_agent.core.permissions import (
+    AllowedCall,
     ApprovalGate,
     ApprovalOutcome,
     DefaultPermissionPolicy,
+    ExactCallPolicy,
     PermissionRules,
     ProtectedPolicy,
 )
 from harness_agent.core.tasks import (
+    DEFAULT_COMMAND_TIMEOUT_SECONDS,
+    MAX_COMMAND_TIMEOUT_SECONDS,
     MAX_CRITERIA,
+    CommandKind,
     CriterionDefinition,
     CriterionKind,
+    TaskCommand,
     TaskDefinition,
     TaskFormatError,
+    commands_notice,
     parse_task,
 )
 from harness_agent.core.tools import (
@@ -165,6 +172,9 @@ __all__ = [
     "DefaultPermissionPolicy",
     "PermissionRules",
     "ProtectedPolicy",
+    # Exact declared calls (HU-11-03)
+    "AllowedCall",
+    "ExactCallPolicy",
     # Task definition and parser (HU-11-01)
     "MAX_CRITERIA",
     "CriterionDefinition",
@@ -172,6 +182,12 @@ __all__ = [
     "TaskDefinition",
     "TaskFormatError",
     "parse_task",
+    # Verification commands of a task (HU-11-03)
+    "DEFAULT_COMMAND_TIMEOUT_SECONDS",
+    "MAX_COMMAND_TIMEOUT_SECONDS",
+    "CommandKind",
+    "TaskCommand",
+    "commands_notice",
     # Token estimation and stable prefix (HU-02-01)
     "AssembledContext",
     "ContextAssembler",

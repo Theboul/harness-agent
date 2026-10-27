@@ -42,6 +42,9 @@ from harness_agent.adapters.system import (
     select_shell,
 )
 from harness_agent.adapters.tools import (
+    COMMAND_ARGUMENT,
+    DEFAULT_SHELL_TIMEOUT_SECONDS,
+    TIMEOUT_ARGUMENT,
     ListFilesTool,
     ReadFileTool,
     SearchTextTool,
@@ -57,10 +60,12 @@ from harness_agent.config import (
     process_environment,
 )
 from harness_agent.core import (
+    AllowedCall,
     Approver,
     AuthorizedArea,
     DefaultPermissionPolicy,
     EventBus,
+    ExactCallPolicy,
     InMemoryEventBus,
     InMemoryToolRegistry,
     Message,
@@ -68,7 +73,9 @@ from harness_agent.core import (
     Provider,
     Role,
     SessionLimits,
+    TaskCommand,
     TaskDefinition,
+    commands_notice,
 )
 from harness_agent.core.loop import AgentLoop
 
@@ -176,6 +183,25 @@ def _inside(path: Path, folder: Path) -> bool:
     return real_path == real_folder or real_path.startswith(real_folder + os.sep)
 
 
+def _allowed_commands(commands: tuple[TaskCommand, ...], tool: str) -> tuple[AllowedCall, ...]:
+    """The calls to the shell that the commands of the task allow, exactly (HU-11-03).
+
+    Without a time in the call the shell applies its default, so that is what is compared with the
+    limit of each command.
+    """
+    return tuple(
+        AllowedCall(
+            tool=tool,
+            argument=COMMAND_ARGUMENT,
+            value=command.command,
+            limit_argument=TIMEOUT_ARGUMENT,
+            limit=command.timeout_seconds,
+            default_limit=DEFAULT_SHELL_TIMEOUT_SECONDS,
+        )
+        for command in commands
+    )
+
+
 def compose(
     config: HarnessConfig,
     *,
@@ -219,12 +245,15 @@ def compose(
             removed_env={name for name in PROVIDER_KEY_VARIABLES.values() if name},
         )
     registry = InMemoryToolRegistry(max_output_chars=config.limits.max_tool_output_chars)
+    shell_tool = ShellTool(
+        shell, area, on_cancel=None if shell is None else shell.terminate_running
+    )
     for tool in (
         ReadFileTool(area),
         WriteFileTool(area),
         ListFilesTool(area),
         SearchTextTool(area),
-        ShellTool(shell, area, on_cancel=None if shell is None else shell.terminate_running),
+        shell_tool,
     ):
         registry.register(tool)
     bus = InMemoryEventBus()
@@ -243,8 +272,17 @@ def compose(
             files=files,
             directories=folders,
         )
+        commands = () if task is None else task.commands
+        # Deny > ask > allow: the protection decides first, then the exact commands of the task
+        # may turn the "ask" of the default policy into "allow" (HU-11-03).
         policy = ProtectedPolicy(
-            DefaultPermissionPolicy(registry, area, config.permissions), protected, markers
+            ExactCallPolicy(
+                DefaultPermissionPolicy(registry, area, config.permissions),
+                _allowed_commands(commands, shell_tool.name),
+                ask_names=config.permissions.ask,
+            ),
+            protected,
+            markers,
         )
         task_options: dict[str, Any] = dict(store_options)
         task_store = SqliteTaskStore(store, exports_dir=exports_dir, bus=bus, **task_options)
@@ -267,13 +305,17 @@ def compose(
         store.close()
         raise
     notice = Message(role=Role.SYSTEM, content=environment_notice(system, interpreter_for(system)))
+    prefix = [notice]
+    commands_text = commands_notice(commands)
+    if commands_text is not None:
+        prefix.append(Message(role=Role.SYSTEM, content=commands_text))
     return Composition(
         loop=loop,
         bus=bus,
         store=store,
         session_id=session_id,
         notices=notices,
-        history_prefix=(notice,),
+        history_prefix=tuple(prefix),
         task_store=task_store,
         task=task,
         criteria_export=export,

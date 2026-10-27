@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from enum import Enum
 
+from harness_agent.core.tasks.commands import TaskCommand
+
 MAX_TASK_CHARS = 65_536
 MAX_CRITERIA = 100
 MAX_FIELD_CHARS = 2_000
@@ -61,6 +63,8 @@ class TaskDefinition:
         context: Free text with background; may be empty.
         rules: Free text with constraints; may be empty.
         criteria: Ordered acceptance criteria (at least one).
+        commands: Verification commands (tests, lint) in the order of the task, at most one of
+            each kind; empty when the task declares none (HU-11-03).
     """
 
     title: str | None
@@ -68,12 +72,20 @@ class TaskDefinition:
     context: str
     rules: str
     criteria: tuple[CriterionDefinition, ...]
+    commands: tuple[TaskCommand, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.objective.strip():
             raise ValueError("El objetivo de la tarea no puede estar vacío.")
         if not self.criteria:
             raise ValueError("La tarea necesita al menos un criterio.")
+        if not isinstance(self.commands, tuple) or not all(
+            isinstance(command, TaskCommand) for command in self.commands
+        ):
+            raise ValueError("Los comandos de la tarea deben ser una tupla de TaskCommand.")
+        kinds = [command.kind for command in self.commands]
+        if len(kinds) != len(set(kinds)):
+            raise ValueError("La tarea declara dos comandos del mismo tipo.")
 
     def with_title(self, title: str) -> TaskDefinition:
         """The same task, titled ``title`` if it had none (this task if it already had one)."""
