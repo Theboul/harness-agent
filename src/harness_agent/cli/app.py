@@ -13,7 +13,7 @@ an ``Exception`` (cancellation, keyboard interrupt) and a failure while writing 
 from __future__ import annotations
 
 import sys
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 from typing import TextIO
 
 from harness_agent.core import Event, EventBus
@@ -39,6 +39,7 @@ HELP_TEXT = (
 EXIT_TEXT = "Sesión terminada."
 
 TurnRunner = Callable[[str], Awaitable[object]]
+ExtraCommands = Mapping[str, tuple[str, Callable[[], str]]]
 
 
 def _put(stream: TextIO, text: str) -> None:
@@ -91,17 +92,30 @@ def _unknown_command(command: str) -> str:
     return f"Comando desconocido: '{shown}'. Escribe /ayuda para ver los comandos disponibles."
 
 
+def _help_text(commands: ExtraCommands | None) -> str:
+    """The help text; the extra commands, if any, go before the closing line."""
+    if not commands:
+        return HELP_TEXT
+    lines = HELP_TEXT.split("\n")
+    extras = [f"  {name}  {description}" for name, (description, _) in commands.items()]
+    return "\n".join([*lines[:-1], *extras, lines[-1]])
+
+
 async def run_cli(
     bus: EventBus,
     run_turn: TurnRunner,
     *,
     input_stream: TextIO | None = None,
     output: TextIO | None = None,
+    commands: ExtraCommands | None = None,
 ) -> int:
     """Read lines and run them: a task goes to ``run_turn``, ``/ayuda`` and ``/salir`` are commands.
 
     The render is attached to ``bus`` once, at the start. A line is a task unless it starts with
     ``/`` in the first column; the task is passed unchanged. Returns the exit code (see module).
+
+    ``commands`` adds one-line commands (name -> description and a function that returns the text
+    to write), for example ``/criterios``; ``/ayuda`` lists them. Without it nothing changes.
     """
     source = sys.stdin if input_stream is None else input_stream
     stream = sys.stdout if output is None else output
@@ -120,7 +134,12 @@ async def run_cli(
             if command == "/salir":
                 _write_line(stream, EXIT_TEXT)
                 return EXIT_OK
-            _write_line(stream, HELP_TEXT if command == "/ayuda" else _unknown_command(command))
+            if commands is not None and command in commands:
+                _write_line(stream, commands[command][1]())
+            elif command == "/ayuda":
+                _write_line(stream, _help_text(commands))
+            else:
+                _write_line(stream, _unknown_command(command))
             continue
         try:
             await run_turn(text)

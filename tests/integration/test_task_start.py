@@ -21,7 +21,8 @@ TASK_TEXT = (
     "# TAREA-14\n"
     "## Objetivo\nValidar el correo\n"
     "## Criterios de aceptación\n"
-    "- El email es obligatorio\n  - comando: pytest tests/test_email.py\n  - espera: salida 0\n"
+    "- El email es obligatorio\n  - comando: pytest tests/test_email.py\n"
+    "  - espera: codigo_salida == 0\n"
     "- El mensaje de error es claro\n"
 )
 

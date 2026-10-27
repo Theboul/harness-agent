@@ -32,6 +32,10 @@ _MESSAGES = {
     "criterio_incompleto": (
         "Un criterio está incompleto: 'comando:' y 'espera:' van juntos, con texto, una sola vez."
     ),
+    "condicion_no_soportada": (
+        "Un criterio tiene una condición que no se admite: usa 'espera: codigo_salida == N' "
+        "o 'espera: codigo_salida != N' con N entre 0 y 4294967295."
+    ),
     "demasiados_criterios": "La tarea tiene más criterios de los permitidos.",
     "texto_demasiado_largo": "Un texto de la tarea supera la longitud permitida.",
 }

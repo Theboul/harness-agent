@@ -19,6 +19,7 @@ from harness_agent.core.tasks.commands import (
     CommandKind,
     TaskCommand,
 )
+from harness_agent.core.tasks.condition import parse_condition
 from harness_agent.core.tasks.definition import (
     MAX_CRITERIA,
     MAX_FIELD_CHARS,
@@ -93,6 +94,8 @@ class _CriteriaReader:
         command, expectation = self._keys.get("comando"), self._keys.get("espera")
         if (command is None) != (expectation is None):
             raise TaskFormatError("criterio_incompleto")
+        if expectation is not None and parse_condition(expectation) is None:
+            raise TaskFormatError("condicion_no_soportada")
         if len(self.criteria) >= MAX_CRITERIA:
             raise TaskFormatError("demasiados_criterios")
         self.criteria.append(CriterionDefinition(self._description, command, expectation))

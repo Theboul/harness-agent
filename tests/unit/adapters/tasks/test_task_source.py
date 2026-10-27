@@ -22,7 +22,7 @@ from harness_agent.core import TaskFormatError
 SENTINEL = "VALOR-DE-PRUEBA-123"
 BODY = (
     "## Objetivo\nHacer algo\n## Criterios de aceptación\n"
-    "- Funciona\n  - comando: ls\n  - espera: ok\n"
+    "- Funciona\n  - comando: ls\n  - espera: codigo_salida == 0\n"
 )
 
 
