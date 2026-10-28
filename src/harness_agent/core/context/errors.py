@@ -65,3 +65,69 @@ class EssentialContextUnavailable(EssentialContextError):
         else:
             text = "No se pudo leer el contexto esencial de la tarea; la petición no se envía."
         super().__init__(text)
+
+
+class ConversationSaveError(Exception):
+    """A message of the conversation could not be saved: the session could not be resumed later.
+
+    The message is fixed: it never carries the text of the message or of the original failure.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            "No se pudo guardar un mensaje de la conversación; la sesión no podrá reanudarse."
+        )
+
+
+class ResumeError(Exception):
+    """A session cannot be resumed. Every subclass has a fixed message that never repeats the
+    identifier the person wrote, the history of the session or the text of an exception."""
+
+
+class InvalidSessionId(ResumeError):
+    """The identifier is empty (``usage``) or is not an identifier at all."""
+
+    def __init__(self, usage: bool = False) -> None:
+        if usage:
+            super().__init__("Uso: /reanudar <identificador de la sesión>.")
+        else:
+            super().__init__("El identificador de sesión no es válido.")
+
+
+class AlreadyCurrentSession(ResumeError):
+    """The identifier is the one of the session that is already running."""
+
+    def __init__(self) -> None:
+        super().__init__("Esa ya es la sesión actual.")
+
+
+class UnknownSession(ResumeError):
+    """No session has that identifier."""
+
+    def __init__(self) -> None:
+        super().__init__("No existe una sesión con ese identificador.")
+
+
+class TaskSessionNotResumable(ResumeError):
+    """The session has a task (criteria or essential context): it is not resumed (Q3 = A)."""
+
+    def __init__(self) -> None:
+        super().__init__("Las sesiones de tarea no se pueden reanudar todavía.")
+
+
+class SessionDetailMissing(ResumeError):
+    """The session has message events whose messages were not saved: it cannot be rebuilt."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            "Esa sesión se guardó sin el detalle de sus mensajes y no se puede reanudar."
+        )
+
+
+class ConversationInconsistent(ResumeError):
+    """The stored messages do not form a coherent conversation: nothing is rebuilt."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            "Los mensajes guardados de la sesión no son coherentes y no se puede reanudar."
+        )
