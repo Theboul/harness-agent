@@ -3,7 +3,8 @@
 The version lives in ``PRAGMA user_version``. A new database gets the current schema; a database
 at version 1 (sessions and events, HU-03-01) is migrated to the current one without touching its
 data. Version 2 adds the ``criterios`` tables (HU-11-01), version 3 the ``resumenes`` table of the
-automatic compaction (HU-02-03) and version 4 the ``contexto_esencial`` table (HU-02-06.1). A
+automatic compaction (HU-02-03), version 4 the ``contexto_esencial`` table (HU-02-06.1) and
+version 5 the ``mensajes`` table of the resumable conversation (HU-03-04). A
 database at the current version is accepted as is; anything else (a newer version, or a database
 that has tables but no version) is refused without being modified. Every change runs in one
 transaction.
@@ -15,7 +16,7 @@ import sqlite3
 
 from harness_agent.adapters.storage.errors import SchemaVersionError
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 _V1 = """
 CREATE TABLE sessions (
@@ -90,8 +91,33 @@ CREATE TABLE contexto_esencial (
 );
 """
 
+# The messages of the conversation (HU-03-04): one row per real message of a session without a task,
+# in order, so that the session can be resumed. ``evento_id`` is the identifier of the event that
+# triggered the saving of the message (it has no foreign key: after a cut the event may never have
+# been stored); the messages that have no event of their own leave it empty.
+_V5 = """
+CREATE TABLE mensajes (
+    sesion_id        TEXT NOT NULL REFERENCES sessions(id),
+    posicion         INTEGER NOT NULL CHECK (posicion >= 1),
+    rol              TEXT NOT NULL CHECK (rol IN ('user', 'assistant', 'tool')),
+    contenido        TEXT NOT NULL,
+    llamadas         TEXT,
+    resultado_id     TEXT,
+    resultado_error  INTEGER CHECK (resultado_error IN (0, 1)),
+    externo          INTEGER NOT NULL DEFAULT 0 CHECK (externo IN (0, 1)),
+    uso              TEXT,
+    evento_id        TEXT,
+    creado           TEXT NOT NULL,
+    PRIMARY KEY (sesion_id, posicion),
+    CHECK ((rol = 'tool' AND resultado_id IS NOT NULL AND resultado_error IS NOT NULL)
+        OR (rol <> 'tool' AND resultado_id IS NULL AND resultado_error IS NULL)),
+    CHECK (rol = 'assistant' OR llamadas IS NULL)
+);
+CREATE INDEX idx_mensajes_evento ON mensajes (evento_id);
+"""
+
 # What each version adds on top of the one before it.
-_STEPS = {1: _V1, 2: _V2, 3: _V3, 4: _V4}
+_STEPS = {1: _V1, 2: _V2, 3: _V3, 4: _V4, 5: _V5}
 
 
 def _script(first: int) -> str:

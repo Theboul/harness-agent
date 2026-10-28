@@ -40,6 +40,7 @@ EXIT_TEXT = "Sesión terminada."
 
 TurnRunner = Callable[[str], Awaitable[object]]
 ExtraCommands = Mapping[str, tuple[str, Callable[[], str]]]
+ArgumentCommands = Mapping[str, tuple[str, Callable[[str], str]]]
 
 
 def _put(stream: TextIO, text: str) -> None:
@@ -92,12 +93,17 @@ def _unknown_command(command: str) -> str:
     return f"Comando desconocido: '{shown}'. Escribe /ayuda para ver los comandos disponibles."
 
 
-def _help_text(commands: ExtraCommands | None) -> str:
+def _help_text(
+    commands: ExtraCommands | None, argument_commands: ArgumentCommands | None = None
+) -> str:
     """The help text; the extra commands, if any, go before the closing line."""
-    if not commands:
+    if not commands and not argument_commands:
         return HELP_TEXT
     lines = HELP_TEXT.split("\n")
-    extras = [f"  {name}  {description}" for name, (description, _) in commands.items()]
+    extras = [f"  {name}  {description}" for name, (description, _) in (commands or {}).items()]
+    extras += [
+        f"  {name}  {description}" for name, (description, _) in (argument_commands or {}).items()
+    ]
     return "\n".join([*lines[:-1], *extras, lines[-1]])
 
 
@@ -108,6 +114,7 @@ async def run_cli(
     input_stream: TextIO | None = None,
     output: TextIO | None = None,
     commands: ExtraCommands | None = None,
+    argument_commands: ArgumentCommands | None = None,
 ) -> int:
     """Read lines and run them: a task goes to ``run_turn``, ``/ayuda`` and ``/salir`` are commands.
 
@@ -116,6 +123,10 @@ async def run_cli(
 
     ``commands`` adds one-line commands (name -> description and a function that returns the text
     to write), for example ``/criterios``; ``/ayuda`` lists them. Without it nothing changes.
+
+    ``argument_commands`` adds commands that take the text after their name (name -> description
+    and a function that receives that text, without outer spaces, and returns the line to write),
+    for example ``/reanudar <id>``. They are listed in ``/ayuda`` after the other extra commands.
     """
     source = sys.stdin if input_stream is None else input_stream
     stream = sys.stdout if output is None else output
@@ -136,8 +147,11 @@ async def run_cli(
                 return EXIT_OK
             if commands is not None and command in commands:
                 _write_line(stream, commands[command][1]())
+            elif argument_commands is not None and command in argument_commands:
+                rest = text.split(None, 1)[1:]
+                _write_line(stream, argument_commands[command][1](rest[0].strip() if rest else ""))
             elif command == "/ayuda":
-                _write_line(stream, _help_text(commands))
+                _write_line(stream, _help_text(commands, argument_commands))
             else:
                 _write_line(stream, _unknown_command(command))
             continue

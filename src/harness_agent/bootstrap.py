@@ -33,6 +33,7 @@ from harness_agent.adapters.storage import (
     SessionStoreError,
     SqliteCompactionArchive,
     SqliteEssentialStore,
+    SqliteMessageStore,
     SqliteSessionStore,
     SqliteTaskStore,
     attach_event_recorder,
@@ -73,6 +74,8 @@ from harness_agent.core import (
     AuthorizedArea,
     CommandPolicy,
     ContextCompactor,
+    ConversationCapture,
+    ConversationSaveError,
     CriteriaVerifier,
     DefaultPermissionPolicy,
     DenyList,
@@ -91,6 +94,7 @@ from harness_agent.core import (
     PermissionPolicy,
     ProtectedPolicy,
     Provider,
+    ResumeError,
     Role,
     RuleError,
     SessionLimits,
@@ -99,11 +103,14 @@ from harness_agent.core import (
     ToolDefinition,
     VerifyingRunner,
     check_creation,
+    check_session_id,
     commands_notice,
     compile_rule,
     criteria_reference,
     git_instructions,
     make_items,
+    rejection_message,
+    resume_session,
 )
 from harness_agent.core.loop import AgentLoop, TurnResult
 
@@ -183,6 +190,10 @@ class Composition:
     compactor: ContextCompactor | None = None
     warning_sink: WarningSink = field(default_factory=WarningSink)
     essential: EssentialRenewer | None = None
+    capture: ConversationCapture | None = None
+    messages: SqliteMessageStore | None = None
+    compactor_for: Callable[[str], ContextCompactor] | None = None
+    model: str = ""
 
     def close(self) -> None:
         """Close the session store; safe to call more than once."""
@@ -456,6 +467,27 @@ def compose(
             )
         # The archive stores ``context_compacted`` in its own transaction (HU-02-03): the recorder
         # must not store it again. The ``skip`` goes by position.
+        warning_sink = WarningSink()
+        messages: SqliteMessageStore | None = None
+        capture: ConversationCapture | None = None
+        if task is None:
+            # The messages of the conversation are saved when the bus publishes each event, and
+            # **before** the event recorder: a cut leaves a message with no event, never an event
+            # with no message (HU-03-04, FR-034). A session with a task is not resumable (Q3), so
+            # nothing more is written for it.
+            messages = SqliteMessageStore(store, **clock_options)
+            capture = ConversationCapture(
+                messages,
+                warn=warning_sink.write,
+                rejected_text=lambda name: rejection_message(name, None),
+            )
+            for kind in (
+                EventType.USER_MESSAGE,
+                EventType.ASSISTANT_MESSAGE,
+                EventType.TOOL_REQUESTED,
+                EventType.TOOL_FINISHED,
+            ):
+                bus.subscribe(kind, capture.on_event)
         attach_event_recorder(bus, store, (EventType.CONTEXT_COMPACTED,))
         # The limits of the session are mapped here: the core does not import ``config`` (HU-01-06).
         # ``max_tokens`` is the budget of the whole run, never the cap of one call.
@@ -465,10 +497,16 @@ def compose(
             max_tokens=config.limits.max_tokens,
         )
         loop = AgentLoop(provider, registry, policy, bus, approver=approver, limits=limits)
-        warning_sink = WarningSink()
         compactor = _compactor(
             provider, store, config, session_id, registry, bus, warning_sink, clock, id_factory
         )
+
+        def compactor_for(session: str) -> ContextCompactor:
+            """The compactor of another session of this run (HU-03-04); the logic is the same."""
+            return _compactor(
+                provider, store, config, session, registry, bus, warning_sink, clock, id_factory
+            )
+
         runner: VerifyingRunner[TurnResult] | None = None
         if task is not None:
             runner = _verifying_runner(
@@ -504,6 +542,10 @@ def compose(
         compactor=compactor,
         warning_sink=warning_sink,
         essential=renewer,
+        capture=capture,
+        messages=messages,
+        compactor_for=compactor_for,
+        model=config.model,
     )
 
 
@@ -613,6 +655,88 @@ def _verifying_runner(
     return VerifyingRunner(run_turn, verifier, session_id)
 
 
+@dataclass
+class _Active:
+    """Which session the terminal is working on, and the compactor that belongs to it."""
+
+    session_id: str
+    compactor: ContextCompactor | None
+    closures: list[tuple[str, str]] = field(default_factory=list)
+
+
+READ_FAILED = "No se pudo leer la sesión; la sesión actual sigue sin cambios."
+RESUME_NOT_AVAILABLE = "Reanudar no está disponible en esta sesión."
+
+
+def _resume_command(
+    composition: Composition, active: _Active, history: list[Message]
+) -> Callable[[str], str]:
+    """The function behind ``/reanudar <id>`` (HU-03-04): it never raises, it returns one line.
+
+    On success it replaces the history in place, makes the resumed session the active one and
+    binds the saving of the messages to it; the session that is left is not touched again.
+    """
+    capture, source, factory = composition.capture, composition.messages, composition.compactor_for
+
+    def resume(argument: str) -> str:
+        if capture is None or source is None or factory is None or composition.runner is not None:
+            return RESUME_NOT_AVAILABLE
+        try:
+            resumed = resume_session(
+                source,
+                argument,
+                prefix=composition.history_prefix,
+                current_model=composition.model,
+                current_session_id=active.session_id,
+                known_incomplete=capture.incomplete_sessions,
+            )
+            session = check_session_id(argument)
+            compactor = factory(session)
+        except ResumeError as error:
+            return str(error)
+        except Exception:
+            return READ_FAILED
+        history[:] = resumed.history
+        active.session_id = session
+        active.compactor = compactor
+        active.closures[:] = resumed.closed_calls
+        capture.bind(session, history, resumed.next_position, resumed.saved_count)
+        return resumed.notice
+
+    return resume
+
+
+def _close_interrupted(bus: EventBus, active: _Active) -> None:
+    """Publish the closing event of each call that a cut left without a result (HU-03-04).
+
+    The result was rebuilt in the history when the session was resumed; the event makes it a real
+    one (the capture saves the message and the recorder the event), so the history that is stored
+    stays coherent and the compaction keeps working. A closure leaves the list only once it was
+    published, and the list is rebuilt from what is stored every time a session is resumed, so a
+    call is closed once.
+    """
+    while active.closures:
+        call_id, name = active.closures[0]
+        payload = {
+            "call_id": call_id,
+            "name": name,
+            "is_error": True,
+            "category": "tool_interrupted",
+        }
+        bus.emit(Event.create(active.session_id, EventType.TOOL_FINISHED, payload))
+        del active.closures[0]
+
+
+def _flush_quietly(capture: ConversationCapture | None) -> None:
+    """Save what is pending while another failure goes up; a failure of its own was already told."""
+    if capture is None:
+        return
+    try:
+        capture.flush()
+    except ConversationSaveError:
+        pass
+
+
 def _renew_or_report(
     renewer: EssentialRenewer | None, history: list[Message], sink: WarningSink
 ) -> None:
@@ -661,31 +785,53 @@ async def run_session(
     for notice in composition.notices:
         _write_notice(stream, notice)
     history: list[Message] = list(composition.history_prefix)
+    capture = composition.capture
+    if capture is not None and composition.messages is not None:
+        last = composition.messages.last_position(composition.session_id)
+        capture.bind(composition.session_id, history, last + 1, len(history))
 
     runner = composition.runner
+    active = _Active(composition.session_id, composition.compactor)
 
     async def run_turn(task: str) -> object:
+        try:
+            result = await turn(task)
+        except BaseException:
+            _flush_quietly(capture)
+            raise
+        if capture is not None:
+            capture.flush()  # an empty answer has no event; it is saved when the turn closes
+        return result
+
+    async def turn(task: str) -> object:
+        # First the calls a cut left without a result: each gets its closing event, once (R21).
+        _close_interrupted(composition.bus, active)
         # First the block (so the estimate of the compaction sees it), then the compaction.
         _renew_or_report(composition.essential, history, composition.warning_sink)
-        if composition.compactor is not None:
+        if active.compactor is not None:
             # Before the request reaches the loop (and the verifier): the view is replaced in place.
-            await composition.compactor.before_turn(history)
+            await active.compactor.before_turn(history)
         if runner is not None:
             return await runner.run(task, history)
         return await composition.loop.run_turn(
-            session_id=composition.session_id, task=task, history=history
+            session_id=active.session_id, task=task, history=history
         )
 
     commands = None
     if runner is not None:
         board = attach_criteria_status(composition.bus, stream)
         commands = {"/criterios": ("Muestra el estado de los criterios.", board.report)}
+    resume = (
+        "Reanuda una sesión guardada por su identificador.",
+        _resume_command(composition, active, history),
+    )
     return await run_cli(
         composition.bus,
         run_turn,
         input_stream=input_stream,
         output=stream,
         commands=commands,
+        argument_commands={"/reanudar": resume},
     )
 
 

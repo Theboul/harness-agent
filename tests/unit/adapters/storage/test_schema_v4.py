@@ -158,7 +158,7 @@ def open_and_close(path: Path) -> None:
 
 
 def test_the_version_is_four() -> None:
-    assert SCHEMA_VERSION == 4
+    assert SCHEMA_VERSION == 5
 
 
 @pytest.mark.parametrize("version", [1, 2, 3])
@@ -169,9 +169,10 @@ def test_an_old_database_migrates_to_four_and_keeps_every_row(tmp_path: Path, ve
 
     open_and_close(path)
 
-    assert user_version(path) == 4
+    assert user_version(path) == 5
     after = dump(path)
     assert after.pop("contexto_esencial") == []
+    assert after.pop("mensajes") == []
     for name in NEW_TABLES[version]:  # the tables of the steps in between arrive empty
         assert after.pop(name) == []
     assert after == before  # every table that already existed is identical, row by row
@@ -187,7 +188,7 @@ def test_reopening_a_migrated_database_changes_nothing(tmp_path: Path, version: 
     open_and_close(path)
     open_and_close(path)
 
-    assert user_version(path) == 4
+    assert user_version(path) == 5
     assert dump(path) == first
 
 
@@ -199,7 +200,7 @@ def test_a_migrated_database_has_the_same_tables_as_a_new_one(tmp_path: Path, ve
     open_and_close(old)
     open_and_close(fresh)
 
-    assert user_version(fresh) == 4
+    assert user_version(fresh) == 5
     for name in ("contexto_esencial", "resumenes", "sessions", "events", "criterios"):
         assert table_sql(old, name) == table_sql(fresh, name)
 

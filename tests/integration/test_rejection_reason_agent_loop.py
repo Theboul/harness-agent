@@ -299,6 +299,7 @@ async def test_the_reason_is_not_stored_in_the_database(
         "criterios_sello",
         "resumenes",
         "contexto_esencial",
+        "mensajes",
     }
     assert rows
     assert not any(SENTINEL in row for row in rows)
