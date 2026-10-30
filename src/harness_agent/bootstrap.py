@@ -59,7 +59,15 @@ from harness_agent.adapters.tools import (
     WriteFileTool,
     make_command_runner,
 )
-from harness_agent.cli import ConsoleApprover, ModelView, attach_criteria_status, run_cli
+from harness_agent.cli import (
+    ConsoleApprover,
+    ModelView,
+    SessionRow,
+    attach_criteria_status,
+    format_model,
+    format_sessions,
+    run_cli,
+)
 from harness_agent.config import (
     PROVIDER_KEY_VARIABLES,
     ConfigError,
@@ -717,6 +725,49 @@ class _Active:
 
 READ_FAILED = "No se pudo leer la sesión; la sesión actual sigue sin cambios."
 RESUME_NOT_AVAILABLE = "Reanudar no está disponible en esta sesión."
+LIST_FAILED = "No se pudo leer la lista de sesiones."
+MODEL_NOT_AVAILABLE = "Modelo no disponible en esta ejecución."
+
+
+def _sessions_command(composition: Composition, active: _Active) -> Callable[[], str]:
+    """The function behind ``/sesiones`` (HU-06-05): it never raises and writes nothing.
+
+    It lists the sessions of the user (subagent sessions are left out) with the current one marked.
+    """
+
+    def sessions() -> str:
+        store = composition.store
+        try:
+            rows = []
+            for summary in store.list_sessions():
+                detail = store.get_session(summary.id)
+                if detail is not None and detail.parent_id is not None:
+                    continue
+                rows.append(
+                    SessionRow(
+                        id=summary.id,
+                        created_at=summary.created_at,
+                        status=summary.status,
+                        model=summary.model,
+                        goal=summary.goal,
+                        current=summary.id == active.session_id,
+                    )
+                )
+        except Exception:
+            return LIST_FAILED
+        return format_sessions(rows)
+
+    return sessions
+
+
+def _model_command(composition: Composition) -> Callable[[], str]:
+    """The function behind ``/model``: the model and the limits in force, never a secret."""
+
+    def model() -> str:
+        view = composition.model_view
+        return MODEL_NOT_AVAILABLE if view is None else format_model(view)
+
+    return model
 
 
 def _resume_command(
@@ -868,10 +919,13 @@ async def run_session(
             session_id=active.session_id, task=task, history=history
         )
 
-    commands = None
+    commands: dict[str, tuple[str, Callable[[], str]]] = {
+        "/sesiones": ("Lista las sesiones guardadas.", _sessions_command(composition, active)),
+        "/model": ("Muestra el modelo y los límites.", _model_command(composition)),
+    }
     if runner is not None:
         board = attach_criteria_status(composition.bus, stream)
-        commands = {"/criterios": ("Muestra el estado de los criterios.", board.report)}
+        commands["/criterios"] = ("Muestra el estado de los criterios.", board.report)
     resume = (
         "Reanuda una sesión guardada por su identificador.",
         _resume_command(composition, active, history),
