@@ -41,7 +41,7 @@ Python 3.12, mypy estricto, ruff línea 100, sin dependencias nuevas. Pruebas co
 - `render_progress(snapshot) -> str` y `progress_file_name(ticket, session_id) -> str`.
 - `ProgressRecorder(sink, criteria, *, ticket, objective, session_id, clock, warn)`: `checkpoint(history)` (turno +1) y `finish(history)`; captura `Exception` (no `BaseException`) al leer criterios o escribir.
 - `ProgressSink` (Protocol): `write(name, text)`, `read(name)`.
-- `ProgressFile(root, *, replace=os.replace)`: valida el nombre, escribe `<root>/.<name>.<pid>.tmp`, `flush` + `fsync`, `replace`; borra el temporal si falla; `ProgressWriteError` con texto fijo.
+- `ProgressFile(root, *, replace=os.replace)`: valida el nombre, escribe `<root>/.<name>.tmp`, `flush` + `fsync`, `replace`; borra el temporal si falla; `ProgressWriteError` con texto fijo.
 
 ## Riesgos
 
