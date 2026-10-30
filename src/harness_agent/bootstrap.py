@@ -18,7 +18,7 @@ import os
 import platform
 import sys
 import uuid
-from collections.abc import Callable, Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field, replace
 from datetime import datetime
 from pathlib import Path
@@ -64,6 +64,7 @@ from harness_agent.cli import (
     ModelView,
     SessionRow,
     attach_criteria_status,
+    format_compaction,
     format_model,
     format_new_session,
     format_sessions,
@@ -728,8 +729,31 @@ READ_FAILED = "No se pudo leer la sesión; la sesión actual sigue sin cambios."
 RESUME_NOT_AVAILABLE = "Reanudar no está disponible en esta sesión."
 LIST_FAILED = "No se pudo leer la lista de sesiones."
 MODEL_NOT_AVAILABLE = "Modelo no disponible en esta ejecución."
+COMPACT_NOT_AVAILABLE = "Compactar no está disponible en esta ejecución."
 NEW_NOT_AVAILABLE = "Nueva sesión no está disponible en esta ejecución."
 NEW_FAILED = "No se pudo crear la sesión nueva; la sesión actual sigue sin cambios."
+
+
+def _compact_command(
+    composition: Composition, active: _Active, history: list[Message]
+) -> Callable[[], Awaitable[str]]:
+    """The function behind ``/compactar`` (HU-06-05): compact the context now, whatever its size.
+
+    The compactor is the one of ``compose`` with a forced low threshold, so it summarizes the old
+    messages as the automatic one would (same cut, same archive, same checks). When it finds nothing
+    to summarize, or it fails (it reports the failure itself and leaves the view untouched), the
+    answer is one fixed line. A cancellation goes up.
+    """
+    factory = composition.manual_compactor_for
+
+    async def compact() -> str:
+        if factory is None:
+            return COMPACT_NOT_AVAILABLE
+        # As before any request: the calls a cut left without a result get their closing first.
+        _close_interrupted(composition.bus, active)
+        return format_compaction(await factory(active.session_id).before_turn(history))
+
+    return compact
 
 
 def _new_command(
@@ -955,9 +979,13 @@ async def run_session(
             session_id=active.session_id, task=task, history=history
         )
 
-    commands: dict[str, tuple[str, Callable[[], str]]] = {
+    commands: dict[str, tuple[str, Callable[[], str | Awaitable[str]]]] = {
         "/sesiones": ("Lista las sesiones guardadas.", _sessions_command(composition, active)),
         "/nueva": ("Empieza una sesión nueva.", _new_command(composition, active, history)),
+        "/compactar": (
+            "Compacta el contexto ahora.",
+            _compact_command(composition, active, history),
+        ),
         "/model": ("Muestra el modelo y los límites.", _model_command(composition)),
     }
     if runner is not None:

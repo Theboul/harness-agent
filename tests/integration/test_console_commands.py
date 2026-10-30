@@ -7,18 +7,31 @@ console.
 from __future__ import annotations
 
 import io
+import re
 from collections.abc import Iterator
 from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
+from harness_agent import bootstrap
 from harness_agent.adapters.storage import SessionStoreError, SqliteSessionStore
 from harness_agent.bootstrap import Composition, run_session
-from harness_agent.config import HarnessConfig, Secret
-from harness_agent.core import Message, ProviderResponse, Role
+from harness_agent.config import HarnessConfig, Limits, Secret
+from harness_agent.core import Message, ProviderResponse, ProviderUnavailable, Role
 from tests.doubles import FakeProvider
-from tests.integration.test_essential_context_agent_loop import make_task
+from tests.integration.test_essential_context_agent_loop import (
+    S_CRITERION,
+    S_OBJECTIVE,
+    S_RULES,
+    S_TICKET,
+    NoShell,
+    Recorder,
+    blocks_of,
+    make_task,
+    model_calls,
+    tasks,
+)
 from tests.unit.bootstrap_support import SENTINEL, build, make_config
 
 MODEL = "openai/modelo-de-prueba"
@@ -269,3 +282,127 @@ class TestNewCommand:
         assert f"tarea> {NEW_FAILED}" in shown.splitlines()
         assert SENTINEL not in shown
         assert texts(provider.received[1]) == ["primera", "uno", "segunda"]
+
+
+LONG = "palabra " * 150
+COMPACTED = re.compile(
+    r"Contexto compactado: ~([\d.]+) → ~([\d.]+) tokens \(historial original conservado\)\."
+)
+NOT_COMPACTED = "tarea> No se compactó: no hay mensajes antiguos que resumir (o el resumen falló)."
+
+
+def tokens(text: str) -> int:
+    return int(text.replace(".", ""))
+
+
+async def long_session(composition: Composition, *lines: str) -> str:
+    return await drive(composition, *(f"{line} {LONG}" for line in ("a", "b", "c", "d")), *lines)
+
+
+class TestCompactCommand:
+    async def test_it_is_listed_in_the_help(
+        self, tmp_path: Path, opened: list[Composition]
+    ) -> None:
+        composition, _ = make(tmp_path, opened)
+
+        shown = await drive(composition, "/ayuda")
+
+        assert "  /compactar  Compacta el contexto ahora." in shown
+
+    async def test_it_compacts_below_the_automatic_threshold_and_reports_the_estimates(
+        self, tmp_path: Path, opened: list[Composition]
+    ) -> None:
+        composition, provider = make(
+            tmp_path, opened, "r1", "r2", "r3", "r4", "RESUMEN-VIEJO", "r5"
+        )
+
+        shown = await long_session(composition, "/compactar", f"e {LONG}")
+
+        found = COMPACTED.search(shown)
+        assert found is not None
+        assert tokens(found.group(1)) > tokens(found.group(2))
+        assert count(composition, "SELECT count(*) FROM resumenes") == 1
+        # the history is kept: nothing is deleted, the covered events are only marked
+        marked = "SELECT count(*) FROM events WHERE compacted_by IS NOT NULL"
+        assert count(composition, marked) > 0
+        # the next request carries the summary and no longer the oldest answers
+        last = texts(provider.received[-1])
+        assert any("RESUMEN-VIEJO" in text for text in last)
+        assert "r1" not in last
+        assert last[-1] == f"e {LONG}"
+
+    async def test_the_automatic_threshold_is_not_changed_by_the_command(
+        self, tmp_path: Path, opened: list[Composition]
+    ) -> None:
+        composition, _ = make(tmp_path, opened, "r1", "r2", "r3", "r4", "RESUMEN", "r5", "r6")
+
+        await long_session(composition, "/compactar", f"e {LONG}", f"f {LONG}")
+
+        assert count(composition, "SELECT count(*) FROM resumenes") == 1
+
+    async def test_with_nothing_to_summarize_it_says_so_and_does_not_call_the_model(
+        self, tmp_path: Path, opened: list[Composition]
+    ) -> None:
+        composition, provider = make(tmp_path, opened)
+
+        shown = await drive(composition, "/compactar")
+
+        assert NOT_COMPACTED in shown.splitlines()
+        assert provider.received == []
+        assert count(composition, "SELECT count(*) FROM resumenes") == 0
+
+    async def test_a_provider_failure_leaves_no_partial_state(
+        self, tmp_path: Path, opened: list[Composition]
+    ) -> None:
+        provider = FakeProvider(
+            [
+                *(ProviderResponse(content=text) for text in ("r1", "r2", "r3", "r4")),
+                ProviderUnavailable(f"caído {SENTINEL}"),
+                ProviderResponse(content="r5"),
+            ]
+        )
+        composition = build(opened, config_for(tmp_path), provider, system_name="Linux")
+
+        shown = await long_session(composition, "/compactar", "e")
+
+        # the failure is reported by the compactor on its own line, before the answer
+        assert NOT_COMPACTED.removeprefix("tarea> ") in shown.splitlines()
+        assert SENTINEL not in shown
+        assert count(composition, "SELECT count(*) FROM resumenes") == 0
+        assert count(composition, "SELECT count(*) FROM events WHERE compacted_by IS NOT NULL") == 0
+        assert [t for t in texts(provider.received[-1]) if t.startswith("r")] == [
+            "r1",
+            "r2",
+            "r3",
+            "r4",
+        ]
+
+    async def test_with_an_active_task_the_essential_block_survives_the_compaction(
+        self, tmp_path: Path, opened: list[Composition], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(bootstrap, "select_shell", lambda *a, **k: NoShell())
+        workspace = tmp_path / "trabajo"
+        workspace.mkdir()
+        (workspace / "a.txt").write_text("contenido", encoding="utf-8")
+        config = replace(
+            make_config(tmp_path, workspace=workspace, model=MODEL),
+            limits=Limits(max_turns=2_000, max_output_tokens=777),
+        )
+        provider = Recorder()
+        composition = build(opened, config, provider, task=make_task(), system_name="Linux")
+        output = io.StringIO()
+
+        lines = (*tasks(5), "/compactar", *tasks(1), "/salir")
+        await bootstrap.run_session(
+            composition,
+            input_stream=io.StringIO("".join(f"{line}\n" for line in lines)),
+            output=output,
+        )
+
+        assert COMPACTED.search(output.getvalue()) is not None
+        assert len(provider.summaries) == 1
+        for messages in model_calls(provider)[-1:]:
+            found = blocks_of(messages)
+            assert len(found) == 1
+            for sentinel in (S_TICKET, S_OBJECTIVE, S_RULES, S_CRITERION):
+                assert sentinel in found[0].content

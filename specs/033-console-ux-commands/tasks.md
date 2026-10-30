@@ -49,7 +49,7 @@
 - [x] T009 [US4] `tests/unit/test_bootstrap_console.py` y `src/harness_agent/bootstrap.py`: `Composition.model_view` y `manual_compactor_for`; `_compactor` acepta `settings`/`warn`; la configuración derivada fuerza el umbral sin cambiar `recent_percent`, `min_recent_messages`, `summary_tokens` (30 min)
 - [x] T010 [US4] `tests/integration/test_console_commands.py` y `bootstrap.py`: `/sesiones` (sin subagentes, más reciente primero, actual marcada, fallo del almacén) y `/model` (sin clave) por `run_session` (30 min)
 - [x] T011 [US4] `tests/integration/test_console_commands.py` y `bootstrap.py`: `/nueva` (historial limpio, otro identificador, mensajes en la sesión nueva, la anterior reanudable, rechazo con tarea) (40 min)
-- [ ] T012 [US4] `tests/integration/test_console_commands.py` y `bootstrap.py`: `/compactar` (compacta por debajo del umbral, informa tokens, historial original conservado, nada que resumir, fallo del proveedor sin estado parcial, y también con una tarea activa) (40 min)
+- [x] T012 [US4] `tests/integration/test_console_commands.py` y `bootstrap.py`: `/compactar` (compacta por debajo del umbral, informa tokens, historial original conservado, nada que resumir, fallo del proveedor sin estado parcial, y también con una tarea activa) (40 min)
 
 ## Phase 6: US5 — Color de extremo a extremo (P3)
 
