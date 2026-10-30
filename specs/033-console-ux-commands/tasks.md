@@ -31,7 +31,7 @@
 
 **Prueba independiente**: `ConsoleApprover` sobre `StringIO` con un `shell` de comando largo, saltos de línea, escape ANSI y `api_key` con centinela.
 
-- [ ] T004 [P] [US1] [US2] `tests/unit/cli/test_approval_view.py` y `src/harness_agent/cli/approval_view.py`: `approval_block(name, details, style) -> list[str]` con título, frase, valor principal (`command`/`path`), herramienta, argumentos, riesgo, efecto y opciones; escapado de `\n`, saneado, acotado (400/200), claves ocultas, detalle sin `risk`/`effect`/`arguments`, más de 20 argumentos (40 min)
+- [x] T004 [P] [US1] [US2] `tests/unit/cli/test_approval_view.py` y `src/harness_agent/cli/approval_view.py`: `approval_block(name, details, style) -> list[str]` con título, frase, valor principal (`command`/`path`), herramienta, argumentos, riesgo, efecto y opciones; escapado de `\n`, saneado, acotado (400/200), claves ocultas, detalle sin `risk`/`effect`/`arguments`, más de 20 argumentos (40 min)
 - [ ] T005 [US1] [US2] `tests/unit/cli/test_approval.py`, `test_approval_reason.py` y `src/harness_agent/cli/approval.py`: `ConsoleApprover` usa el bloque (parámetro opcional `style`); la lectura `1/2/3`, `/salir`, fin de entrada, `max_attempts` y el motivo no cambian; el centinela no aparece; actualizar las pruebas de formato (30 min)
 
 ## Phase 4: US3 — Vista de actividad (P1)
