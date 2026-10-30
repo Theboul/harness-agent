@@ -12,6 +12,7 @@ an ``Exception`` (cancellation, keyboard interrupt) and a failure while writing 
 
 from __future__ import annotations
 
+import inspect
 import sys
 from collections.abc import Awaitable, Callable, Mapping
 from typing import TextIO
@@ -39,8 +40,15 @@ HELP_TEXT = (
 EXIT_TEXT = "Sesión terminada."
 
 TurnRunner = Callable[[str], Awaitable[object]]
-ExtraCommands = Mapping[str, tuple[str, Callable[[], str]]]
-ArgumentCommands = Mapping[str, tuple[str, Callable[[str], str]]]
+ExtraCommands = Mapping[str, tuple[str, Callable[[], str | Awaitable[str]]]]
+ArgumentCommands = Mapping[str, tuple[str, Callable[[str], str | Awaitable[str]]]]
+
+
+async def _text_of(result: str | Awaitable[str]) -> str:
+    """The text of a command: a function may return it directly or as something to await."""
+    if inspect.isawaitable(result):
+        return await result
+    return result
 
 
 def _put(stream: TextIO, text: str) -> None:
@@ -122,7 +130,8 @@ async def run_cli(
     ``/`` in the first column; the task is passed unchanged. Returns the exit code (see module).
 
     ``commands`` adds one-line commands (name -> description and a function that returns the text
-    to write), for example ``/criterios``; ``/ayuda`` lists them. Without it nothing changes.
+    to write, or something to await that gives it), for example ``/criterios`` or ``/compactar``;
+    ``/ayuda`` lists them. Without it nothing changes.
 
     ``argument_commands`` adds commands that take the text after their name (name -> description
     and a function that receives that text, without outer spaces, and returns the line to write),
@@ -146,10 +155,11 @@ async def run_cli(
                 _write_line(stream, EXIT_TEXT)
                 return EXIT_OK
             if commands is not None and command in commands:
-                _write_line(stream, commands[command][1]())
+                _write_line(stream, await _text_of(commands[command][1]()))
             elif argument_commands is not None and command in argument_commands:
                 rest = text.split(None, 1)[1:]
-                _write_line(stream, argument_commands[command][1](rest[0].strip() if rest else ""))
+                argument = rest[0].strip() if rest else ""
+                _write_line(stream, await _text_of(argument_commands[command][1](argument)))
             elif command == "/ayuda":
                 _write_line(stream, _help_text(commands, argument_commands))
             else:

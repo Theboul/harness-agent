@@ -24,8 +24,8 @@
 
 ## Phase 2: Foundational (bloquea las historias de usuario)
 
-- [ ] T002 [US5] `tests/unit/cli/test_style.py` y `src/harness_agent/cli/style.py`: `Style`, `detect_style(stream, environ, platform)`; flujo no terminal, `NO_COLOR`, `TERM=dumb`, Windows con y sin indicios; `paint` sin estilo devuelve el texto idéntico (30 min)
-- [ ] T003 [US4] `tests/unit/cli/test_app_async_commands.py` y `src/harness_agent/cli/app.py`: un comando puede devolver `str` o *awaitable* y `run_cli` lo espera; `/ayuda` con columnas alineadas que lista todos los comandos en orden de registro; los comandos existentes y sus pruebas no cambian (30 min)
+- [x] T002 [US5] `tests/unit/cli/test_style.py` y `src/harness_agent/cli/style.py`: `Style`, `detect_style(stream, environ, platform)`; flujo no terminal, `NO_COLOR`, `TERM=dumb`, Windows con y sin indicios; `paint` sin estilo devuelve el texto idéntico (30 min)
+- [x] T003 [US4] `tests/unit/cli/test_app_async_commands.py` y `src/harness_agent/cli/app.py`: un comando puede devolver `str` o *awaitable* y `run_cli` lo espera; `/ayuda` sigue listando todos los comandos en orden de registro (formato sin cambios; no cambia la firma de `run_cli`); los comandos existentes y sus pruebas no cambian (30 min)
 
 ## Phase 3: US1 + US2 — Aprobación legible y a prueba de entradas hostiles (P1)
 

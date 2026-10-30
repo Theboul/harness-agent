@@ -42,7 +42,7 @@ Duración: `<1 s` → `N ms`; `< 60 s` → `1,2 s`; si no `2 min 5 s`. `permissi
 
 | Comando | Descripción en `/ayuda` | Salida |
 |---|---|---|
-| `/ayuda` | Muestra esta ayuda. | lista alineada de todos los comandos |
+| `/ayuda` | Muestra esta ayuda. | lista de todos los comandos (formato actual `  /nombre  descripción`, sin cambios) |
 | `/salir` | Termina la sesión. | `Sesión terminada.` |
 | `/sesiones` | Lista las sesiones guardadas. | cabecera, hasta 10 filas `* <id>  <fecha> UTC  <estado>  <modelo>  <objetivo>` (`*` = actual) y `... y N más` |
 | `/nueva` | Empieza una sesión nueva. | `Sesión nueva: <id>. La anterior sigue guardada; reanúdala con /reanudar <id>.` |
