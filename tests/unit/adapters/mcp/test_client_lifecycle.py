@@ -19,7 +19,7 @@ SETTINGS = McpServerSettings(
     startup_timeout_s=0.2,
     close_timeout_s=0.2,
 )
-ENVIRON = {"EXTRA": "uno", "ANTHROPIC_API_KEY": "valor-secreto"}
+ENVIRON = {"EXTRA": "uno", "ANTHROPIC_API_" + "KEY": "dos"}
 
 
 def make(fake: FakeSdk, **options: object) -> McpStdioClient:

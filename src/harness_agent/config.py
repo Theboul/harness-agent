@@ -23,6 +23,8 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, NoReturn
 
+from harness_agent.config_mcp import MCP_FIELDS, MCP_TABLE, check_mcp_servers
+from harness_agent.config_mcp import McpServerConfig as McpServerConfig
 from harness_agent.core import (
     CONTEXT_FIELD_RANGES,
     DEFAULT_MAX_OUTPUT_CHARS,
@@ -339,6 +341,8 @@ class HarnessConfig:
             configuration cannot define a rule to allow.
         deny_commands: Shell commands added to the base deny list of the platform (HU-05-02);
             empty by default. They can only add: the base list cannot be removed.
+        mcp_servers: MCP servers to connect to over stdio (HU-08-01), from the optional
+            ``[mcp_servers.<name>]`` tables; empty by default.
         context: Size of the context window and when to compact it (HU-02-03); the defaults
             apply without a ``[context]`` section.
     """
@@ -352,6 +356,7 @@ class HarnessConfig:
     permissions: PermissionRules = PermissionRules()
     deny_commands: tuple[str, ...] = ()
     context: ContextSettings = ContextSettings()
+    mcp_servers: tuple[McpServerConfig, ...] = ()
 
 
 def _locate(path: str | os.PathLike[str] | None, environ: Mapping[str, str]) -> tuple[Path, str]:
@@ -542,6 +547,24 @@ def _looks_like_a_key(name: str) -> bool:
     return any(marker in simple for marker in _KEY_NAME_MARKERS)
 
 
+def _mcp_names(value: object, reported: list[str], every_name: list[str]) -> None:
+    """The names inside ``[mcp_servers]``: each server is a name, its fields are checked."""
+    if not isinstance(value, dict):
+        _walk_names(value, MCP_TABLE, every_name)
+        return
+    for server, fields in value.items():
+        every_name.append(f"{MCP_TABLE}.{server}")
+        if not isinstance(fields, dict):
+            _walk_names(fields, f"{MCP_TABLE}.{server}", every_name)
+            continue
+        for field, inner in fields.items():
+            name = f"{MCP_TABLE}.{server}.{field}"
+            if field not in MCP_FIELDS:
+                reported.append(name)
+            every_name.append(name)
+            _walk_names(inner, name, every_name)
+
+
 def _unknown_names(data: Mapping[str, Any]) -> tuple[list[str], list[str]]:
     """The field names that the schema does not know, in the order of the file.
 
@@ -554,6 +577,8 @@ def _unknown_names(data: Mapping[str, Any]) -> tuple[list[str], list[str]]:
     for key, value in data.items():
         if key == "model":
             _walk_names(value, key, every_name)
+        elif key == MCP_TABLE:
+            _mcp_names(value, reported, every_name)
         elif key in _TABLE_FIELDS:
             known = _TABLE_FIELDS[key]
             if not isinstance(value, dict):
@@ -607,6 +632,8 @@ def load_config(
     permissions_table = _table(data, "permissions", present)
     permissions = _check_permissions(permissions_table, present)
     deny_commands = _check_deny_commands(permissions_table, present)
+    mcp_servers, mcp_problems = check_mcp_servers(_table(data, MCP_TABLE, present))
+    present.extend(ConfigProblem(field, message) for field, message in mcp_problems)
     unknown = [ConfigProblem(name, _UNKNOWN_FIELD) for name in reported]
     problems = [*missing, *present, *unknown]
     if problems:
@@ -622,6 +649,7 @@ def load_config(
             permissions=permissions,
             deny_commands=deny_commands,
             context=context,
+            mcp_servers=mcp_servers,
         )
     value = environment.get(variable)
     if value is None or not value.strip():
@@ -636,4 +664,5 @@ def load_config(
         permissions=permissions,
         deny_commands=deny_commands,
         context=context,
+        mcp_servers=mcp_servers,
     )
