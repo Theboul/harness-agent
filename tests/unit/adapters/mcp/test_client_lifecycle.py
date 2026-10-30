@@ -199,6 +199,22 @@ class TestFailures:
 
 
 class TestClose:
+    async def test_closing_while_connecting_fails_the_connect_and_leaves_nothing_open(self) -> None:
+        fake = FakeSdk(Script(initialize_hang=True))
+        client = make(fake)
+        connecting = asyncio.create_task(client.connect())
+        for _ in range(50):
+            if fake.names("initialize"):
+                break
+            await asyncio.sleep(0.01)
+
+        await client.close()
+
+        with pytest.raises(McpConnectError):
+            await connecting
+        assert fake.names("exit-stdio")
+        assert not client.connected
+
     async def test_closing_without_connecting_is_harmless_and_connect_is_then_refused(self) -> None:
         client = make(FakeSdk())
 

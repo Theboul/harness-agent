@@ -140,12 +140,12 @@ class McpStdioClient(McpClient):
             await self._stop_task(cancel=True)
             raise
         if not self._ready.done():
-            self._state = _FAILED
+            self._fail()
             await self._stop_task(cancel=True)
             raise McpConnectError(self._settings.name, "sin_respuesta")
         failure = None if self._ready.cancelled() else self._ready.exception()
         if self._ready.cancelled() or failure is not None:
-            self._state = _FAILED
+            self._fail()
             await self._stop_task(cancel=False)
             if failure is None:
                 raise McpConnectError(self._settings.name, "fallo")
@@ -219,11 +219,15 @@ class McpStdioClient(McpClient):
             self._session = None
             errlog.close()
 
+    def _fail(self) -> None:
+        """Mark the start as failed, unless a ``close()`` already took over."""
+        if self._state == _CONNECTING:
+            self._state = _FAILED
+
     async def _stop_task(self, *, cancel: bool) -> None:
         """Make the owner task finish, escalating to a cancellation after the close timeout."""
         task, stop = self._task, self._stop
-        if task is None or stop is None:
-            return
+        assert task is not None and stop is not None
         timeout = self._settings.close_timeout_s
         try:
             if cancel and not task.done():
