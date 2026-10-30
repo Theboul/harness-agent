@@ -50,6 +50,17 @@ sessions_db = ".harness/sessions.db"
 # (por ejemplo "terraform destroy").
 # deny_commands = []
 
+# Servidores MCP por stdio (opcional; requiere el extra "mcp": pip install ".[mcp]"). Un servidor por
+# tabla [mcp_servers.<nombre>]. Si uno no arranca, el arnés inicia igualmente, avisa y lo deja sin
+# herramientas. El servidor NO hereda el entorno del arnés: "env" lista NOMBRES de variables que sí
+# recibe (nunca valores ni claves en este archivo). Los tiempos son segundos (por defecto 15 y 60).
+# [mcp_servers.demo]
+# command = "python"
+# args = ["tests/spikes/mcp_demo_server.py"]
+# env = []
+# startup_timeout_s = 15
+# call_timeout_s = 60
+
 # Compactación automática del contexto (opcional). Sin esta sección rigen los valores de abajo. Si el
 # contexto estimado supera el umbral del modelo, al empezar una petición se resume lo antiguo y se
 # conserva íntegro lo reciente; el historial original no se borra. Cada valor es un entero y uno

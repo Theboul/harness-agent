@@ -53,9 +53,11 @@ src/harness_agent/adapters/mcp/
 ├── environment.py       # server_environment(environ, names) -> dict (solo lo nombrado)
 ├── sdk.py               # load_sdk(): importlib de mcp; McpSdk (NamedTuple de lo que se usa)
 ├── translate.py         # leaf_exceptions, classify -> código; texto fijo por código
+├── stderr_log.py        # open_stderr_log: único módulo que abre un archivo (solo escritura)
 ├── client.py            # McpStdioClient(McpClient): tarea dueña, connect/close/call_tool/list_tools
 └── connections.py       # connect_all / close_all: tolera fallos y avisa por una función
-src/harness_agent/config.py          # + McpServerConfig, HarnessConfig.mcp_servers, [mcp_servers.*]
+src/harness_agent/config.py          # + HarnessConfig.mcp_servers y los ganchos mínimos de [mcp_servers.*]
+src/harness_agent/config_mcp.py      # McpServerConfig y check_mcp_servers (validación pura; config.py la invoca; separado para minimizar conflictos con otras historias que tocan config.py)
 src/harness_agent/bootstrap.py       # + construir clientes en compose(); conectar/cerrar en run_session
 pyproject.toml, requirements-dev.txt # + extra `mcp = ["mcp==2.3.0"]` (el pin de requirements ya existe)
 tests/unit/adapters/mcp/             # settings, environment, translate, sdk, client (SDK doble), connections
