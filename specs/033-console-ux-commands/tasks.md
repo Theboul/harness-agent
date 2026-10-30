@@ -45,7 +45,7 @@
 
 **Prueba independiente**: `run_session` con SQLite temporal y `FakeProvider`, ejecutando cada comando.
 
-- [ ] T008 [P] [US4] `tests/unit/cli/test_session_commands.py` y `src/harness_agent/cli/session_commands.py`: `SessionRow`, `format_sessions` (orden, máx. 10, «y N más», actual marcada, objetivo saneado), `ModelView`, `format_model`, `format_compaction`, `format_new_session` (30 min)
+- [x] T008 [P] [US4] `tests/unit/cli/test_session_commands.py` y `src/harness_agent/cli/session_commands.py`: `SessionRow`, `format_sessions` (orden, máx. 10, «y N más», actual marcada, objetivo saneado), `ModelView`, `format_model`, `format_compaction`, `format_new_session` (30 min)
 - [ ] T009 [US4] `tests/unit/test_bootstrap_console.py` y `src/harness_agent/bootstrap.py`: `Composition.model_view` y `manual_compactor_for`; `_compactor` acepta `settings`/`warn`; la configuración derivada fuerza el umbral sin cambiar `recent_percent`, `min_recent_messages`, `summary_tokens` (30 min)
 - [ ] T010 [US4] `tests/integration/test_console_commands.py` y `bootstrap.py`: `/sesiones` (sin subagentes, más reciente primero, actual marcada, fallo del almacén) y `/model` (sin clave) por `run_session` (30 min)
 - [ ] T011 [US4] `tests/integration/test_console_commands.py` y `bootstrap.py`: `/nueva` (historial limpio, otro identificador, mensajes en la sesión nueva, la anterior reanudable, rechazo con tarea) (40 min)
