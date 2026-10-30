@@ -53,7 +53,7 @@
 
 ## Phase 6: US5 — Color de extremo a extremo (P3)
 
-- [ ] T013 [US5] `tests/integration/test_console_ux_style.py` y el cableado de `style` en `run_cli`/`ConsoleApprover`/`attach_renderer`: terminal simulada con y sin `NO_COLOR`; el texto sin códigos es idéntico al texto plano; ningún `\x1b` en `StringIO` (30 min)
+- [x] T013 [US5] `tests/integration/test_console_ux_style.py` y el cableado de `style` en `run_cli`/`ConsoleApprover`/`attach_renderer`: terminal simulada con y sin `NO_COLOR`; el texto sin códigos es idéntico al texto plano; ningún `\x1b` en `StringIO` (30 min)
 
 ## Phase 7: Polish y cierre
 
