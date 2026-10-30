@@ -24,6 +24,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, TextIO
 
+from harness_agent.adapters.mcp import (
+    McpServerSettings,
+    McpStdioClient,
+    close_all,
+    connect_all,
+)
 from harness_agent.adapters.providers.litellm_provider import (
     LiteLLMProvider,
     ProviderDependencyError,
@@ -194,6 +200,7 @@ class Composition:
     messages: SqliteMessageStore | None = None
     compactor_for: Callable[[str], ContextCompactor] | None = None
     model: str = ""
+    mcp_clients: tuple[McpStdioClient, ...] = ()
 
     def close(self) -> None:
         """Close the session store; safe to call more than once."""
@@ -528,6 +535,9 @@ def compose(
         store.close()
         raise
     prefix = [message for _, message in provisional]
+    mcp_clients = _mcp_clients(
+        config, process_environment() if environ is None else environ, system
+    )
     return Composition(
         loop=loop,
         bus=bus,
@@ -546,6 +556,33 @@ def compose(
         messages=messages,
         compactor_for=compactor_for,
         model=config.model,
+        mcp_clients=mcp_clients,
+    )
+
+
+def _mcp_clients(
+    config: HarnessConfig, environ: Mapping[str, str], system: str
+) -> tuple[McpStdioClient, ...]:
+    """One client per configured MCP server (HU-08-01); nothing is started or imported here.
+
+    The stderr of each server goes to a file next to the sessions database: that folder is
+    protected from the tools of the agent and never the terminal of the user.
+    """
+    logs = config.paths.sessions_db.parent
+    return tuple(
+        McpStdioClient(
+            McpServerSettings(
+                name=server.name,
+                command=server.command,
+                args=server.args,
+                env_names=server.env,
+                startup_timeout_s=server.startup_timeout_s,
+                call_timeout_s=server.call_timeout_s,
+            ),
+            environ=environ,
+            log_path=logs / f"mcp-{server.name}.log",
+        )
+        for server in config.mcp_servers
     )
 
 
@@ -825,14 +862,19 @@ async def run_session(
         "Reanuda una sesión guardada por su identificador.",
         _resume_command(composition, active, history),
     )
-    return await run_cli(
-        composition.bus,
-        run_turn,
-        input_stream=input_stream,
-        output=stream,
-        commands=commands,
-        argument_commands={"/reanudar": resume},
-    )
+    try:
+        # The servers connect before the first prompt; one that fails is a warning (HU-08-01).
+        await connect_all(composition.mcp_clients, composition.warning_sink.write)
+        return await run_cli(
+            composition.bus,
+            run_turn,
+            input_stream=input_stream,
+            output=stream,
+            commands=commands,
+            argument_commands={"/reanudar": resume},
+        )
+    finally:
+        await close_all(composition.mcp_clients)
 
 
 def _report_startup_failure(error: TextIO, text: str) -> int:

@@ -16,15 +16,15 @@ the text of the server (it can repeat the arguments it received).
 from __future__ import annotations
 
 import asyncio
-import os
 from collections.abc import Callable, Mapping
 from pathlib import Path
-from typing import Any, TextIO
+from typing import Any
 
 from harness_agent.adapters.mcp.environment import server_environment
 from harness_agent.adapters.mcp.errors import McpConnectError, McpError
 from harness_agent.adapters.mcp.sdk import McpSdk, load_sdk
 from harness_agent.adapters.mcp.settings import McpServerSettings
+from harness_agent.adapters.mcp.stderr_log import open_stderr_log
 from harness_agent.adapters.mcp.translate import CallFailure, classify_call, connect_error
 from harness_agent.core import McpClient, Tool, ToolResult
 
@@ -84,6 +84,15 @@ class McpStdioClient(McpClient):
         self._server_name: str | None = None
         self._has_tools = False
         self._text_content: Any = None
+
+    @property
+    def log_path(self) -> Path | None:
+        """File that receives the stderr of the server (``None``: the null device)."""
+        return self._log_path
+
+    def environment_for_server(self) -> dict[str, str]:
+        """The variables the server receives on top of the safe base of the SDK."""
+        return server_environment(self._environ, self._settings.env_names)
 
     @property
     def connected(self) -> bool:
@@ -178,12 +187,12 @@ class McpStdioClient(McpClient):
     async def _own(self, sdk: McpSdk) -> None:
         """The owner task: open, announce, wait for the stop signal, leave; all in this task."""
         assert self._ready is not None and self._stop is not None
-        errlog = self._open_log()
+        errlog = open_stderr_log(self._log_path)
         try:
             parameters = sdk.server_parameters(
                 command=self._settings.command,
                 args=list(self._settings.args),
-                env=server_environment(self._environ, self._settings.env_names),
+                env=self.environment_for_server(),
             )
             async with sdk.stdio_client(parameters, errlog=errlog) as (read, write):
                 async with sdk.client_session(
@@ -231,13 +240,3 @@ class McpStdioClient(McpClient):
         finally:
             if task.done() and not task.cancelled():
                 task.exception()  # mark it as retrieved: a late failure is not reported twice
-
-    def _open_log(self) -> TextIO:
-        """The file for the stderr of the server, or the null device if it cannot be opened."""
-        if self._log_path is not None:
-            try:
-                self._log_path.parent.mkdir(parents=True, exist_ok=True)
-                return open(self._log_path, "w", encoding="utf-8")
-            except OSError:
-                pass
-        return open(os.devnull, "w", encoding="utf-8")
