@@ -67,6 +67,30 @@ class TestPyproject:
         assert not any("litellm" in item for item in extras["dev"])
 
 
+class TestTheMcpExtra:
+    """The MCP adapter (HU-08-01) declares its own extra: it must not depend on ``litellm``."""
+
+    def test_the_extra_holds_exactly_one_exact_pin_of_mcp(self) -> None:
+        extras = project()["optional-dependencies"]
+        assert isinstance(extras, dict)
+
+        (requirement,) = extras["mcp"]
+
+        assert re.fullmatch(r"mcp==\d+(?:\.\d+)+", requirement), requirement
+
+    def test_requirements_dev_pins_the_same_version(self) -> None:
+        extras = project()["optional-dependencies"]
+        assert isinstance(extras, dict)
+
+        assert extras["mcp"][0] in declared_requirements()
+
+    def test_the_development_extra_does_not_pull_mcp(self) -> None:
+        extras = project()["optional-dependencies"]
+        assert isinstance(extras, dict)
+
+        assert not any(item.startswith("mcp") for item in extras["dev"])
+
+
 class TestRequirementsDev:
     def test_there_is_exactly_one_line_for_litellm_and_it_has_the_same_pin(self) -> None:
         lines = [line for line in declared_requirements() if line.lower().startswith("litellm")]
