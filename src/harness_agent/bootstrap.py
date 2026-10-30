@@ -770,9 +770,12 @@ def _new_command(
     capture, factory = composition.capture, composition.compactor_for
 
     def new_session() -> str:
-        if capture is None or composition.messages is None or factory is None:
-            return NEW_NOT_AVAILABLE
-        if composition.runner is not None:
+        if (
+            capture is None
+            or composition.messages is None
+            or factory is None
+            or composition.runner is not None
+        ):
             return NEW_NOT_AVAILABLE
         try:
             session = composition.store.create_session(model=composition.model).id

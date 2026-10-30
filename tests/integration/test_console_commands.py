@@ -309,6 +309,15 @@ class TestCompactCommand:
 
         assert "  /compactar  Compacta el contexto ahora." in shown
 
+    async def test_without_a_manual_compactor_it_is_not_available(
+        self, tmp_path: Path, opened: list[Composition]
+    ) -> None:
+        composition, _ = make(tmp_path, opened)
+
+        shown = await drive(replace(composition, manual_compactor_for=None), "/compactar")
+
+        assert "tarea> Compactar no está disponible en esta ejecución." in shown.splitlines()
+
     async def test_it_compacts_below_the_automatic_threshold_and_reports_the_estimates(
         self, tmp_path: Path, opened: list[Composition]
     ) -> None:

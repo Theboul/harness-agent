@@ -58,8 +58,8 @@
 ## Phase 7: Polish y cierre
 
 - [x] T014 `tests/architecture/test_console_ux_boundaries.py` (`verificar-fronteras-hexagonales`): `\x1b` solo en `cli/style.py`; `cli/` no lee `os.environ` fuera de `style.py`; los módulos nuevos usan solo stdlib y la API pública; `bootstrap.py` sigue sin `print`; prueba de mutación de cada regla; correr `pytest tests/architecture` (30 min)
-- [ ] T015 Documentación: `docs/PROGRESO.md` (fila a `En revisión`, Archivos, Evidencia real, registro de cambios por tarea sin líneas en blanco en la tabla, observaciones y fuera de alcance), `CLAUDE.md` (tabla «Qué existe hoy», siguiente número de spec) y las skills `estructura-carpetas-harness`/`arquitectura-hexagonal-clean`/`verificar-fronteras-hexagonales` en `.claude/skills/` y `.agents/skills/` si cambia la descripción de `cli/` (30 min)
-- [ ] T016 Cierre: `ruff format --check .`, `ruff check .`, `mypy src tests`, `pytest` y `pytest tests/architecture` en exit 0; comprobar los archivos protegidos con `git diff --exit-code`; lista de comprobación de `capas-y-reglas.md` revisada contra el código; marcar aquí solo lo hecho (30 min)
+- [x] T015 Documentación: `docs/PROGRESO.md` (fila a `En revisión`, Archivos, Evidencia real, registro de cambios por tarea sin líneas en blanco en la tabla, observaciones y fuera de alcance), `CLAUDE.md` (tabla «Qué existe hoy», siguiente número de spec) y las skills `estructura-carpetas-harness`/`arquitectura-hexagonal-clean`/`verificar-fronteras-hexagonales` en `.claude/skills/` y `.agents/skills/` si cambia la descripción de `cli/` (30 min)
+- [x] T016 Cierre: `ruff format --check .`, `ruff check .`, `mypy src tests`, `pytest` y `pytest tests/architecture` en exit 0; comprobar los archivos protegidos con `git diff --exit-code`; lista de comprobación de `capas-y-reglas.md` revisada contra el código; marcar aquí solo lo hecho (30 min)
 
 ## Tareas humanas (Claude no las marca)
 
