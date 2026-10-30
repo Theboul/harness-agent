@@ -180,3 +180,22 @@ class TestWhatTheFileNeverHolds:
         await session(composition, "uno\n/salir\n")
         text = (area / NAME).read_text(encoding="utf-8")
         assert SENTINEL not in text and "echo " not in text
+
+
+class TestATamperedCriteriaSource:
+    async def test_nothing_is_written_and_the_session_still_ends(
+        self, tmp_path: Path, area: Path, opened: list[Composition]
+    ) -> None:
+        composition = start(opened, tmp_path, area, "respuesta")
+        connection = composition.store.connection()
+        connection.execute("UPDATE criterios_sello SET huella = 'otra'")
+        connection.commit()
+
+        code, shown = await session(composition, "/salir\n")
+
+        assert code == 0
+        warning = (
+            "No se pudo escribir el archivo de progreso; se conserva el último punto de control."
+        )
+        assert shown.count(warning) == 1
+        assert not (area / NAME).exists()

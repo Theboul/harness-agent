@@ -13,6 +13,8 @@ EXPECTED = {
     "EventSerializationError",
     "ExportError",
     "ParentSessionNotFound",
+    "ProgressFile",
+    "ProgressWriteError",
     "SchemaVersionError",
     "SessionNotFound",
     "SessionStoreError",

@@ -64,7 +64,10 @@ def compose_session(
         make_config(tmp_path, workspace=workspace, model=MODEL), context=SETTINGS
     )
     config = dataclasses.replace(config, limits=dataclasses.replace(config.limits, max_turns=2_000))
-    return build(opened, config, provider, task=task, system_name="Linux")  # type: ignore[arg-type]
+    built = build(opened, config, provider, task=task, system_name="Linux")  # type: ignore[arg-type]
+    # The progress file of the ticket (HU-11-08.1) is named after the ticket and would show up in
+    # the folder listing the summarizer reads; that contract is tested in its own file.
+    return dataclasses.replace(built, progress=None)
 
 
 def sensitive_task() -> object:

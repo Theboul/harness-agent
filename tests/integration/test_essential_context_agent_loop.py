@@ -186,8 +186,10 @@ def start(
         context=SETTINGS,
     )
     provider = Recorder()
-    composition = build(opened, config, provider, task=make_task(), system_name="Linux")
-    return composition, provider
+    built = build(opened, config, provider, task=make_task(), system_name="Linux")
+    # These tests count tokens against a tuned threshold and list the folder: the progress file of
+    # the ticket (HU-11-08.1) would add itself to that listing, so it is left out here.
+    return dataclasses.replace(built, progress=None), provider
 
 
 def drive(composition: Composition, lines: list[str], hooks: Any = None) -> tuple[int, str]:
