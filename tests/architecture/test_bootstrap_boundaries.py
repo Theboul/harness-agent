@@ -46,6 +46,7 @@ PUBLIC_API = frozenset(
         "harness_agent.core",
         "harness_agent.config",
         "harness_agent.cli",
+        "harness_agent.adapters.mcp",
         "harness_agent.adapters.storage",
         "harness_agent.adapters.system",
         "harness_agent.adapters.tools",

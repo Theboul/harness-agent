@@ -53,9 +53,10 @@ harness-agent/
 │   │   │                   # shells (HU-01-04): SubprocessShell (tiempo máximo, árbol de procesos, salida acotada), BashShell,
 │   │   │                   # PowerShellShell, select_shell/interpreter_for, environment_notice, denied_commands (dato);
 │   │   │                   # ProtectedPaths (HU-11-01): AuthorizedArea de lo protegido, `contains` = «protegido»
-│   │   └── mcp/            # (planeado: HU-08-01) cliente MCP por stdio y traducción a Tool
+│   │   └── mcp/            # McpStdioClient: cliente MCP por stdio con una tarea de fondo dueña de la conexión (el SDK exige cerrar en la misma tarea), connect_all/close_all tolerantes a fallos, errores de dominio con texto fijo, entorno del servidor por lista blanca, stderr a archivo; `mcp` (dependencia opcional, extra `mcp`) solo en sdk.py y con importlib (HU-08-01); planeado: traducir a Tool (HU-08-02)
 │   ├── observability/      # (planeado: HU-05-05, HU-10-01, HU-10-02) auditoría, trazas, redacción
-│   ├── config.py           # load_config(), HarnessConfig, Secret (HU-00-04)
+│   ├── config.py           # load_config(), HarnessConfig, Secret (HU-00-04); sección [mcp_servers.<nombre>] (HU-08-01)
+│   ├── config_mcp.py       # McpServerConfig y check_mcp_servers: validación pura de [mcp_servers] que config.py invoca (HU-08-01)
 │   ├── bootstrap.py        # RAÍZ DE COMPOSICIÓN: único lugar que une núcleo, adaptadores, CLI y configuración; compose(), run_session(), main() (HU-00-08)
 │   ├── __main__.py         # python -m harness_agent: llama a bootstrap.main
 │   └── cli/                # terminal: se suscribe al bus (HU-06-01)

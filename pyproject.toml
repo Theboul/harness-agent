@@ -26,6 +26,9 @@ dev = [
 # Model provider adapter (HU-07-02). Optional: the harness runs without it. The same version is
 # pinned in requirements-dev.txt, which is what the CI installs.
 litellm = ["litellm[mcp]==1.106.2"]
+# MCP client adapter (HU-08-01). Optional and independent of the provider: without servers in
+# the configuration the harness never imports it. Same pin as requirements-dev.txt.
+mcp = ["mcp==2.3.0"]
 
 [project.scripts]
 harness = "harness_agent.bootstrap:main"
