@@ -12,6 +12,7 @@ from typing import Any
 
 import pytest
 
+from harness_agent.adapters.providers.errors import RateLimited
 from harness_agent.adapters.providers.litellm_provider import LiteLLMProvider
 from harness_agent.core import (
     Message,
@@ -20,7 +21,6 @@ from harness_agent.core import (
     ProviderResponse,
     ProviderTimeout,
     ProviderUnavailable,
-    QuotaExceeded,
     Role,
     TokenUsage,
     ToolCall,
@@ -112,7 +112,7 @@ class AuthenticationError(Exception): ...
 @pytest.mark.parametrize(
     ("simulated", "real"),
     [
-        (QuotaExceeded("cuota"), RateLimitError("tasa")),
+        (RateLimited("cuota"), RateLimitError("tasa")),
         (ProviderTimeout("tiempo"), Timeout("tiempo")),
         (ProviderUnavailable("caído"), ServiceUnavailableError("caído")),
         (ProviderError("otro"), AuthenticationError("clave")),

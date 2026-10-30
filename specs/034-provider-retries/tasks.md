@@ -10,28 +10,28 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 Ejecutar la línea base (`pytest`, `pytest tests/architecture`) y anotar cuántas pruebas pasan; revisar qué pruebas de `tests/unit/test_config_*.py` y `tests/unit/test_bootstrap_*.py` enumeran las tablas o los campos de `HarnessConfig`/`Composition` y pueden cambiar con el campo nuevo (corrida en seco)
+- [x] T001 Ejecutar la línea base (`pytest`, `pytest tests/architecture`) y anotar cuántas pruebas pasan; revisar qué pruebas de `tests/unit/test_config_*.py` y `tests/unit/test_bootstrap_*.py` enumeran las tablas o los campos de `HarnessConfig`/`Composition` y pueden cambiar con el campo nuevo (corrida en seco)
 
 ## Phase 2: Foundational
 
-- [ ] T002 [P] Prueba y tipo `RateLimited(QuotaExceeded)` con `retry_after` validado (finito ≥ 0, no `bool`, otro ⇒ `None`) y mensaje que no reproduce datos, en `tests/unit/adapters/providers/test_rate_limited.py` y `src/harness_agent/adapters/providers/errors.py`
-- [ ] T003 [P] Pruebas y tipos `RetryPolicy` (validación 1–10, > 0, `max_delay ≥ base_delay`, mensajes en español sin el valor) y `RetryAttempt` en `tests/unit/adapters/providers/test_retry_policy.py` y `src/harness_agent/adapters/providers/retrying_provider.py`
+- [x] T002 [P] Prueba y tipo `RateLimited(QuotaExceeded)` con `retry_after` validado (finito ≥ 0, no `bool`, otro ⇒ `None`) y mensaje que no reproduce datos, en `tests/unit/adapters/providers/test_rate_limited.py` y `src/harness_agent/adapters/providers/errors.py`
+- [x] T003 [P] Pruebas y tipos `RetryPolicy` (validación 1–10, > 0, `max_delay ≥ base_delay`, mensajes en español sin el valor) y `RetryAttempt` en `tests/unit/adapters/providers/test_retry_policy.py` y `src/harness_agent/adapters/providers/retrying_provider.py`
 
 ## Phase 3: User Story 1 — Un fallo pasajero no tumba la tarea (P1) 🎯 MVP
 
 **Prueba independiente**: `FakeProvider` falla con límite de tasa / tiempo agotado / no disponible y luego responde; la envoltura devuelve la respuesta con esperas crecientes y registro de cada intento.
 
-- [ ] T004 [US1] Pruebas rojas de la envoltura: éxito directo sin espera; 2 fallos temporales ⇒ 3 llamadas y esperas 2, 4 (con `sleep` registrador); cada uno de los tres tipos temporales; el tope `max_delay`; mensajes y herramientas llegan iguales a cada intento, en `tests/unit/adapters/providers/test_retrying_success.py`
-- [ ] T005 [US1] Implementar `RetryingProvider.complete` (bucle de intentos, espera exponencial con tope, `sleep` inyectable) hasta poner en verde T004, en `src/harness_agent/adapters/providers/retrying_provider.py`
-- [ ] T006 [US1] Prueba roja e implementación del observador: recibe un `RetryAttempt` por reintento con número, máximo, tipo de fallo y espera; el centinela `VALOR-DE-PRUEBA-123` del mensaje del error no aparece en el registro; un observador que lanza no cambia el resultado, en `tests/unit/adapters/providers/test_retrying_observer.py` y `retrying_provider.py`
-- [ ] T007 [US1] Prueba roja y cambio mínimo del adaptador: `RateLimitError` ⇒ `RateLimited` (con `retry_after` del atributo del error si es válido) y `PaymentRequiredError`/`BudgetExceededError` siguen siendo `QuotaExceeded` simple; actualizar la prueba de `ERROR_TABLE` existente, en `tests/unit/adapters/providers/test_errors.py` y `src/harness_agent/adapters/providers/litellm_provider.py`
+- [x] T004 [US1] Pruebas rojas de la envoltura: éxito directo sin espera; 2 fallos temporales ⇒ 3 llamadas y esperas 2, 4 (con `sleep` registrador); cada uno de los tres tipos temporales; el tope `max_delay`; mensajes y herramientas llegan iguales a cada intento, en `tests/unit/adapters/providers/test_retrying_success.py`
+- [x] T005 [US1] Implementar `RetryingProvider.complete` (bucle de intentos, espera exponencial con tope, `sleep` inyectable) hasta poner en verde T004, en `src/harness_agent/adapters/providers/retrying_provider.py`
+- [x] T006 [US1] Prueba roja e implementación del observador: recibe un `RetryAttempt` por reintento con número, máximo, tipo de fallo y espera; el centinela `VALOR-DE-PRUEBA-123` del mensaje del error no aparece en el registro; un observador que lanza no cambia el resultado, en `tests/unit/adapters/providers/test_retrying_observer.py` y `retrying_provider.py`
+- [x] T007 [US1] Prueba roja y cambio mínimo del adaptador: `RateLimitError` ⇒ `RateLimited` (con `retry_after` del atributo del error si es válido) y `PaymentRequiredError`/`BudgetExceededError` siguen siendo `QuotaExceeded` simple; actualizar la prueba de `ERROR_TABLE` existente, en `tests/unit/adapters/providers/test_errors.py` y `src/harness_agent/adapters/providers/litellm_provider.py`
 
 ## Phase 4: User Story 2 — Lo permanente falla enseguida, lo temporal se rinde a tiempo (P1)
 
 **Prueba independiente**: errores no temporales ⇒ 1 llamada y 0 esperas; temporal permanente ⇒ N llamadas y el mismo error.
 
-- [ ] T008 [US2] Pruebas rojas: `QuotaExceeded` simple, `ProviderError` genérico y una excepción ajena se propagan al instante; agotado ⇒ `max_attempts` llamadas, `max_attempts − 1` esperas y la misma instancia de error; `max_attempts = 1` no reintenta; pista válida mayor que la exponencial la sustituye; pista > `max_delay` ⇒ propaga sin reintentar; pista inválida se ignora, en `tests/unit/adapters/providers/test_retrying_failures.py`
-- [ ] T009 [US2] Pruebas rojas de cancelación: `CancelledError` del proveedor y durante el `sleep` se propaga sin reintento (D-01) y sin llamar al observador más; implementar lo que falte en `retrying_provider.py`
+- [x] T008 [US2] Pruebas rojas: `QuotaExceeded` simple, `ProviderError` genérico y una excepción ajena se propagan al instante; agotado ⇒ `max_attempts` llamadas, `max_attempts − 1` esperas y la misma instancia de error; `max_attempts = 1` no reintenta; pista válida mayor que la exponencial la sustituye; pista > `max_delay` ⇒ propaga sin reintentar; pista inválida se ignora, en `tests/unit/adapters/providers/test_retrying_failures.py`
+- [x] T009 [US2] Pruebas rojas de cancelación: `CancelledError` del proveedor y durante el `sleep` se propaga sin reintento (D-01) y sin llamar al observador más; implementar lo que falte en `retrying_provider.py`
 
 ## Phase 5: User Story 3 — Configuración y cableado (P2)
 
@@ -45,7 +45,7 @@
 
 ## Phase 6: Polish y cierre
 
-- [ ] T014b [US2] Prueba de contrato `tests/contracts/test_retrying_provider_contract.py`: la envoltura sobre `FakeProvider` cumple las mismas comprobaciones del contrato `Provider` que ya pasan el doble y el adaptador (revisar `test_fake_provider_contract.py` y `test_provider_interchangeability.py` para reutilizar su forma sin modificarlos)
+- [x] T014b [US2] Prueba de contrato `tests/contracts/test_retrying_provider_contract.py`: la envoltura sobre `FakeProvider` cumple las mismas comprobaciones del contrato `Provider` que ya pasan el doble y el adaptador (revisar `test_fake_provider_contract.py` y `test_provider_interchangeability.py` para reutilizar su forma sin modificarlos)
 - [ ] T015 [P] Guarda `ast` nueva `tests/architecture/test_retry_boundaries.py`: `retrying_provider.py` y `errors.py` solo importan biblioteca estándar y `harness_agent.core`; no usan `time.sleep` ni `threading`; no capturan `BaseException` ni `CancelledError`; con autoprueba y prueba de mutación como las guardas vecinas
 - [ ] T016 Verificación de fronteras (`verificar-fronteras-hexagonales`): `pytest tests/architecture` y comprobación de archivos protegidos con `git diff --exit-code $(git merge-base HEAD origin/main) -- src/harness_agent/core/interfaces src/harness_agent/core/events.py src/harness_agent/core/loop.py tests/doubles docs/archivo`
 - [ ] T017 Cobertura del módulo nuevo 100 % de líneas y ramas (`pytest --cov=harness_agent.adapters.providers`) y las cuatro puertas de calidad en exit 0
