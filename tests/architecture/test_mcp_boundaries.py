@@ -321,3 +321,37 @@ def test_a_static_import_of_the_sdk_in_the_core_is_detected(copy_of_the_package:
     violations = scan_everything_else(copy_of_the_package / "core", MCP_DIR)
 
     assert violations
+
+
+# --- HU-08-02: a remote tool never lowers its own risk ------------------------------------------
+
+
+def risk_levels_named(source: str) -> set[str]:
+    """Members of ``RiskLevel`` written as ``RiskLevel.X`` anywhere in ``source``."""
+    return {
+        node.attr
+        for node in ast.walk(ast.parse(source))
+        if isinstance(node, ast.Attribute)
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "RiskLevel"
+    }
+
+
+def test_the_translated_tool_names_only_the_high_risk() -> None:
+    source = (MCP_DIR / "tool.py").read_text(encoding="utf-8")
+
+    assert risk_levels_named(source) == {"HIGH"}
+
+
+def test_naming_a_lower_risk_is_detected() -> None:
+    assert risk_levels_named("x = RiskLevel.LOW\ny = RiskLevel.HIGH") == {"LOW", "HIGH"}
+
+
+def test_only_the_composition_root_calls_the_registration() -> None:
+    callers = {
+        path.name
+        for path in PACKAGE_DIR.rglob("*.py")
+        if "register_mcp_tools(" in path.read_text(encoding="utf-8")
+    }
+
+    assert callers == {"bootstrap.py", "registration.py"}  # the call and the definition
