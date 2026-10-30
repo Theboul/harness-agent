@@ -28,6 +28,7 @@ os.environ.setdefault("LITELLM_LOCAL_MODEL_COST_MAP", "True")
 litellm = pytest.importorskip("litellm")
 httpx = pytest.importorskip("httpx")
 
+from harness_agent.adapters.providers.errors import RateLimited  # noqa: E402
 from harness_agent.adapters.providers.litellm_provider import (  # noqa: E402
     ERROR_TABLE,
     LiteLLMProvider,
@@ -276,7 +277,7 @@ class TestRealFailures:
     @pytest.mark.parametrize(
         ("status", "canonical", "fragment"),
         [
-            (429, QuotaExceeded, "límite de tasa"),
+            (429, RateLimited, "límite de tasa"),
             (402, QuotaExceeded, "cuota o el crédito"),
             (503, ProviderUnavailable, "no está disponible"),
             (502, ProviderUnavailable, "no está disponible"),

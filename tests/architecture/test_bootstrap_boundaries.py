@@ -6,10 +6,12 @@ exception to "do not know the adapters". The rules that keep that exception smal
 * ``bootstrap.py`` imports only the standard library, the public API (``__all__``; for the
   plain module ``config``, its public names) of ``harness_agent.core``, ``harness_agent.config``,
   ``harness_agent.cli`` and of ``harness_agent.adapters.storage``, ``.system`` and ``.tools``,
-  plus exactly two submodules that have no public way in: ``harness_agent.core.loop``
-  (``AgentLoop`` is not in ``core.__all__``) and
-  ``harness_agent.adapters.providers.litellm_provider`` (``providers/__init__.py`` holds only a
-  docstring by rule of ``test_providers_boundaries.py``). Any other submodule is a violation.
+  plus exactly three submodules that have no public way in: ``harness_agent.core.loop``
+  (``AgentLoop`` is not in ``core.__all__``),
+  ``harness_agent.adapters.providers.litellm_provider`` and
+  ``harness_agent.adapters.providers.retrying_provider`` (HU-07-04) (``providers/__init__.py``
+  holds only a docstring by rule of ``test_providers_boundaries.py``). Any other submodule is a
+  violation.
 * ``bootstrap.py`` does not read the environment and does not call ``print`` or ``input``: the
   environment and the streams enter by parameter (``sys.stdin``/``stdout``/``stderr`` are only the
   defaults of those parameters).
@@ -51,7 +53,11 @@ PUBLIC_API = frozenset(
     }
 )
 AUTHORIZED_SUBMODULES = frozenset(
-    {"harness_agent.core.loop", "harness_agent.adapters.providers.litellm_provider"}
+    {
+        "harness_agent.core.loop",
+        "harness_agent.adapters.providers.litellm_provider",
+        "harness_agent.adapters.providers.retrying_provider",
+    }
 )
 LAYERS = {
     "core": "harness_agent.core",
