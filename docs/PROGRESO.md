@@ -397,6 +397,12 @@ Actualizar esta tabla al cerrar cada historia.
 | [HU-11-07](04e-historias-coding-harness.md#hu-11-07) | Una sesión por ticket con un worktree propio | Media | 3 | C — Control y conexiones | Pendiente |  |  |  |
 | [HU-11-08.1](04e-historias-coding-harness.md#hu-11-08.1) | Archivo de progreso del ticket con puntos de control | Alta | 1 | B — Estado | Pendiente |  |  |  |
 | [HU-11-08.2](04e-historias-coding-harness.md#hu-11-08.2) | Rutina de arranque al reanudar un ticket | Alta | 1 | C — Control y conexiones | Pendiente |  |  |  |
+| HU-06-05 (propuesta; ID provisional) | Consola legible y comandos útiles de sesión | Media | — | C — Control y conexiones | En curso |  | specs/033-console-ux-commands/ | T001 hecha (línea base: `pytest tests/unit/cli tests/integration` 788 pasadas, 2 omitidas) |
+
+**Observaciones de HU-06-05 (propuesta)**:
+- *2026-10-30: **Historia propuesta, sin ficha en `docs/04x`.** La spec 033 (`specs/033-console-ux-commands/`) la propone a raíz del feedback de una prueba manual con Gemini (la pregunta de aprobación era difícil de leer y la consola no mostraba con claridad lo que hace el agente). ID provisional de la familia HU-06 (existen HU-06-01 a HU-06-04); el PO decide si la formaliza o la renombra. **Requiere el visto bueno del PO: sus criterios de aceptación AC-01 a AC-09 son propuestos** (confirmados por el usuario en `/speckit-clarify` el 2026-10-30) y los criterios son inmutables sin su permiso (Principio V). No puede pasar a `Hecha` sin él.*
+- *2026-10-30: **Reutiliza sin ampliar** HU-06-04 AC-01 (`/sesiones`, `/nueva`, `/reanudar`, `/salir`) y HU-02-04 AC-01 (`/compactar`); esas fichas siguen `Pendiente` (área B).*
+- *2026-10-30: **Fuera de alcance (observaciones):** panel de subagentes activos (no existen, HU-09-x), comando `/mcp` (no existe MCP aún), detección automática y comando de skills (diseño propio, sin historia) y cambiar de modelo en caliente (`/model` solo muestra).*
 
 ## Sprint 4
 
@@ -821,7 +827,7 @@ Reparto de Sprint 4 por ratificar en el Planning (la semana y las 8 PHU de MCP y
 | 2026-10-28 | **T010d (Sp2-22)** / [HU-03-04](04b-historias-estado.md#hu-03-04): Errores y marca «sin detalle»: identificadores, sesión activa, tarea (también huérfana), sin detalle, filas alteradas, vacía; fallo a mitad de un turno con archivo real, otra conexión y un proceso hijo; continuar en otro proceso con el siguiente `seq`. | HU-03-04 | A — Núcleo (implementa Claude) |
 | 2026-10-28 | **T011** / [HU-03-04](04b-historias-estado.md#hu-03-04): `tests/architecture/test_conversation_boundaries.py` (36 pruebas con mutaciones: módulos puros, adaptador sin conexión propia, solo la composición construye la captura y reanuda, suscripción antes del registrador, nadie lee `composition.session_id` en `run_session`); skills (dos copias idénticas), `arbol.md`, `CLAUDE.md` y revisión de la lista de comprobación. Secretos, caracteres ocultos y CRLF sin hallazgos. | HU-03-04 | A — Núcleo (implementa Claude) |
 | 2026-10-28 | **T012 (cierre)** / [HU-03-04](04b-historias-estado.md#hu-03-04): Cuatro puertas en verde (ruff, mypy, 7263 pasadas y 47 omitidas, 569 de arquitectura), 100 % de los módulos nuevos, diff vacío de lo protegido y la fila de HU-03-04 pasa a `En revisión`. Pendiente H1-H8; no pasa a `Hecha` hasta la revisión cruzada, la CI remota y la ratificación de HU-00-01. | HU-03-04 | A — Núcleo (implementa Claude) |
-
+| 2026-10-30 | **T001** (transversal / HU-06-05, propuesta): la historia pasa a `En curso` (área C); fila en la tabla de Sprint 3 (adelantada por el cierre del 6/11), bloque **Observaciones de HU-06-05 (propuesta)** (visto bueno del PO, fuera de alcance) y línea base de pruebas (788 pasadas, 2 omitidas en `tests/unit/cli` y `tests/integration`). |
 
 ## Decisiones abiertas
 
