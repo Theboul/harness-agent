@@ -3,7 +3,7 @@
 **Rama**: `claude/hu-08-01-mcp-client-cbf065` · **Responsable**: C — Control y conexiones · **Sprint**: 4 (el orden por sprints ya no rige: ver *Supuestos*) · **PHU**: 2  
 **Requisitos**: RF-8.1 · **Depende de**: [SPK-04](../../docs/04d-historias-conexiones.md#spk-04) · **Ficha**: [HU-08-01](../../docs/04d-historias-conexiones.md#hu-08-01)  
 **Tareas del plan**: Sp4-28 (3 h → 4 h según SPK-04), Sp4-29 (1,5 h)  
-**Numeración**: `034` (la `033` la ocupa la rama de consola `claude/cli-console-ux-ea1667`)
+**Numeración**: `035` (la `033` la ocupa la rama de consola `claude/cli-console-ux-ea1667` y la `034` la de reintentos, HU-07-04)
 
 ## Clarificaciones
 
