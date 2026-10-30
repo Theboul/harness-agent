@@ -21,6 +21,7 @@ class McpSdk:
     server_parameters: Any
     stdio_client: Any
     text_content: Any
+    page_params: Any = None
 
 
 def load_sdk(server: str = "") -> McpSdk:
@@ -41,6 +42,7 @@ def load_sdk(server: str = "") -> McpSdk:
             server_parameters=root.StdioServerParameters,
             stdio_client=stdio.stdio_client,
             text_content=types.TextContent,
+            page_params=types.PaginatedRequestParams,
         )
     except (ImportError, AttributeError):
         raise McpDependencyError(server) from None

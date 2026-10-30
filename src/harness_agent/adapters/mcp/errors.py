@@ -47,3 +47,13 @@ class McpDependencyError(McpError):
             f"El servidor MCP '{server}' necesita la biblioteca 'mcp'. Instálela con: "
             'pip install ".[mcp]". Se continúa sin sus herramientas.'
         )
+
+
+class McpListError(McpError):
+    """The server is connected but its tool list could not be read (HU-08-02)."""
+
+    def __init__(self, server: str) -> None:
+        self.server = server
+        super().__init__(
+            f"El servidor MCP '{server}' no pudo listar sus herramientas. Se continúa sin ellas."
+        )

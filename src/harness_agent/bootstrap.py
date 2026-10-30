@@ -29,6 +29,7 @@ from harness_agent.adapters.mcp import (
     McpStdioClient,
     close_all,
     connect_all,
+    register_mcp_tools,
 )
 from harness_agent.adapters.providers.litellm_provider import (
     LiteLLMProvider,
@@ -195,6 +196,7 @@ class Composition:
         store: The open session store; ``close`` closes it.
         session_id: Identifier of the session created for this run (the task's, if there is one).
         notices: Startup notices for the user (missing or unusable work area); usually empty.
+        registry: The tool registry of the loop; the tools of the MCP servers join it at start.
         history_prefix: Messages that open every conversation (the environment notice for the
             model); the session history starts as a copy of them.
     """
@@ -204,6 +206,7 @@ class Composition:
     store: SqliteSessionStore
     session_id: str
     notices: tuple[str, ...]
+    registry: InMemoryToolRegistry
     history_prefix: tuple[Message, ...] = ()
     task_store: SqliteTaskStore | None = None
     task: TaskDefinition | None = None
@@ -618,6 +621,7 @@ def compose(
         session_cursor=cursor,
         model=config.model,
         mcp_clients=mcp_clients,
+        registry=registry,
     )
 
 
@@ -928,6 +932,10 @@ async def run_session(
     try:
         # The servers connect before the first prompt; one that fails is a warning (HU-08-01).
         await connect_all(composition.mcp_clients, composition.warning_sink.write)
+        # Their tools join the registry before the first prompt (HU-08-02).
+        await register_mcp_tools(
+            composition.mcp_clients, composition.registry, composition.warning_sink.write
+        )
         return await run_cli(
             composition.bus,
             run_turn,

@@ -39,6 +39,9 @@ class Script:
     call_result: Any = None
     call_error: BaseException | None = None
     call_hang: bool = False
+    pages: dict[str | None, Any] = field(default_factory=dict)
+    list_error: BaseException | None = None
+    list_hang: bool = False
 
 
 @dataclass
@@ -49,6 +52,7 @@ class FakeSdk:
     events: list[tuple[str, str]] = field(default_factory=list)
     calls: list[tuple[str, dict[str, Any] | None, float | None]] = field(default_factory=list)
     launched: list[Any] = field(default_factory=list)
+    list_params: list[Any] = field(default_factory=list)
     errlogs: list[Any] = field(default_factory=list)
 
     def _note(self, event: str) -> None:
@@ -103,6 +107,15 @@ class FakeSdk:
                     capabilities=SimpleNamespace(tools=object()),
                 )
 
+            async def list_tools(self, *, params: Any = None) -> Any:
+                sdk.list_params.append(params)
+                if sdk.script.list_hang:
+                    await asyncio.Event().wait()
+                if sdk.script.list_error is not None:
+                    raise sdk.script.list_error
+                cursor = None if params is None else params.cursor
+                return sdk.script.pages[cursor]
+
             async def call_tool(
                 self,
                 name: str,
@@ -121,9 +134,22 @@ class FakeSdk:
             server_parameters=lambda **kwargs: SimpleNamespace(**kwargs),
             stdio_client=stdio_client,
             text_content=FakeText,
+            page_params=lambda **kwargs: SimpleNamespace(**kwargs),
         )
 
 
 def result(*texts: str, is_error: bool = False) -> Any:
     """A ``CallToolResult``-like object with text blocks."""
     return SimpleNamespace(content=[FakeText(text) for text in texts], is_error=is_error)
+
+
+def listed(*tools: Any, next_cursor: str | None = None) -> Any:
+    """A ``ListToolsResult``-like page."""
+    return SimpleNamespace(tools=list(tools), next_cursor=next_cursor)
+
+
+def sdk_tool(name: Any, description: Any = "desc", schema: Any = None) -> Any:
+    """A ``Tool``-like entry of the server list (SDK 2.x names)."""
+    if schema is None:
+        schema = {"type": "object", "properties": {"x": {"type": "string"}}}
+    return SimpleNamespace(name=name, description=description, input_schema=schema)
