@@ -19,7 +19,7 @@ import platform
 import sys
 import uuid
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from pathlib import Path
 from typing import Any, TextIO
@@ -59,7 +59,7 @@ from harness_agent.adapters.tools import (
     WriteFileTool,
     make_command_runner,
 )
-from harness_agent.cli import ConsoleApprover, attach_criteria_status, run_cli
+from harness_agent.cli import ConsoleApprover, ModelView, attach_criteria_status, run_cli
 from harness_agent.config import (
     PROVIDER_KEY_VARIABLES,
     ConfigError,
@@ -74,6 +74,7 @@ from harness_agent.core import (
     AuthorizedArea,
     CommandPolicy,
     ContextCompactor,
+    ContextSettings,
     ConversationCapture,
     ConversationSaveError,
     CriteriaVerifier,
@@ -111,6 +112,7 @@ from harness_agent.core import (
     make_items,
     rejection_message,
     resume_session,
+    threshold_tokens,
 )
 from harness_agent.core.loop import AgentLoop, TurnResult
 
@@ -194,6 +196,8 @@ class Composition:
     messages: SqliteMessageStore | None = None
     compactor_for: Callable[[str], ContextCompactor] | None = None
     model: str = ""
+    model_view: ModelView | None = None
+    manual_compactor_for: Callable[[str], ContextCompactor] | None = None
 
     def close(self) -> None:
         """Close the session store; safe to call more than once."""
@@ -507,6 +511,25 @@ def compose(
                 provider, store, config, session, registry, bus, warning_sink, clock, id_factory
             )
 
+        def manual_compactor_for(session: str) -> ContextCompactor:
+            """The compactor behind ``/compactar`` (HU-06-05): same logic, threshold forced low.
+
+            Its own warnings are silenced: the compaction line the person asked for is the answer.
+            """
+            return _compactor(
+                provider,
+                store,
+                config,
+                session,
+                registry,
+                bus,
+                warning_sink,
+                clock,
+                id_factory,
+                settings=forced_context_settings(config.context),
+                warn=_discard,
+            )
+
         runner: VerifyingRunner[TurnResult] | None = None
         if task is not None:
             runner = _verifying_runner(
@@ -546,7 +569,30 @@ def compose(
         messages=messages,
         compactor_for=compactor_for,
         model=config.model,
+        model_view=ModelView(
+            model=config.model,
+            window_tokens=config.context.window_for(config.model),
+            threshold_tokens=threshold_tokens(config.context, config.model),
+            max_turns=config.limits.max_turns,
+            max_seconds=config.limits.max_seconds,
+            max_tokens=config.limits.max_tokens,
+            max_output_tokens=config.limits.max_output_tokens,
+        ),
+        manual_compactor_for=manual_compactor_for,
     )
+
+
+def _discard(_text: str) -> None:
+    """A warning sink that says nothing."""
+
+
+def forced_context_settings(settings: ContextSettings) -> ContextSettings:
+    """``settings`` with the lowest threshold the core accepts, for a compaction asked by hand.
+
+    The smallest window with the smallest percentage gives a threshold of 100 tokens, whatever the
+    model; the share of recent messages kept whole and the size of the summary do not change.
+    """
+    return replace(settings, window_tokens=1_000, windows=(), threshold_percent=10)
 
 
 def _compactor(
@@ -559,8 +605,13 @@ def _compactor(
     warning_sink: WarningSink,
     clock: Callable[[], datetime] | None,
     id_factory: Callable[[], str] | None,
+    *,
+    settings: ContextSettings | None = None,
+    warn: Callable[[str], None] | None = None,
 ) -> ContextCompactor:
     """The compactor of the context (HU-02-03), connected to the pieces of the session.
+
+    ``settings`` and ``warn`` default to the configured ones and to the warning sink of the run.
 
     It only connects: the archive works on the session store, the model and the window come from
     the configuration, the tool declarations are the ones the loop sends, and the summary event
@@ -588,13 +639,13 @@ def _compactor(
     return ContextCompactor(
         provider,
         SqliteCompactionArchive(store, **archive_options),
-        config.context,
+        config.context if settings is None else settings,
         session_id=session_id,
         model=lambda: config.model,
         definitions=definitions,
         emit=emit,
         publish=bus.emit,
-        warn=warning_sink.write,
+        warn=warning_sink.write if warn is None else warn,
         new_id=id_factory if id_factory is not None else lambda: str(uuid.uuid4()),
     )
 
