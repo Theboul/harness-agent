@@ -16,8 +16,9 @@ import pytest
 from harness_agent.adapters.storage import SessionStoreError, SqliteSessionStore
 from harness_agent.bootstrap import Composition, run_session
 from harness_agent.config import HarnessConfig, Secret
-from harness_agent.core import ProviderResponse
+from harness_agent.core import Message, ProviderResponse, Role
 from tests.doubles import FakeProvider
+from tests.integration.test_essential_context_agent_loop import make_task
 from tests.unit.bootstrap_support import SENTINEL, build, make_config
 
 MODEL = "openai/modelo-de-prueba"
@@ -140,7 +141,8 @@ class TestModelCommand:
         assert "Máximo por respuesta del modelo: 777 tokens" in shown
 
     async def test_it_never_shows_the_key(self, tmp_path: Path, opened: list[Composition]) -> None:
-        config = config_for(tmp_path, api_key=Secret(SENTINEL))
+        key = Secret(SENTINEL)
+        config = replace(config_for(tmp_path), api_key=key)
         composition, _ = make(tmp_path, opened, config=config)
 
         shown = await drive(composition, "/model", "/sesiones", "/ayuda")
@@ -155,3 +157,115 @@ class TestModelCommand:
         shown = await drive(replace(composition, model_view=None), "/model")
 
         assert "tarea> Modelo no disponible en esta ejecución." in shown.splitlines()
+
+
+NEW_NOT_AVAILABLE = "Nueva sesión no está disponible en esta ejecución."
+NEW_FAILED = "No se pudo crear la sesión nueva; la sesión actual sigue sin cambios."
+
+
+def texts(messages: list[Message]) -> list[str]:
+    return [m.content for m in messages if m.role is not Role.SYSTEM]
+
+
+def count(composition: Composition, sql: str, *params: object) -> int:
+    row = composition.store.connection().execute(sql, params).fetchone()
+    return int(row[0])
+
+
+class TestNewCommand:
+    async def test_it_is_listed_in_the_help(
+        self, tmp_path: Path, opened: list[Composition]
+    ) -> None:
+        composition, _ = make(tmp_path, opened)
+
+        shown = await drive(composition, "/ayuda")
+
+        assert "  /nueva  Empieza una sesión nueva." in shown
+
+    async def test_the_next_task_starts_with_a_clean_history_in_another_session(
+        self, tmp_path: Path, opened: list[Composition]
+    ) -> None:
+        composition, provider = make(tmp_path, opened, "uno", "dos")
+
+        shown = await drive(composition, "primera", "/nueva", "segunda")
+
+        new_id = next(line for line in shown.splitlines() if "Sesión nueva: " in line)
+        new_id = new_id.split("Sesión nueva: ")[1].split(".")[0]
+        assert new_id != composition.session_id
+        assert texts(provider.received[0]) == ["primera"]
+        assert texts(provider.received[1]) == ["segunda"]
+        assert provider.received[1][0].role is Role.SYSTEM  # the prefix is kept
+        saved = "SELECT count(*) FROM mensajes WHERE sesion_id = ?"
+        assert count(composition, saved, new_id) == 2  # the request and the answer
+        assert count(composition, saved, composition.session_id) == 2
+        events = "SELECT count(*) FROM events WHERE session_id = ?"
+        assert count(composition, events, new_id) > 0
+
+    async def test_nothing_is_written_to_the_new_session_until_the_first_task(
+        self, tmp_path: Path, opened: list[Composition]
+    ) -> None:
+        composition, _ = make(tmp_path, opened)
+        before = count(composition, "SELECT count(*) FROM sessions")
+
+        await drive(composition, "/nueva")
+
+        assert count(composition, "SELECT count(*) FROM sessions") == before + 1
+        assert count(composition, "SELECT count(*) FROM mensajes") == 0
+
+    async def test_the_previous_session_can_be_resumed_afterwards(
+        self, tmp_path: Path, opened: list[Composition]
+    ) -> None:
+        composition, provider = make(tmp_path, opened, "uno", "dos")
+        old = composition.session_id
+
+        await drive(composition, "primera", "/nueva", f"/reanudar {old}", "tercera")
+
+        assert texts(provider.received[-1]) == ["primera", "uno", "tercera"]
+
+    async def test_the_session_model_is_the_one_of_the_run(
+        self, tmp_path: Path, opened: list[Composition]
+    ) -> None:
+        composition, _ = make(tmp_path, opened)
+
+        await drive(composition, "/nueva")
+
+        models = composition.store.connection().execute("SELECT model FROM sessions").fetchall()
+        assert {model for (model,) in models} == {MODEL}
+
+    async def test_with_a_task_it_is_refused_and_nothing_changes(
+        self, tmp_path: Path, opened: list[Composition]
+    ) -> None:
+        provider = FakeProvider([ProviderResponse(content="listo")])
+        composition = build(
+            opened, config_for(tmp_path), provider, task=make_task(), system_name="Linux"
+        )
+        before = count(composition, "SELECT count(*) FROM sessions")
+
+        shown = await drive(composition, "/nueva")
+
+        assert f"tarea> {NEW_NOT_AVAILABLE}" in shown.splitlines()
+        assert count(composition, "SELECT count(*) FROM sessions") == before
+
+    async def test_without_the_message_capture_it_is_not_available(
+        self, tmp_path: Path, opened: list[Composition]
+    ) -> None:
+        composition, _ = make(tmp_path, opened)
+
+        shown = await drive(replace(composition, capture=None), "/nueva")
+
+        assert f"tarea> {NEW_NOT_AVAILABLE}" in shown.splitlines()
+
+    async def test_a_store_that_fails_leaves_the_current_session_as_it_was(
+        self, tmp_path: Path, opened: list[Composition], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        composition, provider = make(tmp_path, opened, "uno", "dos")
+
+        def broken(_store: object, **_options: object) -> object:
+            raise SessionStoreError(f"falla {SENTINEL}")
+
+        monkeypatch.setattr(SqliteSessionStore, "create_session", broken)
+        shown = await drive(composition, "primera", "/nueva", "segunda")
+
+        assert f"tarea> {NEW_FAILED}" in shown.splitlines()
+        assert SENTINEL not in shown
+        assert texts(provider.received[1]) == ["primera", "uno", "segunda"]

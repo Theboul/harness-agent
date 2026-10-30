@@ -65,6 +65,7 @@ from harness_agent.cli import (
     SessionRow,
     attach_criteria_status,
     format_model,
+    format_new_session,
     format_sessions,
     run_cli,
 )
@@ -727,6 +728,41 @@ READ_FAILED = "No se pudo leer la sesión; la sesión actual sigue sin cambios."
 RESUME_NOT_AVAILABLE = "Reanudar no está disponible en esta sesión."
 LIST_FAILED = "No se pudo leer la lista de sesiones."
 MODEL_NOT_AVAILABLE = "Modelo no disponible en esta ejecución."
+NEW_NOT_AVAILABLE = "Nueva sesión no está disponible en esta ejecución."
+NEW_FAILED = "No se pudo crear la sesión nueva; la sesión actual sigue sin cambios."
+
+
+def _new_command(
+    composition: Composition, active: _Active, history: list[Message]
+) -> Callable[[], str]:
+    """The function behind ``/nueva`` (HU-06-05): a clean conversation in a new session.
+
+    It follows what ``/reanudar`` does to switch: the history is replaced in place by the prefix,
+    the saving of the messages is bound to the new session and its compactor becomes the active
+    one. The session that is left stays saved and can be resumed. The limits of the run are not
+    reset (they live in the loop). A session with a task, or a composition without the pieces to
+    save messages, refuses; any failure leaves the current session as it was.
+    """
+    capture, factory = composition.capture, composition.compactor_for
+
+    def new_session() -> str:
+        if capture is None or composition.messages is None or factory is None:
+            return NEW_NOT_AVAILABLE
+        if composition.runner is not None:
+            return NEW_NOT_AVAILABLE
+        try:
+            session = composition.store.create_session(model=composition.model).id
+            compactor = factory(session)
+        except Exception:
+            return NEW_FAILED
+        history[:] = composition.history_prefix
+        active.session_id = session
+        active.compactor = compactor
+        active.closures.clear()
+        capture.bind(session, history, 1, len(history))
+        return format_new_session(session)
+
+    return new_session
 
 
 def _sessions_command(composition: Composition, active: _Active) -> Callable[[], str]:
@@ -921,6 +957,7 @@ async def run_session(
 
     commands: dict[str, tuple[str, Callable[[], str]]] = {
         "/sesiones": ("Lista las sesiones guardadas.", _sessions_command(composition, active)),
+        "/nueva": ("Empieza una sesión nueva.", _new_command(composition, active, history)),
         "/model": ("Muestra el modelo y los límites.", _model_command(composition)),
     }
     if runner is not None:
