@@ -18,7 +18,7 @@ import os
 import platform
 import sys
 import uuid
-from collections.abc import Callable, Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -27,6 +27,11 @@ from typing import Any, TextIO
 from harness_agent.adapters.providers.litellm_provider import (
     LiteLLMProvider,
     ProviderDependencyError,
+)
+from harness_agent.adapters.providers.retrying_provider import (
+    RetryAttempt,
+    RetryingProvider,
+    RetryPolicy,
 )
 from harness_agent.adapters.storage import (
     EXPORT_FILE_NAME,
@@ -163,6 +168,17 @@ class WarningSink:
         _write_notice(sys.stdout if self.stream is None else self.stream, text)
 
 
+@dataclass
+class SessionCursor:
+    """The session the run is working on now; ``/reanudar`` moves it (HU-07-04).
+
+    The provider is wrapped once, when the run starts, but the retries it records belong to the
+    session that is active when they happen.
+    """
+
+    value: str
+
+
 @dataclass(frozen=True)
 class Composition:
     """Everything one run needs, already connected; built once per run and never shared.
@@ -194,6 +210,7 @@ class Composition:
     messages: SqliteMessageStore | None = None
     compactor_for: Callable[[str], ContextCompactor] | None = None
     model: str = ""
+    session_cursor: SessionCursor | None = None
 
     def close(self) -> None:
         """Close the session store; safe to call more than once."""
@@ -208,6 +225,44 @@ def _default_provider(config: HarnessConfig) -> Provider:
         config.model,
         max_output_tokens=config.limits.max_output_tokens,
         api_key=config.api_key,
+    )
+
+
+def _with_retries(
+    provider: Provider,
+    config: HarnessConfig,
+    bus: EventBus,
+    cursor: SessionCursor,
+    sleep: Callable[[float], Awaitable[None]] | None,
+) -> Provider:
+    """``provider`` wrapped with the retries of the configuration (HU-07-04).
+
+    Each retry goes out as a ``provider_error`` event with the reason ``retry`` and nothing of the
+    request or of the text of the error, in the session that is active at that moment.
+    """
+    retries = config.retries
+
+    def record(attempt: RetryAttempt) -> None:
+        bus.emit(
+            Event.create(
+                cursor.value,
+                EventType.PROVIDER_ERROR,
+                {
+                    "reason": "retry",
+                    "error_type": attempt.error_type,
+                    "attempt": attempt.attempt,
+                    "max_attempts": attempt.max_attempts,
+                    "delay_seconds": attempt.delay,
+                },
+            )
+        )
+
+    options: dict[str, Any] = {} if sleep is None else {"sleep": sleep}
+    return RetryingProvider(
+        provider,
+        RetryPolicy(retries.max_attempts, retries.base_delay, retries.max_delay),
+        observer=record,
+        **options,
     )
 
 
@@ -335,6 +390,7 @@ def compose(
     environ: Mapping[str, str] | None = None,
     system_name: str | None = None,
     approver: Approver | None = None,
+    retry_sleep: Callable[[float], Awaitable[None]] | None = None,
 ) -> Composition:
     """Build the connected system from ``config``; nothing is left half open on failure.
 
@@ -350,6 +406,8 @@ def compose(
         system_name: Operating system name as ``platform.system()`` gives it; that is the default.
         approver: Asks the user about the actions the policy asks about; without one those
             actions are denied (``main`` passes the terminal one).
+        retry_sleep: Awaits the seconds between two tries of a provider call (HU-07-04); tests
+            inject one that does not wait. Defaults to ``asyncio.sleep``.
 
     Raises:
         ProviderDependencyError: The optional dependency of the real provider is missing.
@@ -465,6 +523,8 @@ def compose(
                 session_id=session_id,
                 model=lambda: config.model,
             )
+        cursor = SessionCursor(session_id)
+        provider = _with_retries(provider, config, bus, cursor, retry_sleep)
         # The archive stores ``context_compacted`` in its own transaction (HU-02-03): the recorder
         # must not store it again. The ``skip`` goes by position.
         warning_sink = WarningSink()
@@ -545,6 +605,7 @@ def compose(
         capture=capture,
         messages=messages,
         compactor_for=compactor_for,
+        session_cursor=cursor,
         model=config.model,
     )
 
@@ -698,6 +759,8 @@ def _resume_command(
             return READ_FAILED
         history[:] = resumed.history
         active.session_id = session
+        if composition.session_cursor is not None:
+            composition.session_cursor.value = session
         active.compactor = compactor
         active.closures[:] = resumed.closed_calls
         capture.bind(session, history, resumed.next_position, resumed.saved_count)

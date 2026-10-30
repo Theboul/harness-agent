@@ -9,8 +9,9 @@ from __future__ import annotations
 
 import pytest
 
+from harness_agent.adapters.providers.errors import RateLimited
 from harness_agent.config import Secret
-from harness_agent.core import Message, ProviderError, QuotaExceeded, Role, ToolDefinition
+from harness_agent.core import Message, ProviderError, Role, ToolDefinition
 from tests.unit.adapters.providers.support import SENTINEL, make_provider, reply, wire_call
 
 HIDDEN = "<secreto oculto>"
@@ -59,7 +60,7 @@ class TestAnErrorThatRepeatsTheKey:
 
         error = await failure_with_key(weird(f"clave {SENTINEL}"))
 
-        assert type(error) is QuotaExceeded
+        assert type(error) is RateLimited
         for text in texts_of(error):
             assert SENTINEL not in text
 

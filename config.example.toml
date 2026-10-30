@@ -69,3 +69,16 @@ sessions_db = ".harness/sessions.db"
 # Ventana de cada modelo por su nombre completo, entre comillas (de 1000 a 10000000 tokens).
 # [context.windows]
 # "openai/gpt-4o" = 128000
+
+# Reintentos ante fallos pasajeros del proveedor (opcional): límite de tasa, tiempo agotado o
+# servicio no disponible. Un error permanente (clave inválida, petición mal formada, crédito
+# agotado) no se reintenta. La espera crece al doble en cada reintento y no pasa de max_delay; si
+# el proveedor pide esperar más que max_delay, no se reintenta. Un valor inválido detiene el
+# arranque. Los números de ejemplo son los valores por defecto.
+# [retries]
+# Llamadas en total, contando la primera (de 1 a 10); con 1 no hay reintentos.
+# max_attempts = 5
+# Espera antes del primer reintento, en segundos (mayor que 0).
+# base_delay = 2
+# Tope de la espera, en segundos (de base_delay a 600).
+# max_delay = 30

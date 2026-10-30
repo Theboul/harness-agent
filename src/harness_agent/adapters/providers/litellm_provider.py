@@ -28,6 +28,7 @@ from harness_agent.adapters.converters import (
     to_openai_messages,
     to_openai_tools,
 )
+from harness_agent.adapters.providers.errors import RateLimited
 from harness_agent.core import (
     Message,
     Provider,
@@ -80,13 +81,14 @@ _GENERIC = "El proveedor devolvió un error ({kind})."
 # Matched by class name along the MRO of the exception, from the most derived class to the most
 # general one, so that ``Timeout`` (a subclass of ``APIConnectionError`` in LiteLLM) wins over its
 # parent and a new subclass inherits the mapping of its parent. Names were checked against the
-# pinned version (research.md, section 1). ``RateLimitError`` -> ``QuotaExceeded`` is provisional:
-# HU-07-04 decides a type of its own. ``ImportError`` is a broken installation, found at call time.
+# pinned version (research.md, section 1). ``RateLimitError`` -> ``RateLimited`` (HU-07-04), a
+# subtype of ``QuotaExceeded`` that passes by itself, unlike an exhausted credit.
+# ``ImportError`` is a broken installation, found at call time.
 ERROR_TABLE: Mapping[str, tuple[type[ProviderError], str]] = MappingProxyType(
     {
         "Timeout": (ProviderTimeout, _TIMEOUT),
         "APITimeoutError": (ProviderTimeout, _TIMEOUT),
-        "RateLimitError": (QuotaExceeded, _RATE_LIMIT),
+        "RateLimitError": (RateLimited, _RATE_LIMIT),
         "PaymentRequiredError": (QuotaExceeded, _QUOTA),
         "BudgetExceededError": (QuotaExceeded, _QUOTA),
         "ServiceUnavailableError": (ProviderUnavailable, _UNAVAILABLE),
@@ -258,7 +260,10 @@ class LiteLLMProvider(Provider):
                 break
         else:
             canonical, template = _ANY_OTHER_FAILURE
-        return canonical(self._clean(template.format(kind=name)))
+        message = self._clean(template.format(kind=name))
+        if issubclass(canonical, RateLimited):
+            return canonical(message, retry_after=getattr(error, "retry_after", None))
+        return canonical(message)
 
     def build_request(
         self, messages: Sequence[Message], tools: Sequence[ToolDefinition] | None
