@@ -68,7 +68,7 @@ class TestAC01EstadoEnVivo:
 
         lines = await lines_of(rig, output)
 
-        assert lines == ["... ejecutando: step_1", "v step_1: correcto", "> listo"]
+        assert lines == ["  [..] step_1: ejecutando", "  [ok] step_1: correcto", "agente> listo"]
         assert_clean(output.getvalue())
 
     async def test_three_tools_are_shown_in_order(self) -> None:
@@ -84,13 +84,13 @@ class TestAC01EstadoEnVivo:
         lines = await lines_of(rig, output)
 
         assert lines == [
-            "... ejecutando: step_1",
-            "v step_1: correcto",
-            "... ejecutando: step_2",
-            "v step_2: correcto",
-            "... ejecutando: step_3",
-            "v step_3: correcto",
-            "> listo",
+            "  [..] step_1: ejecutando",
+            "  [ok] step_1: correcto",
+            "  [..] step_2: ejecutando",
+            "  [ok] step_2: correcto",
+            "  [..] step_3: ejecutando",
+            "  [ok] step_3: correcto",
+            "agente> listo",
         ]
 
 
@@ -102,11 +102,11 @@ class TestAC02ErroresClaros:
         lines = await lines_of(rig, output)
 
         assert lines == [
-            "... ejecutando: fantasma",
-            "x Error: La herramienta 'fantasma' no está registrada."
+            "  [..] fantasma: ejecutando",
+            "  [x] Error: La herramienta 'fantasma' no está registrada."
             f"{SUGGESTION}Revisa el nombre de la herramienta o regístrala antes de volver a "
             "intentarlo.",
-            "> listo",
+            "agente> listo",
         ]
         assert_clean(output.getvalue())
 
@@ -118,7 +118,7 @@ class TestAC02ErroresClaros:
         lines = await lines_of(rig, output)
 
         assert lines[1] == (
-            "x Error: Los argumentos de la herramienta 'step_1' no son válidos."
+            "  [x] Error: Los argumentos de la herramienta 'step_1' no son válidos."
             f"{SUGGESTION}Corrige los argumentos según el esquema de la herramienta y vuelve "
             "a intentarlo."
         )
@@ -132,12 +132,12 @@ class TestAC02ErroresClaros:
         lines = await lines_of(rig, output)
 
         assert lines == [
-            "... ejecutando: step_1",
-            "x Permiso: La herramienta 'step_1' fue denegada por la política de permisos."
+            "  [..] step_1: ejecutando",
+            "  [x] Permiso: La herramienta 'step_1' fue denegada por la política de permisos."
             f"{SUGGESTION}Si debe permitirse, ajusta la política de permisos; mientras esté "
             "denegada el agente no la ejecutará.",
-            "x step_1: no se ejecutó.",
-            "> listo",
+            "  [x] step_1: no se ejecutó.",
+            "agente> listo",
         ]
         assert tool.executions == []
         assert output.getvalue().count("Sugerencia") == 1
@@ -151,9 +151,9 @@ class TestAC02ErroresClaros:
         lines = await lines_of(rig, output)
 
         assert lines[1].startswith(
-            "x Permiso: La herramienta 'step_1' requiere aprobación, que no está disponible"
+            "  [x] Permiso: La herramienta 'step_1' requiere aprobación, que no está disponible"
         )
-        assert lines[2] == "x step_1: no se ejecutó."
+        assert lines[2] == "  [x] step_1: no se ejecutó."
         assert_clean(output.getvalue())
 
     async def test_a_policy_that_fails_is_reported_as_denied_for_safety(self) -> None:
@@ -164,10 +164,10 @@ class TestAC02ErroresClaros:
         lines = await lines_of(rig, output)
 
         assert lines[1].startswith(
-            "x Permiso: No se pudo evaluar la política de permisos para 'step_1'; se denegó por "
-            "seguridad."
+            "  [x] Permiso: No se pudo evaluar la política de permisos para 'step_1'; "
+            "se denegó por seguridad."
         )
-        assert lines[2] == "x step_1: no se ejecutó."
+        assert lines[2] == "  [x] step_1: no se ejecutó."
 
     async def test_a_tool_that_raises_has_cause_and_suggestion_without_the_traceback(self) -> None:
         rig, output = build(one_call(), [RaisingTool("step_1", RuntimeError(f"boom {SENTINEL}"))])
@@ -175,7 +175,7 @@ class TestAC02ErroresClaros:
         lines = await lines_of(rig, output)
 
         assert lines[1] == (
-            "x Error: La herramienta 'step_1' falló al ejecutarse."
+            "  [x] Error: La herramienta 'step_1' falló al ejecutarse."
             f"{SUGGESTION}Vuelve a intentarlo y, si se repite, revisa el registro de eventos."
         )
         assert_clean(output.getvalue())
@@ -185,7 +185,7 @@ class TestAC02ErroresClaros:
 
         lines = await lines_of(rig, output)
 
-        assert lines[1].startswith("x Error: La herramienta 'step_1' terminó con un error.")
+        assert lines[1].startswith("  [x] Error: La herramienta 'step_1' terminó con un error.")
         assert SUGGESTION in lines[1]
         assert_clean(output.getvalue())
 
@@ -195,7 +195,7 @@ class TestAC02ErroresClaros:
 
         lines = await lines_of(rig, output)
 
-        assert lines[1].startswith("x Error: La herramienta 'step_1' devolvió un resultado no")
+        assert lines[1].startswith("  [x] Error: La herramienta 'step_1' devolvió un resultado no")
         assert_clean(output.getvalue())
 
     async def test_a_provider_failure_has_cause_and_suggestion(self) -> None:
@@ -204,7 +204,7 @@ class TestAC02ErroresClaros:
         lines = await lines_of(rig, output)
 
         assert lines == [
-            "x Error: El proveedor del modelo falló (RuntimeError): provider down."
+            "[x] Error: El proveedor del modelo falló (RuntimeError): provider down."
             f"{SUGGESTION}Comprueba la conexión y la clave del proveedor y vuelve a intentarlo."
         ]
         assert_clean(output.getvalue())
@@ -229,7 +229,7 @@ class TestCicloCompleto:
         text = output.getvalue()
         assert code == EXIT_OK
         assert len(tool.executions) == 1  # the task reached the loop once
-        assert "... ejecutando: step_1\nv step_1: correcto\n> listo\n" in text
+        assert "  [..] step_1: ejecutando\n  [ok] step_1: correcto\nagente> listo\n" in text
         assert "Comando desconocido: '/desconocido'." in text
         assert "Comandos disponibles:" in text
         assert text.endswith("Sesión terminada.\n")
@@ -249,7 +249,7 @@ class BrokenOnTheEvents(io.StringIO):
     """Fails only when an event line (a running tool) is written."""
 
     def write(self, text: str, /) -> int:
-        if text.startswith("..."):
+        if text.startswith("  [..]"):
             raise OSError("salida rota")
         return super().write(text)
 
@@ -282,7 +282,7 @@ class TestFallosDeEscrituraConElBucleReal:
         assert code == EXIT_FAILURE
         assert text == (
             PROMPT
-            + "x Error: el turno terminó con un fallo interno (EventDeliveryError). "
+            + "[x] Error: el turno terminó con un fallo interno (EventDeliveryError). "
             + "Sugerencia: revisa el registro de eventos.\n"
         )
         assert_clean(text)
@@ -300,7 +300,7 @@ class TestFallosDeEscrituraConElBucleReal:
         text = output.getvalue()
         assert code == EXIT_FAILURE
         assert text.endswith(
-            "x Error: el turno terminó con un fallo interno (RuntimeError). "
+            "[x] Error: el turno terminó con un fallo interno (RuntimeError). "
             "Sugerencia: revisa el registro de eventos.\n"
         )
         assert text.count("fallo interno") == 1

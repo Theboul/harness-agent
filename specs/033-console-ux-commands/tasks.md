@@ -38,7 +38,7 @@
 
 **Prueba independiente**: publicar `tool_requested` → `approval_*` → `tool_finished` con marcas de tiempo conocidas y comprobar líneas y duración.
 
-- [ ] T006 [US3] `tests/unit/cli/test_render_events.py`, `test_render_limits.py`, `test_render_text.py` y `src/harness_agent/cli/render.py`: nuevos formatos de línea del contrato §2, `approval_resolved`, `context_compacted`, `SHOWN_TYPES`; mantener explicaciones y sugerencias de error (30 min)
+- [x] T006 [US3] `tests/unit/cli/test_render_events.py`, `test_render_limits.py`, `test_render_text.py` y `src/harness_agent/cli/render.py`: nuevos formatos de línea del contrato §2, `approval_resolved`, `context_compacted`, `SHOWN_TYPES`; mantener explicaciones y sugerencias de error (30 min)
 - [ ] T007 [US3] `tests/unit/cli/test_activity.py` y `src/harness_agent/cli/activity.py`: `ActivityRenderer` con duración (espera de aprobación descontada, sin `tool_requested` previo, tiempo hacia atrás, tope de pendientes); `attach_renderer` pasa a usarlo y `app.py` lo reexporta (40 min)
 
 ## Phase 5: US4 — Comandos (P2)

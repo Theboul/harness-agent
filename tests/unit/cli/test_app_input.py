@@ -27,7 +27,7 @@ HELP = (
     "Cualquier otra línea se envía al agente como una tarea nueva."
 )
 FAILURE_SUFFIX = "). Sugerencia: revisa el registro de eventos."
-FAILURE_PREFIX = "x Error: el turno terminó con un fallo interno ("
+FAILURE_PREFIX = "[x] Error: el turno terminó con un fallo interno ("
 
 
 class Turn:
@@ -191,7 +191,7 @@ class TestSuscripcionYValoresPorDefecto:
 
         await run_cli(bus, turn, input_stream=io.StringIO("haz algo\n"), output=out)
 
-        assert out.getvalue().count("... ejecutando: buscar") == 1
+        assert out.getvalue().count("  [..] buscar: ejecutando") == 1
 
     async def test_without_streams_it_uses_the_standard_ones_of_the_call(
         self, monkeypatch: pytest.MonkeyPatch
