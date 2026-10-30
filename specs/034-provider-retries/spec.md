@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-30
 
-**Status**: Draft
+**Status**: Implementada, en revisión (clarificada el 2026-10-30; T019 y T020 humanas pendientes)
 
 **Proyecto**: HARNESS v2.5 | **Sprint**: 3 (ficha; el orden por sprints ya no rige: el cierre del proyecto se adelantó al 6 de noviembre de 2026 y se trabaja por carriles de archivos) | **PHU**: 1 | **Prioridad**: Media | **Responsable**: A — Núcleo | **Requisitos**: RF-7.5, RNF-6 | **Depende de**: HU-07-02 (adaptador LiteLLM, integrado en `main`)
 
