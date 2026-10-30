@@ -10,6 +10,7 @@ from harness_agent.adapters.storage.errors import (
     EventSerializationError,
     ExportError,
     ParentSessionNotFound,
+    ProgressWriteError,
     SchemaVersionError,
     SessionNotFound,
     SessionStoreError,
@@ -17,6 +18,7 @@ from harness_agent.adapters.storage.errors import (
 from harness_agent.adapters.storage.essential_store import SqliteEssentialStore
 from harness_agent.adapters.storage.event_recorder import attach_event_recorder
 from harness_agent.adapters.storage.message_store import SqliteMessageStore
+from harness_agent.adapters.storage.progress_file import ProgressFile
 from harness_agent.adapters.storage.sqlite_session_store import SqliteSessionStore, StoredSession
 from harness_agent.adapters.storage.task_store import SqliteTaskStore, StartedTask
 
@@ -29,6 +31,8 @@ __all__ = [
     "EventSerializationError",
     "ExportError",
     "ParentSessionNotFound",
+    "ProgressFile",
+    "ProgressWriteError",
     "SchemaVersionError",
     "SessionNotFound",
     "SessionStoreError",

@@ -20,7 +20,7 @@ import sys
 import uuid
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, TextIO
 
@@ -41,6 +41,7 @@ from harness_agent.adapters.providers.retrying_provider import (
 )
 from harness_agent.adapters.storage import (
     EXPORT_FILE_NAME,
+    ProgressFile,
     SessionStoreError,
     SqliteCompactionArchive,
     SqliteEssentialStore,
@@ -103,6 +104,7 @@ from harness_agent.core import (
     InMemoryToolRegistry,
     Message,
     PermissionPolicy,
+    ProgressRecorder,
     ProtectedPolicy,
     Provider,
     ResumeError,
@@ -218,6 +220,7 @@ class Composition:
     model: str = ""
     mcp_clients: tuple[McpStdioClient, ...] = ()
     session_cursor: SessionCursor | None = None
+    progress: ProgressRecorder | None = None
 
     def close(self) -> None:
         """Close the session store; safe to call more than once."""
@@ -535,6 +538,19 @@ def compose(
         # The archive stores ``context_compacted`` in its own transaction (HU-02-03): the recorder
         # must not store it again. The ``skip`` goes by position.
         warning_sink = WarningSink()
+        progress: ProgressRecorder | None = None
+        if task is not None and area is not None:
+            # The progress file of the ticket (HU-11-08.1): a copy for the next session; SQLite
+            # keeps the truth. Written by ``run_session`` after each turn and when it ends.
+            progress = ProgressRecorder(
+                ProgressFile(area.root),
+                task_store,
+                ticket=task.title,
+                objective=task.objective,
+                session_id=session_id,
+                clock=clock if clock is not None else lambda: datetime.now(timezone.utc),
+                warn=warning_sink.write,
+            )
         messages: SqliteMessageStore | None = None
         capture: ConversationCapture | None = None
         if task is None:
@@ -616,6 +632,7 @@ def compose(
         messages=messages,
         compactor_for=compactor_for,
         session_cursor=cursor,
+        progress=progress,
         model=config.model,
         mcp_clients=mcp_clients,
     )
@@ -899,6 +916,8 @@ async def run_session(
         except BaseException:
             _flush_quietly(capture)
             raise
+        if composition.progress is not None:
+            composition.progress.checkpoint(history)  # the turn ended: a complete checkpoint
         if capture is not None:
             capture.flush()  # an empty answer has no event; it is saved when the turn closes
         return result
@@ -928,7 +947,7 @@ async def run_session(
     try:
         # The servers connect before the first prompt; one that fails is a warning (HU-08-01).
         await connect_all(composition.mcp_clients, composition.warning_sink.write)
-        return await run_cli(
+        code = await run_cli(
             composition.bus,
             run_turn,
             input_stream=input_stream,
@@ -936,6 +955,9 @@ async def run_session(
             commands=commands,
             argument_commands={"/reanudar": resume},
         )
+        if composition.progress is not None:
+            composition.progress.finish(history)  # a normal end; a hard stop never gets here
+        return code
     finally:
         await close_all(composition.mcp_clients)
 

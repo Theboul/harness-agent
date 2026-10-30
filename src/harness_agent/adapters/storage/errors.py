@@ -41,3 +41,7 @@ class CriteriaIntegrityError(SessionStoreError):
 
 class ExportError(SessionStoreError):
     """The read-only copy of the criteria could not be written or restored."""
+
+
+class ProgressWriteError(SessionStoreError):
+    """The progress file of a ticket could not be written or read (HU-11-08.1)."""
