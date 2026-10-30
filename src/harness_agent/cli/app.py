@@ -19,14 +19,9 @@ from typing import TextIO
 
 from harness_agent.core import Event, EventBus
 
-from .render import (
-    MAX_COMMAND_CHARS,
-    SHOWN_TYPES,
-    bounded,
-    render_event,
-    sanitize,
-    turn_failure_line,
-)
+from .activity import ActivityRenderer
+from .render import MAX_COMMAND_CHARS, SHOWN_TYPES, bounded, sanitize, turn_failure_line
+from .style import detect_style
 
 PROMPT = "tarea> "
 EXIT_OK = 0
@@ -77,12 +72,15 @@ def attach_renderer(bus: EventBus, output: TextIO | None = None) -> None:
     """Subscribe the CLI to the bus: every shown event type writes its line on ``output``.
 
     ``output`` is ``sys.stdout`` at the moment of the call when it is not given. The bus has no
-    unsubscribe: attaching twice to the same bus duplicates the output.
+    unsubscribe: attaching twice to the same bus duplicates the output. The lines are those of the
+    activity view (with the duration of each tool); color is used only when ``output`` is a
+    terminal that supports it (``style.detect_style``).
     """
     stream = sys.stdout if output is None else output
+    activity = ActivityRenderer(detect_style(stream))
 
     def show(event: Event) -> None:
-        text = render_event(event)
+        text = activity.render(event)
         if text is not None:
             _write_line(stream, text)
 

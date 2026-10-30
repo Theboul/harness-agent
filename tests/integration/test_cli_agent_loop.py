@@ -8,6 +8,7 @@ the network or the real console.
 from __future__ import annotations
 
 import io
+import re
 
 import pytest
 
@@ -38,7 +39,7 @@ FINAL = ProviderResponse(content="listo")
 
 async def lines_of(rig: Rig, output: io.StringIO) -> list[str]:
     await rig.run("haz la tarea")
-    return output.getvalue().splitlines()
+    return without_durations(output.getvalue()).splitlines()
 
 
 def build(
@@ -53,6 +54,11 @@ def build(
 
 def one_call() -> list[ProviderResponse | BaseException]:
     return [response(call("c1", "step_1", ruta=SENTINEL)), FINAL]
+
+
+def without_durations(text: str) -> str:
+    """The real clock makes the duration of a tool vary: ``(12 ms)`` is dropped."""
+    return re.sub(r" \(\d+ ms\)", "", text)
 
 
 def assert_clean(text: str) -> None:
@@ -226,7 +232,7 @@ class TestCicloCompleto:
             output=output,
         )
 
-        text = output.getvalue()
+        text = without_durations(output.getvalue())
         assert code == EXIT_OK
         assert len(tool.executions) == 1  # the task reached the loop once
         assert "  [..] step_1: ejecutando\n  [ok] step_1: correcto\nagente> listo\n" in text
