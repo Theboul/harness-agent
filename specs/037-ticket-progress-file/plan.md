@@ -46,3 +46,17 @@ Python 3.12, mypy estricto, ruff línea 100, sin dependencias nuevas. Pruebas co
 ## Riesgos
 
 El agente puede editar el archivo (está en el área); se reescribe en el siguiente punto de control. HU-11-08.2 debe tratar el contenido como dato no confiable (puede llevar texto del agente).
+
+## Lista de comprobación de `capas-y-reglas.md` (revisada contra el código al cerrar)
+
+| Pregunta | Respuesta |
+|---|---|
+| ¿`core/` importa solo stdlib y `harness_agent.core`? | Sí (`test_progress_boundaries.py`) |
+| ¿El núcleo evita E/S, entorno, configuración y terminal? | Sí; el destino es un `Protocol` inyectado |
+| ¿Puertos de `core/interfaces/`, eventos y bucle sin cambios? | Sí (diff de protegidos vacío) |
+| ¿El adaptador está en `adapters/` y solo usa stdlib y la API pública del núcleo? | Sí (`adapters/storage/progress_file.py`, guarda de `test_adapters_boundaries.py`) |
+| ¿Dependencias por constructor (reloj, destino, `replace`)? | Sí |
+| ¿Conectado solo en `bootstrap.py`? | Sí (guarda: ningún otro módulo nombra `ProgressFile`) |
+| ¿Falla cerrada? | Sí: nombre inválido o ilegible = error; fallo de escritura = aviso y se conserva el punto anterior |
+| ¿Prueba de contrato del adaptador real? | Sí, `test_progress_file.py` (incluye subproceso terminado de golpe) |
+| ¿Algún «no»? | No hay |
