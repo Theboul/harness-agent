@@ -14,6 +14,7 @@ Standard library only. The contract is in
 
 from __future__ import annotations
 
+import math
 import os
 import re
 import tomllib
@@ -65,6 +66,15 @@ _PATH_FIELDS = ("workspace_root", "sessions_db")
 _PERMISSION_FIELDS = ("deny", "ask")
 # Optional ``[context]`` section (HU-02-03): the fields, in the order they are reported.
 _CONTEXT_FIELDS = tuple(CONTEXT_FIELD_RANGES)
+# Optional ``[retries]`` section (HU-07-04): the fields, in the order they are reported.
+_RETRY_FIELDS = ("max_attempts", "base_delay", "max_delay")
+_MAX_RETRY_ATTEMPTS = 10
+_MAX_RETRY_DELAY = 600.0
+_RETRY_MESSAGES = {
+    "max_attempts": f"debe ser un entero entre 1 y {_MAX_RETRY_ATTEMPTS}.",
+    "base_delay": "debe ser un número de segundos mayor que 0.",
+    "max_delay": f"debe ser un número de segundos entre base_delay y {_MAX_RETRY_DELAY:g}.",
+}
 # Shell commands added to the base deny list (HU-05-02); kept apart from ``PermissionRules``.
 _DENY_COMMANDS_FIELD = "deny_commands"
 _MAX_DENY_COMMAND_CHARS = 500
@@ -84,6 +94,7 @@ _TABLE_FIELDS: Mapping[str, tuple[str, ...]] = MappingProxyType(
     {
         "limits": _LIMIT_FIELDS,
         "context": _CONTEXT_FIELDS,
+        "retries": _RETRY_FIELDS,
         "paths": _PATH_FIELDS,
         "permissions": (*_PERMISSION_FIELDS, _DENY_COMMANDS_FIELD),
     }
@@ -312,6 +323,19 @@ class Limits:
 
 
 @dataclass(frozen=True, slots=True)
+class Retries:
+    """Retries of the provider calls that fail for a passing reason (HU-07-04), in seconds.
+
+    ``max_attempts`` counts the first call, so ``1`` turns the retries off. The wait before retry
+    ``n`` is ``base_delay * 2 ** (n - 1)``, never above ``max_delay``.
+    """
+
+    max_attempts: int = 5
+    base_delay: float = 2.0
+    max_delay: float = 30.0
+
+
+@dataclass(frozen=True, slots=True)
 class Paths:
     """Paths (reserved for HU-01-03 and HU-03-01): the authorized workspace and the sessions DB.
 
@@ -341,6 +365,8 @@ class HarnessConfig:
             empty by default. They can only add: the base list cannot be removed.
         context: Size of the context window and when to compact it (HU-02-03); the defaults
             apply without a ``[context]`` section.
+        retries: Retries of the provider calls that fail for a passing reason (HU-07-04); the
+            defaults apply without a ``[retries]`` section.
     """
 
     model: str
@@ -352,6 +378,7 @@ class HarnessConfig:
     permissions: PermissionRules = PermissionRules()
     deny_commands: tuple[str, ...] = ()
     context: ContextSettings = ContextSettings()
+    retries: Retries = Retries()
 
 
 def _locate(path: str | os.PathLike[str] | None, environ: Mapping[str, str]) -> tuple[Path, str]:
@@ -458,6 +485,34 @@ def _check_context(table: Mapping[str, Any], present: list[ConfigProblem]) -> Co
         if not valid:
             present.append(ConfigProblem(f"context.{field}", requirement_of(field)))
     return ContextSettings(**values)
+
+
+def _is_seconds(value: object) -> bool:
+    return not isinstance(value, bool) and isinstance(value, int | float) and math.isfinite(value)
+
+
+def _check_retries(table: Mapping[str, Any], present: list[ConfigProblem]) -> Retries:
+    """The ``[retries]`` section: attempts and waits in range; a problem never repeats the value."""
+    defaults = Retries()
+    attempts = table.get("max_attempts", defaults.max_attempts)
+    if (
+        isinstance(attempts, bool)
+        or not isinstance(attempts, int)
+        or not 1 <= attempts <= _MAX_RETRY_ATTEMPTS
+    ):
+        present.append(ConfigProblem("retries.max_attempts", _RETRY_MESSAGES["max_attempts"]))
+        attempts = defaults.max_attempts
+    base = table.get("base_delay", defaults.base_delay)
+    if not _is_seconds(base) or base <= 0:
+        present.append(ConfigProblem("retries.base_delay", _RETRY_MESSAGES["base_delay"]))
+        base = defaults.base_delay
+    # A base above the default cap raises the cap with it, instead of failing a field the person
+    # did not write.
+    ceiling = table.get("max_delay", max(defaults.max_delay, base))
+    if not _is_seconds(ceiling) or not base <= ceiling <= _MAX_RETRY_DELAY:
+        present.append(ConfigProblem("retries.max_delay", _RETRY_MESSAGES["max_delay"]))
+        ceiling = max(defaults.max_delay, base)
+    return Retries(max_attempts=attempts, base_delay=float(base), max_delay=float(ceiling))
 
 
 def _check_paths(table: Mapping[str, Any], base: Path, present: list[ConfigProblem]) -> Paths:
@@ -603,6 +658,7 @@ def load_config(
     model = _check_model(data, missing, present)
     limits = _check_limits(_table(data, "limits", present), present)
     context = _check_context(_table(data, "context", present), present)
+    retries = _check_retries(_table(data, "retries", present), present)
     paths = _check_paths(_table(data, "paths", present), file_path.parent, present)
     permissions_table = _table(data, "permissions", present)
     permissions = _check_permissions(permissions_table, present)
@@ -622,6 +678,7 @@ def load_config(
             permissions=permissions,
             deny_commands=deny_commands,
             context=context,
+            retries=retries,
         )
     value = environment.get(variable)
     if value is None or not value.strip():
@@ -636,4 +693,5 @@ def load_config(
         permissions=permissions,
         deny_commands=deny_commands,
         context=context,
+        retries=retries,
     )
