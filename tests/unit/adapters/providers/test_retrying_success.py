@@ -67,3 +67,9 @@ async def test_the_observer_hears_about_every_retry_with_no_request_data() -> No
         (1, 5, "RateLimited", 2.0),
         (2, 5, "ProviderTimeout", 4.0),
     ]
+
+
+def test_the_wrapped_provider_is_readable() -> None:
+    inner = FakeProvider([OK])
+
+    assert wrap(inner, RecordingSleep()).inner is inner

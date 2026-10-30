@@ -197,3 +197,20 @@ async def test_a_retry_after_resuming_goes_to_the_session_that_is_active(
     assert [event.payload["reason"] for event in seen] == ["retry"]
     assert [event.session_id for event in seen] == [past]
     assert past != composition.session_id
+
+
+async def test_resuming_works_for_a_composition_without_a_cursor(
+    tmp_path: Path, opened: list[Composition]
+) -> None:
+    past = await live(tmp_path, opened)
+    composition = build(
+        opened,
+        make_config(tmp_path, workspace=tmp_path / "trabajo", model="openai/modelo-de-prueba"),
+        FakeProvider([OK]),
+        system_name="Linux",
+    )
+    without_cursor = dataclasses.replace(composition, session_cursor=None)
+
+    _, shown = await drive(without_cursor, f"/reanudar {past}")
+
+    assert "No se pudo" not in shown
