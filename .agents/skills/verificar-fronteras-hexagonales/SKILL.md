@@ -34,6 +34,7 @@ Cargar al:
 |---|---|
 | `test_core_boundaries.py` | Todo `core/`: ningún SDK de LLM (lista `FORBIDDEN_PACKAGES`) |
 | `test_cli_boundaries.py` | `core/` no importa `cli`; `cli/` solo stdlib y API pública del núcleo |
+| `test_console_ux_boundaries.py` | Color y entorno (HU-06-05): solo `cli/style.py` tiene el carácter de escape ANSI y lee `os.environ`/`os.getenv`; `bootstrap.py` no llama a `print` |
 | `test_core_reads_no_config.py` | Todo `core/`: no lee `config`, `tomllib`, entorno ni archivos (`find_config_reads`) |
 | `test_core_no_terminal.py` | Todo `core/`: no imprime ni usa la terminal (`terminal_uses`); el bus en memoria no define eventos |
 | `test_loop_boundaries.py` | `core/loop.py`: solo stdlib y núcleo (`forbidden_imports`), sin consola, `LIMIT_REACHED` solo desde `_stop_at_limit` (HU-01-06) y solo los parámetros de límite `limits` y `clock`, sin ciclos |

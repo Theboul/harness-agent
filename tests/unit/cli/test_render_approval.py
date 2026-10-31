@@ -27,16 +27,16 @@ def test_an_ask_resolved_as_denied_still_shows_the_permission_guide() -> None:
 
     line = render_event(event)
 
-    assert line is not None and line.startswith("x Permiso")
+    assert line is not None and line.startswith("  [x] Permiso")
 
 
 @pytest.mark.parametrize("category", ["approval_rejected", "approval_failed"])
 def test_a_refused_approval_is_shown_as_not_executed(category: str) -> None:
     event = make(ET.TOOL_FINISHED, name="shell", is_error=True, category=category)
 
-    assert render_event(event) == "x shell: no se ejecutó."
+    assert render_event(event) == "  [x] shell: no se ejecutó."
 
 
-def test_the_approval_events_are_not_shown_by_the_event_render() -> None:
+def test_the_request_is_not_shown_because_the_approver_asks_but_the_answer_is() -> None:
     assert ET.APPROVAL_REQUESTED not in SHOWN_TYPES
-    assert ET.APPROVAL_RESOLVED not in SHOWN_TYPES
+    assert ET.APPROVAL_RESOLVED in SHOWN_TYPES

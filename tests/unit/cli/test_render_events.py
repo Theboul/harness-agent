@@ -28,29 +28,31 @@ class TestEstadoDeHerramienta:
     def test_a_requested_tool_is_shown_as_running(self) -> None:
         event = make(ET.TOOL_REQUESTED, call_id="c1", name="buscar")
 
-        assert render_event(event) == "... ejecutando: buscar"
+        assert render_event(event) == "  [..] buscar: ejecutando"
 
     def test_a_finished_tool_without_error_is_shown_as_correct(self) -> None:
         event = make(ET.TOOL_FINISHED, call_id="c1", name="buscar", is_error=False, category="ok")
 
-        assert render_event(event) == "v buscar: correcto"
+        assert render_event(event) == "  [ok] buscar: correcto"
 
     def test_a_missing_name_is_shown_as_unknown(self) -> None:
-        assert render_event(make(ET.TOOL_REQUESTED)) == "... ejecutando: (sin nombre)"
-        assert render_event(make(ET.TOOL_REQUESTED, name=5)) == "... ejecutando: (sin nombre)"
-        assert render_event(make(ET.TOOL_REQUESTED, name="\x1b")) == "... ejecutando: (sin nombre)"
+        assert render_event(make(ET.TOOL_REQUESTED)) == "  [..] (sin nombre): ejecutando"
+        assert render_event(make(ET.TOOL_REQUESTED, name=5)) == "  [..] (sin nombre): ejecutando"
+        assert (
+            render_event(make(ET.TOOL_REQUESTED, name="\x1b")) == "  [..] (sin nombre): ejecutando"
+        )
 
     def test_a_name_with_control_characters_is_sanitized(self) -> None:
         event = make(ET.TOOL_REQUESTED, name="bus\x1b[31mcar\r\nmas")
 
         line = render_event(event)
 
-        assert line == "... ejecutando: bus[31mcar\nmas"
+        assert line == "  [..] bus[31mcar\nmas: ejecutando"
 
     def test_a_long_name_is_bounded_to_64_characters(self) -> None:
         line = render_event(make(ET.TOOL_REQUESTED, name="x" * 100))
 
-        assert line == "... ejecutando: " + "x" * 61 + "..."
+        assert line == "  [..] " + "x" * 61 + "...: ejecutando"
 
     def test_the_arguments_of_the_call_never_appear(self) -> None:
         payload = {"name": "buscar", "arguments": {"ruta": SENTINEL}, "content": SENTINEL}
@@ -62,15 +64,15 @@ class TestEstadoDeHerramienta:
     def test_the_text_of_the_assistant_is_shown_with_a_marker_on_each_line(self) -> None:
         event = make(ET.ASSISTANT_MESSAGE, content="uno\ndos\ntres", tool_call_count=0, final=True)
 
-        assert render_event(event) == "> uno\n> dos\n> tres"
+        assert render_event(event) == "agente> uno\n        dos\n        tres"
 
     def test_the_line_breaks_at_the_ends_of_the_text_are_dropped(self) -> None:
-        assert render_event(make(ET.ASSISTANT_MESSAGE, content="\nhola\n\n")) == "> hola"
+        assert render_event(make(ET.ASSISTANT_MESSAGE, content="\nhola\n\n")) == "agente> hola"
 
     def test_the_text_of_the_assistant_loses_its_control_characters(self) -> None:
         event = make(ET.ASSISTANT_MESSAGE, content="Leí\x1b[2J el archivo\x07 pagos.py")
 
-        assert render_event(event) == "> Leí[2J el archivo pagos.py"
+        assert render_event(event) == "agente> Leí[2J el archivo pagos.py"
 
     @pytest.mark.parametrize("content", ["", "   ", "\n\n", "\x1b", None, 5, ["x"]])
     def test_an_empty_or_invalid_assistant_text_shows_nothing(self, content: object) -> None:
@@ -84,24 +86,26 @@ class TestEstadoDeHerramienta:
 
         line = render_event(make(ET.ASSISTANT_MESSAGE, content=text))
 
-        assert line == "> " + text  # nothing is cut: only the line breaks at the ends go
+        assert line == "agente> " + text  # nothing is cut: only the line breaks at the ends go
 
 
 class TestTiposNoMostrados:
-    def test_the_shown_types_are_the_six_of_the_story(self) -> None:
+    def test_the_shown_types_are_the_eight_of_the_activity_view(self) -> None:
         assert set(SHOWN_TYPES) == {
             ET.TOOL_REQUESTED,
             ET.TOOL_FINISHED,
             ET.ASSISTANT_MESSAGE,
             ET.PERMISSION_DECIDED,
+            ET.APPROVAL_RESOLVED,
+            ET.CONTEXT_COMPACTED,
             ET.PROVIDER_ERROR,
             ET.LIMIT_REACHED,
         }
-        assert len(SHOWN_TYPES) == 6
+        assert len(SHOWN_TYPES) == 8
 
     @pytest.mark.parametrize("event_type", NOT_SHOWN, ids=lambda t: t.value)
     def test_the_other_types_are_ignored_without_error(self, event_type: EventType) -> None:
-        assert len(NOT_SHOWN) == 11
+        assert len(NOT_SHOWN) == 9
         assert render_event(make(event_type, name="buscar", content=SENTINEL)) is None
 
     @pytest.mark.parametrize("event_type", [ET.TOOL_REQUESTED, ET.ASSISTANT_MESSAGE])
@@ -119,12 +123,12 @@ class TestSecuenciaYRendimiento:
         lines = [render_event(event) for event in events]
 
         assert lines == [
-            "... ejecutando: paso_1",
-            "v paso_1: correcto",
-            "... ejecutando: paso_2",
-            "v paso_2: correcto",
-            "... ejecutando: paso_3",
-            "v paso_3: correcto",
+            "  [..] paso_1: ejecutando",
+            "  [ok] paso_1: correcto",
+            "  [..] paso_2: ejecutando",
+            "  [ok] paso_2: correcto",
+            "  [..] paso_3: ejecutando",
+            "  [ok] paso_3: correcto",
         ]
 
     def test_smoke_rendering_an_event_costs_less_than_a_millisecond(self) -> None:
@@ -142,35 +146,36 @@ class TestSecuenciaYRendimiento:
 
 # ------------------------------------------------------------------------------- T005 (AC-02)
 
-ERROR_PREFIX = "x Error: "
+ERROR_PREFIX = "  [x] Error: "
+PROVIDER_PREFIX = "[x] Error: "
 SUGGESTION = " Sugerencia: "
 UNKNOWN_TOOL_LINE = (
-    "x Error: Ocurrió un error de categoría desconocida en la herramienta 'buscar'. "
+    "  [x] Error: Ocurrió un error de categoría desconocida en la herramienta 'buscar'. "
     "Sugerencia: Revisa el registro de eventos."
 )
 PERMISSION_LINES = {
     "deny": (
-        "x Permiso: La herramienta 'buscar' fue denegada por la política de permisos. "
+        "  [x] Permiso: La herramienta 'buscar' fue denegada por la política de permisos. "
         "Sugerencia: Si debe permitirse, ajusta la política de permisos; mientras esté "
         "denegada el agente no la ejecutará."
     ),
     "policy_error": (
-        "x Permiso: No se pudo evaluar la política de permisos para 'buscar'; se denegó por "
+        "  [x] Permiso: No se pudo evaluar la política de permisos para 'buscar'; se denegó por "
         "seguridad. Sugerencia: Revisa la política de permisos configurada."
     ),
     "ask": (
-        "x Permiso: La herramienta 'buscar' requiere aprobación, que no está disponible en "
+        "  [x] Permiso: La herramienta 'buscar' requiere aprobación, que no está disponible en "
         "esta sesión; se resolvió como denegada. Sugerencia: Pide una acción que no requiera "
         "aprobación o espera a que esté disponible la aprobación interactiva."
     ),
     "unknown": (
-        "x Permiso: Se recibió una decisión de permiso desconocida para 'buscar'. "
+        "  [x] Permiso: Se recibió una decisión de permiso desconocida para 'buscar'. "
         "Sugerencia: Revisa el registro de eventos."
     ),
 }
 PROVIDER_SUGGESTION = "Comprueba la conexión y la clave del proveedor y vuelve a intentarlo."
 LIMIT_LINE = (
-    "x Límite: Se alcanzó un límite de la sesión. "
+    "[x] Límite: Se alcanzó un límite de la sesión. "
     "Sugerencia: Revisa los límites en la configuración y empieza una tarea nueva."
 )
 TOOL_ERROR_CASES = {
@@ -239,7 +244,7 @@ class TestErrores:
     def test_a_tool_stopped_by_permissions_only_says_it_did_not_run(self, category: str) -> None:
         line = render_event(finished(is_error=True, category=category))
 
-        assert line == "x buscar: no se ejecutó."
+        assert line == "  [x] buscar: no se ejecutó."
 
     @pytest.mark.parametrize(
         ("payload", "case"),
@@ -274,7 +279,7 @@ class TestErrores:
         lines = [render_event(event) or "" for event in (decided, done)]
 
         assert sum(SUGGESTION in line for line in lines) == 1
-        assert lines[1] == "x buscar: no se ejecutó."
+        assert lines[1] == "  [x] buscar: no se ejecutó."
 
     def test_a_provider_exception_shows_the_type_and_the_message(self) -> None:
         line = render_event(
@@ -282,7 +287,7 @@ class TestErrores:
         )
 
         assert line == (
-            f"{ERROR_PREFIX}El proveedor del modelo falló (RuntimeError): sin red."
+            f"{PROVIDER_PREFIX}El proveedor del modelo falló (RuntimeError): sin red."
             f"{SUGGESTION}{PROVIDER_SUGGESTION}"
         )
 
@@ -301,7 +306,7 @@ class TestErrores:
         )
 
         assert line == (
-            f"{ERROR_PREFIX}El proveedor del modelo falló (E): {'y' * 197}..."
+            f"{PROVIDER_PREFIX}El proveedor del modelo falló (E): {'y' * 197}..."
             f"{SUGGESTION}{PROVIDER_SUGGESTION}"
         )
 
@@ -325,7 +330,7 @@ class TestErrores:
         )
 
         assert line == (
-            f"{ERROR_PREFIX}El proveedor del modelo falló (RuntimeError)."
+            f"{PROVIDER_PREFIX}El proveedor del modelo falló (RuntimeError)."
             f"{SUGGESTION}{PROVIDER_SUGGESTION}"
         )
 
@@ -333,7 +338,7 @@ class TestErrores:
         line = render_event(provider(reason="invalid_response", error_type="InvalidResponse"))
 
         assert line == (
-            f"{ERROR_PREFIX}El proveedor del modelo devolvió una respuesta no válida "
+            f"{PROVIDER_PREFIX}El proveedor del modelo devolvió una respuesta no válida "
             f"(InvalidResponse).{SUGGESTION}Vuelve a intentarlo y, si se repite, revisa el "
             "registro de eventos."
         )
@@ -343,7 +348,7 @@ class TestErrores:
         line = render_event(provider(reason=reason, error_type="RuntimeError", message="x"))
 
         assert line == (
-            f"{ERROR_PREFIX}El proveedor del modelo falló (RuntimeError)."
+            f"{PROVIDER_PREFIX}El proveedor del modelo falló (RuntimeError)."
             f"{SUGGESTION}Revisa el registro de eventos."
         )
 
@@ -378,7 +383,7 @@ class TestLineasDeError:
             line = render_event(event)
 
             assert line is not None
-            assert line.startswith("x ")
+            assert line.lstrip().startswith("[x] ")
             assert SUGGESTION in line
             assert line.endswith(".")
             assert "Traceback" not in line and 'File "' not in line
@@ -427,3 +432,49 @@ class TestLineasDeError:
         average = (time.perf_counter() - start) / renders
 
         assert average < 0.001
+
+
+class TestActividadNueva:
+    """The lines added by HU-06-05: the answer to an approval, the compaction and the duration."""
+
+    @pytest.mark.parametrize(
+        ("action", "word"),
+        [
+            ("approve_once", "aprobado una vez"),
+            ("approve_session", "aprobado para la sesión"),
+            ("reject", "rechazado"),
+            (None, "rechazado"),
+            ("otra", "rechazado"),
+            (5, "rechazado"),
+        ],
+    )
+    def test_the_answer_to_an_approval_is_one_line(self, action: object, word: str) -> None:
+        event = make(ET.APPROVAL_RESOLVED, name="shell", action=action, approved=False)
+
+        assert render_event(event) == f"  [?] shell: {word}"
+
+    def test_the_approval_line_never_carries_the_source_or_the_arguments(self) -> None:
+        event = make(ET.APPROVAL_RESOLVED, name="shell", action="reject", source=SENTINEL)
+
+        assert SENTINEL not in (render_event(event) or "")
+
+    def test_a_compaction_says_how_many_events_it_summarized(self) -> None:
+        event = make(ET.CONTEXT_COMPACTED, desde=1, hasta=9, eventos=7)
+
+        assert render_event(event) == "  [~] Contexto compactado: 7 eventos resumidos."
+
+    @pytest.mark.parametrize("count", [None, "7", -1, True, 1.5])
+    def test_a_compaction_without_a_valid_count_still_says_it_happened(self, count: Any) -> None:
+        event = make(ET.CONTEXT_COMPACTED, eventos=count)
+
+        assert render_event(event) == "  [~] Contexto compactado."
+
+    def test_a_finished_tool_shows_the_duration_it_is_given(self) -> None:
+        event = make(ET.TOOL_FINISHED, name="shell", is_error=False)
+
+        assert render_event(event, "1,2 s") == "  [ok] shell: correcto (1,2 s)"
+
+    def test_the_duration_is_not_added_to_an_error_line(self) -> None:
+        event = make(ET.TOOL_FINISHED, name="shell", is_error=True, category="tool_error")
+
+        assert "1,2 s" not in (render_event(event, "1,2 s") or "")

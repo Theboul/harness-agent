@@ -43,10 +43,12 @@ class TestDetail:
     async def test_it_shows_the_tool_every_argument_the_effect_and_the_options(self) -> None:
         _, shown = await ask("3\n", make_details(command="pip install requests", cwd="."))
 
-        assert "El agente quiere ejecutar: shell" in shown
-        assert "command: pip install requests" in shown
-        assert "cwd: ." in shown
-        assert "efecto: Runs a command in the work area (riesgo: alto)" in shown
+        assert "El agente quiere ejecutar un comando:" in shown
+        assert "     pip install requests" in shown
+        assert "Herramienta: shell" in shown
+        assert "   cwd: ." in shown
+        assert "Riesgo:      ALTO" in shown
+        assert "Efecto:      Runs a command in the work area" in shown
         assert "[1] aprobar una vez" in shown
         assert "[2] aprobar para la sesión" in shown
         assert "[3] rechazar" in shown
@@ -54,7 +56,7 @@ class TestDetail:
     async def test_the_detail_comes_before_the_prompt(self) -> None:
         _, shown = await ask("1\n")
 
-        assert shown.index("command: ls") < shown.index("opción>")
+        assert shown.index("     ls") < shown.index("opción>")
 
     @pytest.mark.parametrize(
         "name", ["api_key", "Secret", "access_token", "PASSWORD", "authorization"]
@@ -69,7 +71,7 @@ class TestDetail:
         _, shown = await ask("3\n", make_details(command="a\x1b[31m" + "x" * 500 + "\nrm"))
 
         assert "\x1b" not in shown
-        assert "x" * 300 not in shown
+        assert "x" * 401 not in shown
         assert "..." in shown
 
     async def test_many_arguments_are_summarized(self) -> None:
@@ -84,7 +86,8 @@ class TestDetail:
         details = {"tool": "shell", "arguments": {}, "effect": "", "risk": "weird"}
         _, shown = await ask("3\n", details)
 
-        assert "efecto: (sin descripción) (riesgo: desconocido)" in shown
+        assert "Efecto:      (sin descripción)" in shown
+        assert "Riesgo:      DESCONOCIDO" in shown
 
     async def test_details_that_are_malformed_do_not_break_the_prompt(self) -> None:
         output = io.StringIO()
@@ -93,7 +96,7 @@ class TestDetail:
         result = await approver.request(make_call(), {"arguments": 5, "effect": 3, "risk": None})
 
         assert result.action is ApprovalAction.REJECT
-        assert "El agente quiere ejecutar: shell" in output.getvalue()
+        assert "Herramienta: shell" in output.getvalue()
 
 
 class TestChoice:
