@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import io
 import os
+import re
 import subprocess
 import sys
 from collections.abc import Iterator, Sequence
@@ -346,7 +347,7 @@ class TestTheSameSessionTwentyTimes:
             signatures.append(
                 (
                     code,
-                    run.output.getvalue(),
+                    re.sub(r" \(\d+ ms\)", "", run.output.getvalue()),
                     [(e.type, e.payload) for e in run.saved()],
                     run.provider.received,
                     (folder / "notas.txt").read_text(encoding="utf-8"),

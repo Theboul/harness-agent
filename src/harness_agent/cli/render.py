@@ -23,6 +23,8 @@ MAX_COMMAND_CHARS = 40
 ELLIPSIS = "..."
 UNKNOWN_NAME = "(sin nombre)"
 GENERIC_SUGGESTION = "Revisa el registro de eventos."
+AGENT_PREFIX = "agente> "
+CONTINUATION = " " * len(AGENT_PREFIX)
 
 # Controls of text direction (U+202A-U+202E, U+2066-U+2069): they can fake what is on the screen.
 _BIDIRECTIONAL_CONTROLS = frozenset(
@@ -155,6 +157,8 @@ SHOWN_TYPES: tuple[EventType, ...] = (
     EventType.TOOL_FINISHED,
     EventType.ASSISTANT_MESSAGE,
     EventType.PERMISSION_DECIDED,
+    EventType.APPROVAL_RESOLVED,
+    EventType.CONTEXT_COMPACTED,
     EventType.PROVIDER_ERROR,
     EventType.LIMIT_REACHED,
 )
@@ -184,9 +188,9 @@ def _name(payload: Mapping[str, Any]) -> str:
 
 
 def _error_line(label: str, guide: ErrorGuide, **values: str) -> str:
-    """``x <label>: <cause> Sugerencia: <suggestion>`` with the values in the placeholders."""
+    """``[x] <label>: <cause> Sugerencia: <suggestion>`` with the values in the placeholders."""
     cause = guide.cause.format(**values)
-    return f"x {label}: {cause} Sugerencia: {guide.suggestion}"
+    return f"[x] {label}: {cause} Sugerencia: {guide.suggestion}"
 
 
 def _assistant_lines(payload: Mapping[str, Any]) -> str | None:
@@ -196,22 +200,23 @@ def _assistant_lines(payload: Mapping[str, Any]) -> str | None:
     text = sanitize(content).strip("\n")
     if not text.strip():
         return None
-    return "\n".join(f"> {line}" for line in text.split("\n"))
+    first, *rest = text.split("\n")
+    return "\n".join([f"{AGENT_PREFIX}{first}", *(f"{CONTINUATION}{line}" for line in rest)])
 
 
-def _tool_finished(payload: Mapping[str, Any]) -> str:
+def _tool_finished(payload: Mapping[str, Any], duration: str | None = None) -> str:
     name = _name(payload)
     is_error = payload.get("is_error")
     if is_error is False:
-        return f"v {name}: correcto"
+        return f"  [ok] {name}: correcto" + (f" ({duration})" if duration else "")
     category = payload.get("category")
     if is_error is True and isinstance(category, str):
         if category in _FINAL_STATE_ONLY:
-            return f"x {name}: no se ejecutó."
+            return f"  [x] {name}: no se ejecutó."
         guide = TOOL_ERROR_GUIDE.get(category)
         if guide is not None:
-            return _error_line("Error", guide, name=name)
-    return _error_line("Error", UNKNOWN_TOOL_ERROR_GUIDE, name=name)
+            return "  " + _error_line("Error", guide, name=name)
+    return "  " + _error_line("Error", UNKNOWN_TOOL_ERROR_GUIDE, name=name)
 
 
 def _permission_decided(payload: Mapping[str, Any]) -> str | None:
@@ -221,12 +226,12 @@ def _permission_decided(payload: Mapping[str, Any]) -> str | None:
     name = _name(payload)
     if decision == "deny":
         case = "policy_error" if payload.get("reason") == "policy_error" else "deny"
-        return _error_line("Permiso", PERMISSION_GUIDE[case], name=name)
+        return "  " + _error_line("Permiso", PERMISSION_GUIDE[case], name=name)
     if decision == "ask":
         if payload.get("resolved_as") == "ask":
             return None  # waiting for the user: the approver shows the question (HU-05-03)
-        return _error_line("Permiso", PERMISSION_GUIDE["ask"], name=name)
-    return _error_line("Permiso", UNKNOWN_PERMISSION_GUIDE, name=name)
+        return "  " + _error_line("Permiso", PERMISSION_GUIDE["ask"], name=name)
+    return "  " + _error_line("Permiso", UNKNOWN_PERMISSION_GUIDE, name=name)
 
 
 def _provider_message(value: object) -> str | None:
@@ -267,8 +272,33 @@ def _limit_reached(payload: Mapping[str, Any]) -> str:
     return _error_line("Límite", guide, maximum=str(maximum))
 
 
-def render_event(event: Event) -> str | None:
+APPROVAL_WORDS: Mapping[str, str] = MappingProxyType(
+    {
+        "approve_once": "aprobado una vez",
+        "approve_session": "aprobado para la sesión",
+        "reject": "rechazado",
+    }
+)
+
+
+def _approval_resolved(payload: Mapping[str, Any]) -> str:
+    """What the person decided; anything unexpected (an approver failure) reads as a rejection."""
+    action = payload.get("action")
+    key = action if isinstance(action, str) and action in APPROVAL_WORDS else "reject"
+    return f"  [?] {_name(payload)}: {APPROVAL_WORDS[key]}"
+
+
+def _context_compacted(payload: Mapping[str, Any]) -> str:
+    count = payload.get("eventos")
+    if isinstance(count, bool) or not isinstance(count, int) or count < 0:
+        return "  [~] Contexto compactado."
+    return f"  [~] Contexto compactado: {count} eventos resumidos."
+
+
+def render_event(event: Event, duration: str | None = None) -> str | None:
     """The text to show for ``event``, or ``None`` when the type is not shown or has nothing.
+
+    ``duration`` is the already formatted time of a finished tool, when the caller could derive it.
 
     Only the fields that the agent loop publishes are read; a missing or unexpected field never
     raises: a neutral value is used instead. The text never contains a stack trace, an internal
@@ -276,13 +306,17 @@ def render_event(event: Event) -> str | None:
     """
     payload = event.payload
     if event.type is EventType.TOOL_REQUESTED:
-        return f"... ejecutando: {_name(payload)}"
+        return f"  [..] {_name(payload)}: ejecutando"
     if event.type is EventType.TOOL_FINISHED:
-        return _tool_finished(payload)
+        return _tool_finished(payload, duration)
     if event.type is EventType.ASSISTANT_MESSAGE:
         return _assistant_lines(payload)
     if event.type is EventType.PERMISSION_DECIDED:
         return _permission_decided(payload)
+    if event.type is EventType.APPROVAL_RESOLVED:
+        return _approval_resolved(payload)
+    if event.type is EventType.CONTEXT_COMPACTED:
+        return _context_compacted(payload)
     if event.type is EventType.PROVIDER_ERROR:
         return _provider_error(payload)
     if event.type is EventType.LIMIT_REACHED:
@@ -294,6 +328,6 @@ def turn_failure_line(error_type: str) -> str:
     """The one line shown when the turn function fails (D9): the type only, never the message."""
     shown = _text(error_type, MAX_NAME_CHARS, "Error")
     return (
-        f"x Error: el turno terminó con un fallo interno ({shown}). "
+        f"[x] Error: el turno terminó con un fallo interno ({shown}). "
         "Sugerencia: revisa el registro de eventos."
     )

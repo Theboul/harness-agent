@@ -39,6 +39,7 @@ Cada receta asume pruebas primero: escribir la prueba, verla fallar por la razó
 1. En `cli/app.py`: las líneas que empiezan por `/` son comandos; añadir el caso y su línea en `HELP_TEXT`. Nunca lógica del núcleo.
 2. El comando usa solo la API pública de `harness_agent.core` y lo que se inyecte a `run_cli`.
 3. Pruebas en `tests/unit/cli/` con flujos en memoria (`io.StringIO`).
+4. Si el comando necesita el almacén, el compactador o la configuración (p. ej. `/sesiones`, `/nueva`, `/compactar`, `/model`), el texto va en `cli/session_commands.py` (función pura sobre valores simples) y la función del comando se conecta en `bootstrap.py` (`run_session`, mapa `commands`/`argument_commands`); un comando puede devolver `str` o algo esperable (HU-06-05).
 
 ## Nuevo tipo de evento
 

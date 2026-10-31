@@ -19,7 +19,7 @@ import platform
 import sys
 import uuid
 from collections.abc import Awaitable, Callable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, TextIO
@@ -72,7 +72,17 @@ from harness_agent.adapters.tools import (
     WriteFileTool,
     make_command_runner,
 )
-from harness_agent.cli import ConsoleApprover, attach_criteria_status, run_cli
+from harness_agent.cli import (
+    ConsoleApprover,
+    ModelView,
+    SessionRow,
+    attach_criteria_status,
+    format_compaction,
+    format_model,
+    format_new_session,
+    format_sessions,
+    run_cli,
+)
 from harness_agent.config import (
     PROVIDER_KEY_VARIABLES,
     ConfigError,
@@ -87,6 +97,7 @@ from harness_agent.core import (
     AuthorizedArea,
     CommandPolicy,
     ContextCompactor,
+    ContextSettings,
     ConversationCapture,
     ConversationSaveError,
     CriteriaVerifier,
@@ -125,6 +136,7 @@ from harness_agent.core import (
     make_items,
     rejection_message,
     resume_session,
+    threshold_tokens,
 )
 from harness_agent.core.loop import AgentLoop, TurnResult
 
@@ -221,6 +233,8 @@ class Composition:
     messages: SqliteMessageStore | None = None
     compactor_for: Callable[[str], ContextCompactor] | None = None
     model: str = ""
+    model_view: ModelView | None = None
+    manual_compactor_for: Callable[[str], ContextCompactor] | None = None
     mcp_clients: tuple[McpStdioClient, ...] = ()
     session_cursor: SessionCursor | None = None
     progress: ProgressRecorder | None = None
@@ -593,6 +607,25 @@ def compose(
                 provider, store, config, session, registry, bus, warning_sink, clock, id_factory
             )
 
+        def manual_compactor_for(session: str) -> ContextCompactor:
+            """The compactor behind ``/compactar`` (HU-06-05): same logic, threshold forced low.
+
+            Its own warnings are silenced: the compaction line the person asked for is the answer.
+            """
+            return _compactor(
+                provider,
+                store,
+                config,
+                session,
+                registry,
+                bus,
+                warning_sink,
+                clock,
+                id_factory,
+                settings=forced_context_settings(config.context),
+                warn=_discard,
+            )
+
         runner: VerifyingRunner[TurnResult] | None = None
         if task is not None:
             runner = _verifying_runner(
@@ -637,6 +670,16 @@ def compose(
         session_cursor=cursor,
         progress=progress,
         model=config.model,
+        model_view=ModelView(
+            model=config.model,
+            window_tokens=config.context.window_for(config.model),
+            threshold_tokens=threshold_tokens(config.context, config.model),
+            max_turns=config.limits.max_turns,
+            max_seconds=config.limits.max_seconds,
+            max_tokens=config.limits.max_tokens,
+            max_output_tokens=config.limits.max_output_tokens,
+        ),
+        manual_compactor_for=manual_compactor_for,
         mcp_clients=mcp_clients,
         registry=registry,
     )
@@ -668,6 +711,19 @@ def _mcp_clients(
     )
 
 
+def _discard(_text: str) -> None:
+    """A warning sink that says nothing."""
+
+
+def forced_context_settings(settings: ContextSettings) -> ContextSettings:
+    """``settings`` with the lowest threshold the core accepts, for a compaction asked by hand.
+
+    The smallest window with the smallest percentage gives a threshold of 100 tokens, whatever the
+    model; the share of recent messages kept whole and the size of the summary do not change.
+    """
+    return replace(settings, window_tokens=1_000, windows=(), threshold_percent=10)
+
+
 def _compactor(
     provider: Provider,
     store: SqliteSessionStore,
@@ -678,8 +734,13 @@ def _compactor(
     warning_sink: WarningSink,
     clock: Callable[[], datetime] | None,
     id_factory: Callable[[], str] | None,
+    *,
+    settings: ContextSettings | None = None,
+    warn: Callable[[str], None] | None = None,
 ) -> ContextCompactor:
     """The compactor of the context (HU-02-03), connected to the pieces of the session.
+
+    ``settings`` and ``warn`` default to the configured ones and to the warning sink of the run.
 
     It only connects: the archive works on the session store, the model and the window come from
     the configuration, the tool declarations are the ones the loop sends, and the summary event
@@ -707,13 +768,13 @@ def _compactor(
     return ContextCompactor(
         provider,
         SqliteCompactionArchive(store, **archive_options),
-        config.context,
+        config.context if settings is None else settings,
         session_id=session_id,
         model=lambda: config.model,
         definitions=definitions,
         emit=emit,
         publish=bus.emit,
-        warn=warning_sink.write,
+        warn=warning_sink.write if warn is None else warn,
         new_id=id_factory if id_factory is not None else lambda: str(uuid.uuid4()),
     )
 
@@ -785,6 +846,110 @@ class _Active:
 
 READ_FAILED = "No se pudo leer la sesión; la sesión actual sigue sin cambios."
 RESUME_NOT_AVAILABLE = "Reanudar no está disponible en esta sesión."
+LIST_FAILED = "No se pudo leer la lista de sesiones."
+MODEL_NOT_AVAILABLE = "Modelo no disponible en esta ejecución."
+COMPACT_NOT_AVAILABLE = "Compactar no está disponible en esta ejecución."
+NEW_NOT_AVAILABLE = "Nueva sesión no está disponible en esta ejecución."
+NEW_FAILED = "No se pudo crear la sesión nueva; la sesión actual sigue sin cambios."
+
+
+def _compact_command(
+    composition: Composition, active: _Active, history: list[Message]
+) -> Callable[[], Awaitable[str]]:
+    """The function behind ``/compactar`` (HU-06-05): compact the context now, whatever its size.
+
+    The compactor is the one of ``compose`` with a forced low threshold, so it summarizes the old
+    messages as the automatic one would (same cut, same archive, same checks). When it finds nothing
+    to summarize, or it fails (it reports the failure itself and leaves the view untouched), the
+    answer is one fixed line. A cancellation goes up.
+    """
+    factory = composition.manual_compactor_for
+
+    async def compact() -> str:
+        if factory is None:
+            return COMPACT_NOT_AVAILABLE
+        # As before any request: the calls a cut left without a result get their closing first.
+        _close_interrupted(composition.bus, active)
+        return format_compaction(await factory(active.session_id).before_turn(history))
+
+    return compact
+
+
+def _new_command(
+    composition: Composition, active: _Active, history: list[Message]
+) -> Callable[[], str]:
+    """The function behind ``/nueva`` (HU-06-05): a clean conversation in a new session.
+
+    It follows what ``/reanudar`` does to switch: the history is replaced in place by the prefix,
+    the saving of the messages is bound to the new session and its compactor becomes the active
+    one. The session that is left stays saved and can be resumed. The limits of the run are not
+    reset (they live in the loop). A session with a task, or a composition without the pieces to
+    save messages, refuses; any failure leaves the current session as it was.
+    """
+    capture, factory = composition.capture, composition.compactor_for
+
+    def new_session() -> str:
+        if (
+            capture is None
+            or composition.messages is None
+            or factory is None
+            or composition.runner is not None
+        ):
+            return NEW_NOT_AVAILABLE
+        try:
+            session = composition.store.create_session(model=composition.model).id
+            compactor = factory(session)
+        except Exception:
+            return NEW_FAILED
+        history[:] = composition.history_prefix
+        active.session_id = session
+        active.compactor = compactor
+        active.closures.clear()
+        capture.bind(session, history, 1, len(history))
+        return format_new_session(session)
+
+    return new_session
+
+
+def _sessions_command(composition: Composition, active: _Active) -> Callable[[], str]:
+    """The function behind ``/sesiones`` (HU-06-05): it never raises and writes nothing.
+
+    It lists the sessions of the user (subagent sessions are left out) with the current one marked.
+    """
+
+    def sessions() -> str:
+        store = composition.store
+        try:
+            rows = []
+            for summary in store.list_sessions():
+                detail = store.get_session(summary.id)
+                if detail is not None and detail.parent_id is not None:
+                    continue
+                rows.append(
+                    SessionRow(
+                        id=summary.id,
+                        created_at=summary.created_at,
+                        status=summary.status,
+                        model=summary.model,
+                        goal=summary.goal,
+                        current=summary.id == active.session_id,
+                    )
+                )
+        except Exception:
+            return LIST_FAILED
+        return format_sessions(rows)
+
+    return sessions
+
+
+def _model_command(composition: Composition) -> Callable[[], str]:
+    """The function behind ``/model``: the model and the limits in force, never a secret."""
+
+    def model() -> str:
+        view = composition.model_view
+        return MODEL_NOT_AVAILABLE if view is None else format_model(view)
+
+    return model
 
 
 def _resume_command(
@@ -940,10 +1105,18 @@ async def run_session(
             session_id=active.session_id, task=task, history=history
         )
 
-    commands = None
+    commands: dict[str, tuple[str, Callable[[], str | Awaitable[str]]]] = {
+        "/sesiones": ("Lista las sesiones guardadas.", _sessions_command(composition, active)),
+        "/nueva": ("Empieza una sesión nueva.", _new_command(composition, active, history)),
+        "/compactar": (
+            "Compacta el contexto ahora.",
+            _compact_command(composition, active, history),
+        ),
+        "/model": ("Muestra el modelo y los límites.", _model_command(composition)),
+    }
     if runner is not None:
         board = attach_criteria_status(composition.bus, stream)
-        commands = {"/criterios": ("Muestra el estado de los criterios.", board.report)}
+        commands["/criterios"] = ("Muestra el estado de los criterios.", board.report)
     resume = (
         "Reanuda una sesión guardada por su identificador.",
         _resume_command(composition, active, history),
