@@ -11,7 +11,7 @@
 | Entidades | `core/entities.py`, `core/events.py`; errores de dominio en el `errors.py` de cada subpaquete (`core/tools/errors.py`) | biblioteca estándar |
 | Puertos | `core/interfaces/` (`provider.py`, `tool.py`, `security.py`, `storage.py`, `context.py`, `system.py`, `connections.py`, `event_bus.py`) | entidades |
 | Casos de uso y reglas | `core/loop.py`, `core/tools/`, `core/permissions/`, `core/in_memory_event_bus.py`; planeados: `core/limits.py`, `core/context/`, `core/subagents/` | entidades, puertos y otros módulos de `harness_agent.core` |
-| Adaptadores | `adapters/` (`converters/`, `providers/`, `storage/`, `tools/`, `system/` hoy; `mcp/` planeado), `observability/` (planeado) | núcleo (API pública) y bibliotecas externas |
+| Adaptadores | `adapters/` (`converters/`, `providers/`, `storage/`, `tools/`, `system/`, `mcp/` hoy), `observability/` (planeado) | núcleo (API pública) y bibliotecas externas |
 | Configuración | `config.py` | biblioteca estándar y API pública del núcleo (p. ej. `PermissionRules`) |
 | Interfaz | `cli/` | biblioteca estándar y API pública del núcleo (`from harness_agent.core import ...`) |
 | Raíz de composición | `bootstrap.py` (planeado) | todo: único lugar que conecta |

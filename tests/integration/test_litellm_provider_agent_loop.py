@@ -243,7 +243,7 @@ class TestAFailureOfTheProvider:
     @pytest.mark.parametrize(
         ("name", "canonical"),
         [
-            ("RateLimitError", "QuotaExceeded"),
+            ("RateLimitError", "RateLimited"),
             ("PaymentRequiredError", "QuotaExceeded"),
             ("Timeout", "ProviderTimeout"),
             ("ServiceUnavailableError", "ProviderUnavailable"),

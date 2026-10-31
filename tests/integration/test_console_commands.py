@@ -17,7 +17,7 @@ import pytest
 from harness_agent import bootstrap
 from harness_agent.adapters.storage import SessionStoreError, SqliteSessionStore
 from harness_agent.bootstrap import Composition, run_session
-from harness_agent.config import HarnessConfig, Limits, Secret
+from harness_agent.config import HarnessConfig, Limits, Retries, Secret
 from harness_agent.core import Message, ProviderResponse, ProviderUnavailable, Role
 from tests.doubles import FakeProvider
 from tests.integration.test_essential_context_agent_loop import (
@@ -370,7 +370,9 @@ class TestCompactCommand:
                 ProviderResponse(content="r5"),
             ]
         )
-        composition = build(opened, config_for(tmp_path), provider, system_name="Linux")
+        # one try only: the retries of HU-07-04 would swallow the single scripted failure
+        config = replace(config_for(tmp_path), retries=Retries(max_attempts=1))
+        composition = build(opened, config, provider, system_name="Linux")
 
         shown = await long_session(composition, "/compactar", "e")
 

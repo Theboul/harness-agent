@@ -12,6 +12,7 @@ import asyncio
 
 import pytest
 
+from harness_agent.adapters.providers.errors import RateLimited
 from harness_agent.adapters.providers.litellm_provider import ERROR_TABLE
 from harness_agent.core import (
     Message,
@@ -94,7 +95,7 @@ async def failure_of(error: BaseException) -> tuple[Exception, int]:
 TABLE: list[tuple[type[Exception], type[ProviderError], str]] = [
     (Timeout, ProviderTimeout, "no respondió a tiempo"),
     (APITimeoutError, ProviderTimeout, "no respondió a tiempo"),
-    (RateLimitError, QuotaExceeded, "límite de tasa"),
+    (RateLimitError, RateLimited, "límite de tasa"),
     (PaymentRequiredError, QuotaExceeded, "cuota o el crédito"),
     (BudgetExceededError, QuotaExceeded, "cuota o el crédito"),
     (ServiceUnavailableError, ProviderUnavailable, "no está disponible"),
@@ -142,7 +143,8 @@ class TestTheTable:
         rate, _ = await failure_of(RateLimitError("x"))
         quota, _ = await failure_of(PaymentRequiredError("x"))
 
-        assert type(rate) is type(quota) is QuotaExceeded
+        assert type(rate) is RateLimited
+        assert type(quota) is QuotaExceeded
         assert "tasa" in str(rate)
         assert "tasa" not in str(quota)
         assert str(rate) != str(quota)
@@ -161,7 +163,7 @@ class TestTheTable:
         other, _ = await failure_of(subclass_of_rate_limit("x"))
 
         assert type(error) is ProviderUnavailable
-        assert type(other) is QuotaExceeded
+        assert type(other) is RateLimited
 
     async def test_a_payment_required_error_is_not_swallowed_by_its_bad_request_parent(
         self,
@@ -189,6 +191,45 @@ class TestTheTable:
     def test_the_table_is_read_only(self) -> None:
         with pytest.raises(TypeError):
             ERROR_TABLE["Otra"] = (ProviderError, "x")  # type: ignore[index]
+
+
+class TestTheWaitHint:
+    """HU-07-04: a rate limit may carry the seconds the provider asked to wait."""
+
+    @pytest.mark.parametrize("hint", [0, 7, 2.5])
+    async def test_a_valid_retry_after_of_the_original_error_is_kept(self, hint: float) -> None:
+        original = RateLimitError("x")
+        original.retry_after = hint  # type: ignore[attr-defined]
+
+        error, _ = await failure_of(original)
+
+        assert isinstance(error, RateLimited)
+        assert error.retry_after == hint
+
+    @pytest.mark.parametrize("hint", [-1, float("inf"), float("nan"), True, "5", None])
+    async def test_an_unusable_retry_after_is_dropped(self, hint: object) -> None:
+        original = RateLimitError("x")
+        original.retry_after = hint  # type: ignore[attr-defined]
+
+        error, _ = await failure_of(original)
+
+        assert isinstance(error, RateLimited)
+        assert error.retry_after is None
+
+    async def test_without_the_attribute_there_is_no_hint(self) -> None:
+        error, _ = await failure_of(RateLimitError("x"))
+
+        assert isinstance(error, RateLimited)
+        assert error.retry_after is None
+
+    async def test_an_exhausted_credit_is_not_a_rate_limit_even_with_a_hint(self) -> None:
+        original = PaymentRequiredError("x")
+        original.retry_after = 5  # type: ignore[attr-defined]
+
+        error, _ = await failure_of(original)
+
+        assert type(error) is QuotaExceeded
+        assert not hasattr(error, "retry_after")
 
 
 class TestABrokenInstallation:

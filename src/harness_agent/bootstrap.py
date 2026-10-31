@@ -20,16 +20,29 @@ import sys
 import uuid
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field, replace
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, TextIO
 
+from harness_agent.adapters.mcp import (
+    McpServerSettings,
+    McpStdioClient,
+    close_all,
+    connect_all,
+    register_mcp_tools,
+)
 from harness_agent.adapters.providers.litellm_provider import (
     LiteLLMProvider,
     ProviderDependencyError,
 )
+from harness_agent.adapters.providers.retrying_provider import (
+    RetryAttempt,
+    RetryingProvider,
+    RetryPolicy,
+)
 from harness_agent.adapters.storage import (
     EXPORT_FILE_NAME,
+    ProgressFile,
     SessionStoreError,
     SqliteCompactionArchive,
     SqliteEssentialStore,
@@ -103,6 +116,7 @@ from harness_agent.core import (
     InMemoryToolRegistry,
     Message,
     PermissionPolicy,
+    ProgressRecorder,
     ProtectedPolicy,
     Provider,
     ResumeError,
@@ -175,6 +189,17 @@ class WarningSink:
         _write_notice(sys.stdout if self.stream is None else self.stream, text)
 
 
+@dataclass
+class SessionCursor:
+    """The session the run is working on now; ``/reanudar`` moves it (HU-07-04).
+
+    The provider is wrapped once, when the run starts, but the retries it records belong to the
+    session that is active when they happen.
+    """
+
+    value: str
+
+
 @dataclass(frozen=True)
 class Composition:
     """Everything one run needs, already connected; built once per run and never shared.
@@ -185,6 +210,7 @@ class Composition:
         store: The open session store; ``close`` closes it.
         session_id: Identifier of the session created for this run (the task's, if there is one).
         notices: Startup notices for the user (missing or unusable work area); usually empty.
+        registry: The tool registry of the loop; the tools of the MCP servers join it at start.
         history_prefix: Messages that open every conversation (the environment notice for the
             model); the session history starts as a copy of them.
     """
@@ -194,6 +220,7 @@ class Composition:
     store: SqliteSessionStore
     session_id: str
     notices: tuple[str, ...]
+    registry: InMemoryToolRegistry
     history_prefix: tuple[Message, ...] = ()
     task_store: SqliteTaskStore | None = None
     task: TaskDefinition | None = None
@@ -208,6 +235,9 @@ class Composition:
     model: str = ""
     model_view: ModelView | None = None
     manual_compactor_for: Callable[[str], ContextCompactor] | None = None
+    mcp_clients: tuple[McpStdioClient, ...] = ()
+    session_cursor: SessionCursor | None = None
+    progress: ProgressRecorder | None = None
 
     def close(self) -> None:
         """Close the session store; safe to call more than once."""
@@ -222,6 +252,44 @@ def _default_provider(config: HarnessConfig) -> Provider:
         config.model,
         max_output_tokens=config.limits.max_output_tokens,
         api_key=config.api_key,
+    )
+
+
+def _with_retries(
+    provider: Provider,
+    config: HarnessConfig,
+    bus: EventBus,
+    cursor: SessionCursor,
+    sleep: Callable[[float], Awaitable[None]] | None,
+) -> Provider:
+    """``provider`` wrapped with the retries of the configuration (HU-07-04).
+
+    Each retry goes out as a ``provider_error`` event with the reason ``retry`` and nothing of the
+    request or of the text of the error, in the session that is active at that moment.
+    """
+    retries = config.retries
+
+    def record(attempt: RetryAttempt) -> None:
+        bus.emit(
+            Event.create(
+                cursor.value,
+                EventType.PROVIDER_ERROR,
+                {
+                    "reason": "retry",
+                    "error_type": attempt.error_type,
+                    "attempt": attempt.attempt,
+                    "max_attempts": attempt.max_attempts,
+                    "delay_seconds": attempt.delay,
+                },
+            )
+        )
+
+    options: dict[str, Any] = {} if sleep is None else {"sleep": sleep}
+    return RetryingProvider(
+        provider,
+        RetryPolicy(retries.max_attempts, retries.base_delay, retries.max_delay),
+        observer=record,
+        **options,
     )
 
 
@@ -349,6 +417,7 @@ def compose(
     environ: Mapping[str, str] | None = None,
     system_name: str | None = None,
     approver: Approver | None = None,
+    retry_sleep: Callable[[float], Awaitable[None]] | None = None,
 ) -> Composition:
     """Build the connected system from ``config``; nothing is left half open on failure.
 
@@ -364,6 +433,8 @@ def compose(
         system_name: Operating system name as ``platform.system()`` gives it; that is the default.
         approver: Asks the user about the actions the policy asks about; without one those
             actions are denied (``main`` passes the terminal one).
+        retry_sleep: Awaits the seconds between two tries of a provider call (HU-07-04); tests
+            inject one that does not wait. Defaults to ``asyncio.sleep``.
 
     Raises:
         ProviderDependencyError: The optional dependency of the real provider is missing.
@@ -479,9 +550,24 @@ def compose(
                 session_id=session_id,
                 model=lambda: config.model,
             )
+        cursor = SessionCursor(session_id)
+        provider = _with_retries(provider, config, bus, cursor, retry_sleep)
         # The archive stores ``context_compacted`` in its own transaction (HU-02-03): the recorder
         # must not store it again. The ``skip`` goes by position.
         warning_sink = WarningSink()
+        progress: ProgressRecorder | None = None
+        if task is not None and area is not None:
+            # The progress file of the ticket (HU-11-08.1): a copy for the next session; SQLite
+            # keeps the truth. Written by ``run_session`` after each turn and when it ends.
+            progress = ProgressRecorder(
+                ProgressFile(area.root),
+                task_store,
+                ticket=task.title,
+                objective=task.objective,
+                session_id=session_id,
+                clock=clock if clock is not None else lambda: datetime.now(timezone.utc),
+                warn=warning_sink.write,
+            )
         messages: SqliteMessageStore | None = None
         capture: ConversationCapture | None = None
         if task is None:
@@ -561,6 +647,9 @@ def compose(
         store.close()
         raise
     prefix = [message for _, message in provisional]
+    mcp_clients = _mcp_clients(
+        config, process_environment() if environ is None else environ, system
+    )
     return Composition(
         loop=loop,
         bus=bus,
@@ -578,6 +667,8 @@ def compose(
         capture=capture,
         messages=messages,
         compactor_for=compactor_for,
+        session_cursor=cursor,
+        progress=progress,
         model=config.model,
         model_view=ModelView(
             model=config.model,
@@ -589,6 +680,34 @@ def compose(
             max_output_tokens=config.limits.max_output_tokens,
         ),
         manual_compactor_for=manual_compactor_for,
+        mcp_clients=mcp_clients,
+        registry=registry,
+    )
+
+
+def _mcp_clients(
+    config: HarnessConfig, environ: Mapping[str, str], system: str
+) -> tuple[McpStdioClient, ...]:
+    """One client per configured MCP server (HU-08-01); nothing is started or imported here.
+
+    The stderr of each server goes to a file next to the sessions database: that folder is
+    protected from the tools of the agent and never the terminal of the user.
+    """
+    logs = config.paths.sessions_db.parent
+    return tuple(
+        McpStdioClient(
+            McpServerSettings(
+                name=server.name,
+                command=server.command,
+                args=server.args,
+                env_names=server.env,
+                startup_timeout_s=server.startup_timeout_s,
+                call_timeout_s=server.call_timeout_s,
+            ),
+            environ=environ,
+            log_path=logs / f"mcp-{server.name}.log",
+        )
+        for server in config.mcp_servers
     )
 
 
@@ -863,6 +982,8 @@ def _resume_command(
             return READ_FAILED
         history[:] = resumed.history
         active.session_id = session
+        if composition.session_cursor is not None:
+            composition.session_cursor.value = session
         active.compactor = compactor
         active.closures[:] = resumed.closed_calls
         capture.bind(session, history, resumed.next_position, resumed.saved_count)
@@ -964,6 +1085,8 @@ async def run_session(
         except BaseException:
             _flush_quietly(capture)
             raise
+        if composition.progress is not None:
+            composition.progress.checkpoint(history)  # the turn ended: a complete checkpoint
         if capture is not None:
             capture.flush()  # an empty answer has no event; it is saved when the turn closes
         return result
@@ -998,14 +1121,26 @@ async def run_session(
         "Reanuda una sesión guardada por su identificador.",
         _resume_command(composition, active, history),
     )
-    return await run_cli(
-        composition.bus,
-        run_turn,
-        input_stream=input_stream,
-        output=stream,
-        commands=commands,
-        argument_commands={"/reanudar": resume},
-    )
+    try:
+        # The servers connect before the first prompt; one that fails is a warning (HU-08-01).
+        await connect_all(composition.mcp_clients, composition.warning_sink.write)
+        # Their tools join the registry before the first prompt (HU-08-02).
+        await register_mcp_tools(
+            composition.mcp_clients, composition.registry, composition.warning_sink.write
+        )
+        code = await run_cli(
+            composition.bus,
+            run_turn,
+            input_stream=input_stream,
+            output=stream,
+            commands=commands,
+            argument_commands={"/reanudar": resume},
+        )
+        if composition.progress is not None:
+            composition.progress.finish(history)  # a normal end; a hard stop never gets here
+        return code
+    finally:
+        await close_all(composition.mcp_clients)
 
 
 def _report_startup_failure(error: TextIO, text: str) -> int:

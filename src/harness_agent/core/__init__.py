@@ -171,6 +171,18 @@ from harness_agent.core.permissions import (
     parse_command,
     rejection_message,
 )
+from harness_agent.core.progress import (
+    FORMAT_MARK,
+    WRITE_WARNING,
+    CheckpointKind,
+    CriterionLine,
+    CriterionState,
+    ProgressRecorder,
+    ProgressSink,
+    ProgressSnapshot,
+    progress_file_name,
+    render_progress,
+)
 from harness_agent.core.redaction import HIDDEN_SECRET, hide_url_credentials
 from harness_agent.core.tasks import (
     DEFAULT_COMMAND_TIMEOUT_SECONDS,
@@ -319,6 +331,17 @@ __all__ = [
     "GitPolicy",
     "classify_git",
     "git_instructions",
+    # Progress file of a ticket with checkpoints (HU-11-08.1)
+    "FORMAT_MARK",
+    "WRITE_WARNING",
+    "CheckpointKind",
+    "CriterionLine",
+    "CriterionState",
+    "ProgressRecorder",
+    "ProgressSink",
+    "ProgressSnapshot",
+    "progress_file_name",
+    "render_progress",
     # Hiding of credentials in URLs (HU-11-02; HU-10-02 must absorb it)
     "HIDDEN_SECRET",
     "hide_url_credentials",
