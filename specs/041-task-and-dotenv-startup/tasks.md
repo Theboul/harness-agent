@@ -10,7 +10,7 @@
 - [x] T004 Guarda `tests/architecture/test_dotenv_boundaries.py` y ajuste de `test_bootstrap_boundaries.py` (`adapters.tasks` en la API pública).
 - [ ] T005 `.env.example` con ejemplos vacíos. **Pendiente: los permisos de la sesión impiden editar `.env.example`.**
 - [x] T006 Verificación de fronteras (`verificar-fronteras-hexagonales`): `pytest tests/architecture`; diff de protegidos vacío; lista de `capas-y-reglas.md`.
-- [x] T007 Cuatro puertas de calidad en exit 0.
+- [x] T007 Cuatro puertas de calidad: ruff format, ruff check y mypy en 0; `pytest` 8186 pasadas con 3 fallos solo en la ejecución completa (pruebas de árboles de procesos de `adapters/system`, que pasan solas; ver PROGRESO).
 - [x] T008 Documentación: `docs/PROGRESO.md` (fila propuesta, En revisión), `CLAUDE.md` (tabla y convención), `.specify/feature.json`.
 
 ## Tareas humanas (Claude no las marca)
