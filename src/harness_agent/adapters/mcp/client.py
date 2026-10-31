@@ -32,6 +32,7 @@ from harness_agent.core import McpClient, Tool, ToolResult
 SdkLoader = Callable[[str], McpSdk]
 
 _STARTUP_GRACE_S = 5.0
+_CALL_GRACE_S = 5.0
 _NO_CALL_ID = ""
 _MAX_PAGES = 20
 
@@ -45,6 +46,7 @@ _NOT_CONNECTED = "[mcp_not_connected] El servidor MCP no está conectado."
 _CREATED = "created"
 _CONNECTING = "connecting"
 _CONNECTED = "connected"
+_LOST = "lost"
 _CLOSING = "closing"
 _CLOSED = "closed"
 _FAILED = "failed"
@@ -62,6 +64,8 @@ class McpStdioClient(McpClient):
         sdk_loader: Loads the SDK when ``connect`` runs; replaced by a double in the tests.
         startup_grace_s: Extra wait beyond ``startup_timeout_s`` before the start is given up,
             for a server that never gets to answer.
+        call_grace_s: Extra wait beyond ``call_timeout_s`` before a call is cut off by the
+            client itself, for a server (or SDK) that never answers or times out.
     """
 
     def __init__(
@@ -72,12 +76,14 @@ class McpStdioClient(McpClient):
         log_path: Path | None = None,
         sdk_loader: SdkLoader = load_sdk,
         startup_grace_s: float = _STARTUP_GRACE_S,
+        call_grace_s: float = _CALL_GRACE_S,
     ) -> None:
         self._settings = settings
         self._environ = environ
         self._log_path = log_path
         self._sdk_loader = sdk_loader
         self._startup_grace_s = startup_grace_s
+        self._call_grace_s = call_grace_s
         self._state = _CREATED
         self._task: asyncio.Task[None] | None = None
         self._ready: asyncio.Future[None] | None = None
@@ -104,7 +110,7 @@ class McpStdioClient(McpClient):
 
     @property
     def connected(self) -> bool:
-        """Whether the negotiation finished and the connection has not been closed."""
+        """Whether the negotiation finished and the connection is neither closed nor lost."""
         return self._state == _CONNECTED
 
     @property
@@ -205,18 +211,32 @@ class McpStdioClient(McpClient):
         return tools
 
     async def call_tool(self, name: str, arguments: dict[str, Any]) -> ToolResult:
-        """Run a tool; failures come back as results with ``is_error`` and a fixed text."""
+        """Run a tool; failures come back as results with ``is_error`` and a fixed text.
+
+        A server that is found gone (HU-08-04) leaves the client *lost*: later calls answer
+        ``[mcp_server_down]`` at once, without touching the SDK. There is no reconnection. A
+        timeout does not mark the client as lost (the server may only be slow); the call is cut
+        off by the client itself after ``call_timeout_s`` plus the grace, whatever the SDK does.
+        """
         session = self._session
+        if self._state == _LOST:
+            return ToolResult(_NO_CALL_ID, _FAILURE_TEXTS[CallFailure.SERVER_DOWN], is_error=True)
         if self._state != _CONNECTED or session is None:
             return ToolResult(_NO_CALL_ID, _NOT_CONNECTED, is_error=True)
         try:
-            outcome = await session.call_tool(
-                name, dict(arguments), read_timeout_seconds=self._settings.call_timeout_s
+            outcome = await asyncio.wait_for(
+                session.call_tool(
+                    name, dict(arguments), read_timeout_seconds=self._settings.call_timeout_s
+                ),
+                self._settings.call_timeout_s + self._call_grace_s,
             )
         except asyncio.CancelledError:
             raise
         except Exception as error:
-            return ToolResult(_NO_CALL_ID, _FAILURE_TEXTS[classify_call(error)], is_error=True)
+            failure = classify_call(error)
+            if failure is CallFailure.SERVER_DOWN and self._state == _CONNECTED:
+                self._state = _LOST
+            return ToolResult(_NO_CALL_ID, _FAILURE_TEXTS[failure], is_error=True)
         blocks = getattr(outcome, "content", None)
         if blocks is None or getattr(outcome, "is_error", False):
             return ToolResult(_NO_CALL_ID, _FAILURE_TEXTS[CallFailure.ERROR], is_error=True)
@@ -253,8 +273,10 @@ class McpStdioClient(McpClient):
         except Exception as error:
             if not self._ready.done():
                 self._ready.set_exception(connect_error(self._settings.name, error))
-            # After the negotiation a failure is the server going away: close() does not report
-            # it (HU-08-04 decides what to do with a server that is lost).
+            elif self._state == _CONNECTED:
+                # After the negotiation a failure is the server going away: the client is lost
+                # (HU-08-04); close() does not report it.
+                self._state = _LOST
         finally:
             self._session = None
             errlog.close()

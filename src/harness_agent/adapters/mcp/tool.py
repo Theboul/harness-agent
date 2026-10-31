@@ -9,12 +9,16 @@ The registry validates the final definition: a name or schema that does not fit 
 from __future__ import annotations
 
 import copy
+import unicodedata
 from collections.abc import Awaitable, Callable
 from typing import Any
 
 from harness_agent.core import RiskLevel, Tool, ToolResult
 
 MAX_DESCRIPTION_CHARS = 2000
+_KEPT_CONTROLS = "\n\t"
+_DROPPED_CATEGORIES = frozenset({"Cc", "Cf", "Cs", "Co"})
+_FAILED = "[mcp_error] La herramienta MCP falló al ejecutarse."
 
 CallTool = Callable[[str, dict[str, Any]], Awaitable[ToolResult]]
 
@@ -57,17 +61,32 @@ class McpTool(Tool):
 
     @property
     def risk(self) -> RiskLevel:
-        """Always HIGH: nothing is allowed on the word of a remote server (HU-08-03 refines)."""
+        """Always HIGH: nothing is allowed on the word of a remote server (HU-08-03)."""
         return RiskLevel.HIGH
 
     async def run(self, args: dict[str, Any]) -> ToolResult:
-        return await self._call(self._remote_name, args)
+        """Forward the call; an unexpected failure is a fixed error, never ``str(exc)``."""
+        try:
+            return await self._call(self._remote_name, args)
+        except Exception:
+            return ToolResult("", _FAILED, is_error=True)
 
 
 def _description(server: str, name: str, description: object) -> str:
-    if isinstance(description, str) and description.strip():
-        return description.strip()[:MAX_DESCRIPTION_CHARS]
+    if isinstance(description, str):
+        cleaned = _clean(description).strip()
+        if cleaned:
+            return cleaned[:MAX_DESCRIPTION_CHARS]
     return f"MCP tool '{name}' from server '{server}' (no description)."
+
+
+def _clean(text: str) -> str:
+    """Drop control, format, surrogate and private-use characters (newline and tab stay)."""
+    return "".join(
+        char
+        for char in text
+        if char in _KEPT_CONTROLS or unicodedata.category(char) not in _DROPPED_CATEGORIES
+    )
 
 
 def translate_tool(server: str, sdk_tool: object, call: CallTool) -> McpTool | None:
