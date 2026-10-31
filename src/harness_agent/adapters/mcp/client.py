@@ -21,10 +21,11 @@ from pathlib import Path
 from typing import Any
 
 from harness_agent.adapters.mcp.environment import server_environment
-from harness_agent.adapters.mcp.errors import McpConnectError, McpError
+from harness_agent.adapters.mcp.errors import McpConnectError, McpError, McpListError
 from harness_agent.adapters.mcp.sdk import McpSdk, load_sdk
 from harness_agent.adapters.mcp.settings import McpServerSettings
 from harness_agent.adapters.mcp.stderr_log import open_stderr_log
+from harness_agent.adapters.mcp.tool import translate_tool
 from harness_agent.adapters.mcp.translate import CallFailure, classify_call, connect_error
 from harness_agent.core import McpClient, Tool, ToolResult
 
@@ -32,6 +33,7 @@ SdkLoader = Callable[[str], McpSdk]
 
 _STARTUP_GRACE_S = 5.0
 _NO_CALL_ID = ""
+_MAX_PAGES = 20
 
 _FAILURE_TEXTS = {
     CallFailure.TIMEOUT: "[mcp_timeout] El servidor MCP no respondió a tiempo a la llamada.",
@@ -84,6 +86,7 @@ class McpStdioClient(McpClient):
         self._server_name: str | None = None
         self._has_tools = False
         self._text_content: Any = None
+        self._page_params: Any = None
 
     @property
     def log_path(self) -> Path | None:
@@ -93,6 +96,11 @@ class McpStdioClient(McpClient):
     def environment_for_server(self) -> dict[str, str]:
         """The variables the server receives on top of the safe base of the SDK."""
         return server_environment(self._environ, self._settings.env_names)
+
+    @property
+    def name(self) -> str:
+        """Name the server has in the configuration."""
+        return self._settings.name
 
     @property
     def connected(self) -> bool:
@@ -162,8 +170,39 @@ class McpStdioClient(McpClient):
         self._state = _CLOSED
 
     async def list_tools(self) -> list[Tool]:
-        """Seam for HU-08-02 (discover and translate the tools): nothing is registered yet."""
-        return []
+        """Read the tools of the server and translate them to internal tools (HU-08-02).
+
+        Returns ``[]`` when the client is not connected or the server has no ``tools``
+        capability. Pages are followed up to a bound; an entry without a text name is skipped.
+
+        Raises:
+            McpListError: The list could not be read (fixed text, nothing from the server).
+            asyncio.CancelledError: The caller was cancelled.
+        """
+        session = self._session
+        if self._state != _CONNECTED or session is None or not self._has_tools:
+            return []
+        tools: list[Tool] = []
+        cursor: str | None = None
+        for _ in range(_MAX_PAGES):
+            params = None if cursor is None else self._page_params(cursor=cursor)
+            try:
+                page = await asyncio.wait_for(
+                    session.list_tools(params=params), self._settings.call_timeout_s
+                )
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                raise McpListError(self._settings.name) from None
+            for entry in getattr(page, "tools", None) or []:
+                tool = translate_tool(self._settings.name, entry, self.call_tool)
+                if tool is not None:
+                    tools.append(tool)
+            following = getattr(page, "next_cursor", None)
+            if not isinstance(following, str) or not following or following == cursor:
+                break
+            cursor = following
+        return tools
 
     async def call_tool(self, name: str, arguments: dict[str, Any]) -> ToolResult:
         """Run a tool; failures come back as results with ``is_error`` and a fixed text."""
@@ -200,6 +239,7 @@ class McpStdioClient(McpClient):
                 ) as session:
                     negotiated = await session.initialize()
                     self._text_content = sdk.text_content
+                    self._page_params = sdk.page_params
                     self._server_name = negotiated.server_info.name
                     self._has_tools = negotiated.capabilities.tools is not None
                     self._session = session

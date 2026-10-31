@@ -48,8 +48,10 @@ class TestSuccess:
         assert fake.calls[0][1] is not arguments
         await client.close()
 
-    async def test_list_tools_is_a_seam_that_returns_nothing_until_hu_08_02(self) -> None:
-        client, _ = await connected(Script())
+    async def test_a_server_without_tools_lists_none(self) -> None:
+        client, _ = await connected(
+            Script(pages={None: SimpleNamespace(tools=[], next_cursor=None)})
+        )
 
         assert await client.list_tools() == []
         await client.close()
