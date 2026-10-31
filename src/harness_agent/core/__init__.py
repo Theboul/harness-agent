@@ -184,6 +184,21 @@ from harness_agent.core.progress import (
     render_progress,
 )
 from harness_agent.core.redaction import HIDDEN_SECRET, hide_url_credentials
+from harness_agent.core.startup import (
+    GIT_LOG_COMMAND,
+    MAX_LOG_CHARS,
+    MAX_OUTPUT_CHARS,
+    MAX_PROGRESS_CHARS,
+    Briefing,
+    CheckResult,
+    CheckState,
+    GatedCommandRunner,
+    GatedResult,
+    RunStatus,
+    StartupFacts,
+    StartupRoutine,
+    build_briefing,
+)
 from harness_agent.core.tasks import (
     DEFAULT_COMMAND_TIMEOUT_SECONDS,
     MAX_COMMAND_TIMEOUT_SECONDS,
@@ -342,6 +357,20 @@ __all__ = [
     "ProgressSnapshot",
     "progress_file_name",
     "render_progress",
+    # Startup routine when a ticket is resumed (HU-11-08.2)
+    "GIT_LOG_COMMAND",
+    "MAX_LOG_CHARS",
+    "MAX_OUTPUT_CHARS",
+    "MAX_PROGRESS_CHARS",
+    "Briefing",
+    "CheckResult",
+    "CheckState",
+    "GatedCommandRunner",
+    "GatedResult",
+    "RunStatus",
+    "StartupFacts",
+    "StartupRoutine",
+    "build_briefing",
     # Hiding of credentials in URLs (HU-11-02; HU-10-02 must absorb it)
     "HIDDEN_SECRET",
     "hide_url_credentials",
