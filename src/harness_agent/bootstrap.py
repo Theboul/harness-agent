@@ -94,6 +94,7 @@ from harness_agent.core import (
     AllowedCall,
     ApprovalGate,
     Approver,
+    AskCeilingPolicy,
     AuthorizedArea,
     Briefing,
     CommandKind,
@@ -240,6 +241,7 @@ class Composition:
     model_view: ModelView | None = None
     manual_compactor_for: Callable[[str], ContextCompactor] | None = None
     mcp_clients: tuple[McpStdioClient, ...] = ()
+    mcp_tool_names: set[str] = field(default_factory=set)
     session_cursor: SessionCursor | None = None
     progress: ProgressRecorder | None = None
     startup: StartupRoutine | None = None
@@ -513,13 +515,19 @@ def compose(
         # understand be allowed; then the git rules (HU-11-02) deny destructive git calls, ask
         # writes without asking further in and allow pure reads; only then may the exact commands
         # of the task turn the "ask" of the default policy into "allow" (HU-11-03).
+        # The names of the MCP tools fill in after they connect (HU-08-03): the ceiling keeps
+        # any "allow" of the rules inside from reaching them without asking.
+        mcp_tool_names: set[str] = set()
         policy = ProtectedPolicy(
             CommandPolicy(
                 GitPolicy(
-                    ExactCallPolicy(
-                        DefaultPermissionPolicy(registry, area, config.permissions),
-                        _allowed_commands(commands, shell_tool.name),
-                        ask_names=config.permissions.ask,
+                    AskCeilingPolicy(
+                        ExactCallPolicy(
+                            DefaultPermissionPolicy(registry, area, config.permissions),
+                            _allowed_commands(commands, shell_tool.name),
+                            ask_names=config.permissions.ask,
+                        ),
+                        mcp_tool_names,
                     ),
                     dialect=deny_list.dialect,
                     tool=shell_tool.name,
@@ -694,6 +702,7 @@ def compose(
         manual_compactor_for=manual_compactor_for,
         mcp_clients=mcp_clients,
         registry=registry,
+        mcp_tool_names=mcp_tool_names,
     )
 
 
@@ -1188,7 +1197,10 @@ async def run_session(
         await connect_all(composition.mcp_clients, composition.warning_sink.write)
         # Their tools join the registry before the first prompt (HU-08-02).
         await register_mcp_tools(
-            composition.mcp_clients, composition.registry, composition.warning_sink.write
+            composition.mcp_clients,
+            composition.registry,
+            composition.warning_sink.write,
+            composition.mcp_tool_names,
         )
         if composition.startup is not None:
             briefing = await composition.startup.run()
