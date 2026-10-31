@@ -86,3 +86,9 @@ def test_the_description_is_one_clean_line() -> None:
 
     assert "\n" not in criterion.description and "\x1b" not in criterion.description
     assert len(criterion.description) <= 120
+
+
+def test_no_changes_block_approval() -> None:
+    view = build_view("T-1", ChangeSet(), [item(1, command="pytest", passes=True)])
+
+    assert view.blockers == (Blocker.NO_CHANGES,) and not view.can_approve

@@ -114,3 +114,18 @@ def test_diff_colors_follow_the_prefix() -> None:
     green, red = diff_lines("+a\n-b", Style(enabled=True))
 
     assert "32m" in green and "31m" in red
+
+
+def test_a_very_long_list_of_files_is_cut() -> None:
+    files = tuple(FileChange(f"f{i}.py", ChangeStatus.NEW, 1, 0) for i in range(105))
+
+    text = "\n".join(review_block(view(files=files)))
+
+    assert "f99.py" in text and "f100.py" not in text and "... y 5 archivos más" in text
+
+
+def test_an_approvable_review_shows_no_blocker_line() -> None:
+    changes = ChangeSet((FileChange("a.py", ChangeStatus.NEW, 1, 0),), "+x")
+    ready = build_view("T", changes, [TaskCriteriaItem("c1", "ok", True, None, "pytest")])
+
+    assert "No se puede aprobar" not in "\n".join(review_block(ready))

@@ -382,3 +382,20 @@ def test_the_history_is_the_one_of_the_caller() -> None:
     asyncio.run(rig.runner.run("haz", history))
 
     assert history == [Message(Role.USER, "hola")]
+
+
+def test_criteria_that_cannot_be_read_after_a_confirmation_end_the_review() -> None:
+    rig = Rig([decide(Choice.CONFIRM, 2), decide(Choice.APPROVE)], [objective(), semantic()])
+    original = rig.confirmer.confirm
+
+    def confirm_then_break(session_id: str, index: int) -> Confirmation:
+        outcome = original(session_id, index)
+        rig.criteria.broken = True
+        return outcome
+
+    rig.confirmer.confirm = confirm_then_break  # type: ignore[method-assign]
+
+    rig.run()
+
+    assert rig.source.commits == []
+    assert rig.reviewer.informed[-1] == "No se pudieron leer los criterios: no se revisa el cambio."
