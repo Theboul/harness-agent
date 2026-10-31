@@ -37,7 +37,7 @@ Cargar antes de crear un archivo nuevo, mover código o proponer un módulo en e
 | Código con `litellm`, `sqlite3`, `mcp`, `subprocess`, red o disco | `adapters/<subpaquete>/` |
 | Conversión entre el formato canónico y el de un proveedor | `adapters/converters/` |
 | Herramienta nativa | `adapters/tools/` (la interfaz `Tool` vive en `core/interfaces/tool.py`) |
-| Imprime o lee de la terminal | `cli/` (`app.py` entrada y comandos, `render.py` texto de cada evento) |
+| Imprime o lee de la terminal | `cli/` (`app.py` entrada y comandos, `render.py` texto de cada evento, `approval_view.py` bloque de aprobación, `activity.py` líneas de actividad, `session_commands.py` texto de los comandos de sesión, `style.py` color: el único que conoce ANSI y el entorno) |
 | Trazas, auditoría, redacción de secretos | `observability/` |
 | Unir piezas y elegir implementaciones | `bootstrap.py` |
 | Lectura de configuración (archivo y entorno) | `config.py` |

@@ -90,7 +90,7 @@ async def test_approving_once_writes_and_asks_again_for_the_same_call(tmp_path: 
     result = await rig.run()
 
     assert (tmp_path / "a.txt").read_text(encoding="utf-8") == "x"
-    assert rig.output.getvalue().count("El agente quiere ejecutar: escribir_archivo") == 2
+    assert rig.output.getvalue().count("APROBACIÓN REQUERIDA") == 2
     assert [p["source"] for p in rig.events(EventType.APPROVAL_RESOLVED)] == ["user", "user"]
     assert all(not a.startswith("[approval") for a in rig.answers(result))
 
@@ -108,7 +108,7 @@ async def test_session_approval_covers_only_the_same_arguments(tmp_path: Path) -
     resolved = rig.events(EventType.APPROVAL_RESOLVED)
     assert [p["source"] for p in resolved] == ["user", "session_grant", "user"]
     assert [p["approved"] for p in resolved] == [True, True, False]
-    assert rig.output.getvalue().count("El agente quiere ejecutar") == 2
+    assert rig.output.getvalue().count("APROBACIÓN REQUERIDA") == 2
     assert (tmp_path / "a.txt").read_text(encoding="utf-8") == "uno"
     assert rig.answers(result)[2].startswith("[approval_rejected]")
 

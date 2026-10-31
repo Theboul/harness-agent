@@ -1,7 +1,8 @@
 """Approval prompt of the terminal: shows what is asked and reads the user's choice (HU-05-03).
 
-``ConsoleApprover`` implements the ``Approver`` port for the CLI. It shows the tool, its arguments
-and the expected effect, then reads ``1`` (approve once), ``2`` (approve for the session) or ``3``
+``ConsoleApprover`` implements the ``Approver`` port for the CLI. It shows the block of
+``approval_view`` (what the agent wants to do, the highlighted command or path, the risk and the
+effect; HU-06-05), then reads ``1`` (approve once), ``2`` (approve for the session) or ``3``
 (reject). After ``3`` it asks for an optional reason (HU-05-04): an empty line, the end of the
 input or ``/salir`` mean no reason, and the reason is never written back. It fails closed on its
 own: the end of the input, or an invalid option repeated ``max_attempts`` times, is a rejection;
@@ -19,19 +20,10 @@ from typing import Any, TextIO
 from harness_agent.core import ApprovalAction, ApprovalResult, Approver, ToolCall, clean_reason
 
 from .app import put_line
-from .render import bounded, sanitize
+from .approval_view import approval_block
+from .style import Style, detect_style
 
-MAX_VALUE_CHARS = 200
-MAX_EFFECT_CHARS = 200
-MAX_NAME_CHARS = 64
-MAX_ARGUMENTS_SHOWN = 20
 DEFAULT_ATTEMPTS = 3
-HIDDEN_VALUE = "***"
-NO_EFFECT = "(sin descripción)"
-SECRET_WORDS = ("key", "secret", "token", "password", "passwd", "credential", "auth")
-RISK_NAMES = {"low": "bajo", "medium": "medio", "high": "alto"}
-UNKNOWN_RISK = "desconocido"
-OPTIONS_LINE = "  [1] aprobar una vez  [2] aprobar para la sesión  [3] rechazar"
 PROMPT = "opción> "
 INVALID_OPTION = "Opción no válida: escribe 1, 2 o 3."
 REASON_PROMPT = "motivo (opcional, Enter para omitir)> "
@@ -43,34 +35,6 @@ CHOICES = {
 }
 
 
-def _one_line(value: object, limit: int) -> str:
-    text = value if isinstance(value, str) else repr(value)
-    return bounded(" ".join(sanitize(text).split()), limit)
-
-
-def _argument_lines(arguments: object) -> list[str]:
-    if not isinstance(arguments, dict):
-        return []
-    lines: list[str] = []
-    for position, (name, value) in enumerate(arguments.items()):
-        if position == MAX_ARGUMENTS_SHOWN:
-            lines.append(f"  ... (y {len(arguments) - MAX_ARGUMENTS_SHOWN} más)")
-            break
-        shown_name = _one_line(name, MAX_NAME_CHARS)
-        hidden = any(word in str(name).lower() for word in SECRET_WORDS)
-        shown_value = HIDDEN_VALUE if hidden else _one_line(value, MAX_VALUE_CHARS)
-        lines.append(f"  {shown_name}: {shown_value}")
-    return lines
-
-
-def _effect_line(details: dict[str, Any]) -> str:
-    effect = details.get("effect")
-    text = _one_line(effect, MAX_EFFECT_CHARS) if isinstance(effect, str) and effect else ""
-    risk = details.get("risk")
-    risk_name = RISK_NAMES.get(risk, UNKNOWN_RISK) if isinstance(risk, str) else UNKNOWN_RISK
-    return f"  efecto: {text or NO_EFFECT} (riesgo: {risk_name})"
-
-
 class ConsoleApprover(Approver):
     """Asks the user in the terminal; ``input_stream``/``output`` default to the standard ones.
 
@@ -78,6 +42,7 @@ class ConsoleApprover(Approver):
         input_stream: Where the choice is read from (``sys.stdin`` when ``None``).
         output: Where the question is written (``sys.stdout`` when ``None``).
         max_attempts: Invalid answers tolerated before the request is rejected (at least 1).
+        style: How the block is painted; decided from the output stream when ``None``.
     """
 
     def __init__(
@@ -86,23 +51,23 @@ class ConsoleApprover(Approver):
         output: TextIO | None = None,
         *,
         max_attempts: int = DEFAULT_ATTEMPTS,
+        style: Style | None = None,
     ) -> None:
         if max_attempts < 1:
             raise ValueError("Debe haber al menos un intento.")
         self._input = input_stream
         self._output = output
         self._max_attempts = max_attempts
+        self._style = style
 
     async def request(self, call: ToolCall, details: dict[str, Any]) -> ApprovalResult:
         """Show the detail and read the choice; reject on the end of the input."""
         source = sys.stdin if self._input is None else self._input
         stream = sys.stdout if self._output is None else self._output
-        tool = details.get("tool") if isinstance(details.get("tool"), str) else call.name
-        put_line(stream, f"[!] El agente quiere ejecutar: {_one_line(tool, MAX_NAME_CHARS)}")
-        for line in _argument_lines(details.get("arguments")):
+        style = detect_style(stream) if self._style is None else self._style
+        put_line(stream, "")
+        for line in approval_block(call.name, details, style):
             put_line(stream, line)
-        put_line(stream, _effect_line(details))
-        put_line(stream, OPTIONS_LINE)
         for _ in range(self._max_attempts):
             put_line(stream, PROMPT, end="")
             answer = source.readline()

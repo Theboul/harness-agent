@@ -62,10 +62,14 @@ harness-agent/
 │   ├── bootstrap.py        # RAÍZ DE COMPOSICIÓN: único lugar que une núcleo, adaptadores, CLI y configuración; compose(), run_session(), main() (HU-00-08)
 │   ├── __main__.py         # python -m harness_agent: llama a bootstrap.main
 │   └── cli/                # terminal: se suscribe al bus (HU-06-01)
-│       ├── app.py          # run_cli, attach_renderer, comandos /ayuda y /salir
+│       ├── app.py          # run_cli, attach_renderer, comandos /ayuda y /salir (un comando puede ser asíncrono)
 │       ├── render.py       # render_event: texto de cada evento, sanitizado y acotado
 │       ├── approval.py     # ConsoleApprover: muestra el detalle, lee la decisión y el motivo del rechazo (HU-05-03, HU-05-04)
 │       ├── criteria.py     # criterion_line, CriteriaBoard, attach_criteria_status: estado de cada criterio y `/criterios` (HU-11-04.1)
+│       ├── style.py        # Style, detect_style: ÚNICO módulo que conoce ANSI y lee el entorno (NO_COLOR, TERM, terminal de Windows) (HU-06-05)
+│       ├── approval_view.py# approval_block: bloque de aprobación legible, puro (HU-06-05)
+│       ├── activity.py     # ActivityRenderer: líneas de actividad con la duración de cada herramienta (HU-06-05)
+│       ├── session_commands.py # SessionRow, ModelView y el texto de /sesiones, /model, /compactar y /nueva, puro (HU-06-05)
 │       └── approver.py     # (planeado: HU-05-03) pregunta de aprobación en terminal
 └── tests/
     ├── litellm_offline.py  # sustituye el codificador de LiteLLM en memoria para que ninguna prueba descargue nada (HU-07-02)

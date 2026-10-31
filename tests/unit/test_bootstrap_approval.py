@@ -129,8 +129,8 @@ class TestMain:
         code, text = self.run(tmp_path, "lee a.txt\n1\n/salir\n", provider)
 
         assert code == 0
-        assert "El agente quiere ejecutar: leer_archivo" in text
-        assert "path: a.txt" in text
+        assert "Herramienta: leer_archivo" in text
+        assert "     a.txt" in text
         assert CONTENT in tool_answer(provider)
 
     def test_rejecting_in_the_terminal_does_not_run_the_tool(self, tmp_path: Path) -> None:

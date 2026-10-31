@@ -95,13 +95,15 @@ class TestSuscripcion:
         # The order is the one of the catalog; an allowed permission shows nothing.
         lines = output.getvalue().splitlines()
         assert [line.split(":")[0] for line in lines] == [
-            "> hola",
-            "... ejecutando",
-            "v buscar",
-            "x Límite",
-            "x Error",
+            "agente> hola",
+            "  [..] buscar",
+            "  [ok] buscar",
+            "  [?] buscar",
+            "  [~] Contexto compactado.",
+            "[x] Límite",
+            "[x] Error",
         ]
-        assert len(lines) == len(SHOWN_TYPES) - 1  # the six shown types, minus the allowed one
+        assert len(lines) == len(SHOWN_TYPES) - 1  # the eight shown types, minus the allowed one
 
     def test_the_lines_follow_the_order_of_emission(self) -> None:
         bus, output = InMemoryEventBus(), io.StringIO()
@@ -111,7 +113,7 @@ class TestSuscripcion:
         bus.emit(make(ET.TOOL_FINISHED, name="uno", is_error=False))
         bus.emit(make(ET.ASSISTANT_MESSAGE, content="listo"))
 
-        assert output.getvalue() == "... ejecutando: uno\nv uno: correcto\n> listo\n"
+        assert output.getvalue() == "  [..] uno: ejecutando\n  [ok] uno: correcto\nagente> listo\n"
 
     def test_every_line_ends_with_a_line_break_and_the_output_is_flushed(self) -> None:
         bus, output = InMemoryEventBus(), FlushSpy()
@@ -120,7 +122,7 @@ class TestSuscripcion:
         bus.emit(make(ET.TOOL_REQUESTED, name="uno"))
         bus.emit(make(ET.TOOL_REQUESTED, name="dos"))
 
-        assert output.getvalue() == "... ejecutando: uno\n... ejecutando: dos\n"
+        assert output.getvalue() == "  [..] uno: ejecutando\n  [..] dos: ejecutando\n"
         assert output.flushes == 2
 
     def test_an_event_without_text_writes_nothing_and_does_not_flush(self) -> None:
@@ -142,7 +144,7 @@ class TestSuscripcion:
         attach_renderer(bus)
         bus.emit(make(ET.TOOL_REQUESTED, name="buscar"))
 
-        assert replaced.getvalue() == "... ejecutando: buscar\n"
+        assert replaced.getvalue() == "  [..] buscar: ejecutando\n"
 
     def test_with_an_injected_output_nothing_goes_to_the_real_standard_output(
         self, capsys: pytest.CaptureFixture[str]
@@ -163,7 +165,7 @@ class TestSuscripcion:
 
         bus.emit(make(ET.TOOL_REQUESTED, name="buscar"))
 
-        assert output.getvalue() == "... ejecutando: buscar\n" * 2
+        assert output.getvalue() == "  [..] buscar: ejecutando\n" * 2
 
     def test_the_public_api_exposes_the_render_and_the_subscription(self) -> None:
         assert cli.render_event is render_event
@@ -225,7 +227,7 @@ class TestCodificacion:
         bus.emit(make(ET.ASSISTANT_MESSAGE, content="hola \U0001f642 ñ á"))
         stream.flush()
 
-        assert raw.getvalue().decode("cp1252") == "> hola ? ñ á\n"
+        assert raw.getvalue().decode("cp1252") == "agente> hola ? ñ á\n"
 
     def test_the_stream_is_not_reconfigured(self) -> None:
         stream = io.TextIOWrapper(io.BytesIO(), encoding="cp1252", newline="\n")
@@ -244,4 +246,4 @@ class TestCodificacion:
 
         bus.emit(make(ET.ASSISTANT_MESSAGE, content="hola \U0001f642 ñ"))
 
-        assert output.getvalue() == "> hola \U0001f642 ñ\n"
+        assert output.getvalue() == "agente> hola \U0001f642 ñ\n"
