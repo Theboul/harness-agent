@@ -54,6 +54,7 @@ from harness_agent.adapters.storage import (
 )
 from harness_agent.adapters.system import (
     GitChanges,
+    GitHubPullRequests,
     ProtectedPaths,
     WorkspaceArea,
     denied_commands_for,
@@ -85,6 +86,7 @@ from harness_agent.adapters.tools import (
 )
 from harness_agent.cli import (
     ConsoleApprover,
+    ConsolePullRequestPrompter,
     ConsoleReviewer,
     ModelView,
     SessionRow,
@@ -114,6 +116,7 @@ from harness_agent.core import (
     ChangeSource,
     CommandKind,
     CommandPolicy,
+    CommitObserver,
     ContextCompactor,
     ContextSettings,
     ConversationCapture,
@@ -138,6 +141,9 @@ from harness_agent.core import (
     ProgressRecorder,
     ProtectedPolicy,
     Provider,
+    PullRequestFlow,
+    PullRequestHost,
+    PullRequestPrompter,
     ResumeError,
     ReviewingRunner,
     Role,
@@ -533,6 +539,8 @@ def compose(
     retry_sleep: Callable[[float], Awaitable[None]] | None = None,
     reviewer: ChangeReviewer | None = None,
     changes: ChangeSource | None = None,
+    pull_request_prompter: PullRequestPrompter | None = None,
+    pull_request_host: PullRequestHost | None = None,
 ) -> Composition:
     """Build the connected system from ``config``; nothing is left half open on failure.
 
@@ -554,6 +562,11 @@ def compose(
             approve the commit (HU-11-05); without one, or without task or work area, there is no
             review.
         changes: Where the change is read from and committed; git on the work area by default.
+        pull_request_prompter: Asks the person before the push and before the creation of the Pull
+            Request that follows an approved commit (HU-11-06); without one, or without review,
+            there is no Pull Request step.
+        pull_request_host: Pushes and creates the Pull Request; git and ``gh`` on the work area by
+            default.
 
     Raises:
         ProviderDependencyError: The optional dependency of the real provider is missing.
@@ -772,15 +785,25 @@ def compose(
             runner = verifying
             if reviewer is not None and area is not None:
                 # The review of the diff (HU-11-05) wraps the verifying runner.
+                git_environment = _git_environment(
+                    process_environment() if environ is None else environ
+                )
+                after_commit: CommitObserver | None = None
+                if pull_request_prompter is not None:
+                    # The Pull Request hangs from the approved commit (HU-11-06).
+                    after_commit = PullRequestFlow(
+                        pull_request_host
+                        if pull_request_host is not None
+                        else GitHubPullRequests(area.root, environ=git_environment),
+                        pull_request_prompter,
+                    )
                 runner = ReviewingRunner(
                     verifying,
                     changes
                     if changes is not None
                     else GitChanges(
                         area.root,
-                        environ=_git_environment(
-                            process_environment() if environ is None else environ
-                        ),
+                        environ=git_environment,
                         exclude=(progress_file_name(task.title, session_id),),
                     ),
                     reviewer,
@@ -789,6 +812,7 @@ def compose(
                     session_id=session_id,
                     ticket=task.title,
                     objective=task.objective,
+                    after_commit=after_commit,
                 )
         if task is not None and area is not None:
             startup = _startup_routine(
@@ -1380,6 +1404,8 @@ def main(
     argv: Sequence[str] | None = None,
     gh_runner: GhRunner | None = None,
     changes: ChangeSource | None = None,
+    pull_request_prompter: PullRequestPrompter | None = None,
+    pull_request_host: PullRequestHost | None = None,
 ) -> int:
     """Load the configuration, compose the system, run the session and close the store.
 
@@ -1425,6 +1451,8 @@ def main(
                 approver=ConsoleApprover(input_stream, output),
                 reviewer=ConsoleReviewer(input_stream, output),
                 changes=changes,
+                pull_request_prompter=ConsolePullRequestPrompter(input_stream, output),
+                pull_request_host=pull_request_host,
             )
         except (
             ConfigError,
