@@ -355,3 +355,55 @@ def test_only_the_composition_root_calls_the_registration() -> None:
     }
 
     assert callers == {"bootstrap.py", "registration.py"}  # the call and the definition
+
+
+# --- HU-08-04: an unexpected failure is never repeated; only the client marks itself as lost -----
+
+UNTRUSTED_TEXT_MODULES = ("connections.py", "registration.py", "tool.py")
+
+
+def named_broad_handlers(source: str) -> list[str]:
+    """``except Exception as name`` handlers: the name would let the text of the failure out."""
+    return [
+        f"except Exception as {node.name} at line {node.lineno}"
+        for node in ast.walk(ast.parse(source))
+        if isinstance(node, ast.ExceptHandler)
+        and isinstance(node.type, ast.Name)
+        and node.type.id == "Exception"
+        and node.name is not None
+    ]
+
+
+def test_modules_that_isolate_failures_never_bind_the_exception() -> None:
+    for name in UNTRUSTED_TEXT_MODULES:
+        source = (MCP_DIR / name).read_text(encoding="utf-8")
+        assert named_broad_handlers(source) == [], name
+
+
+def test_a_named_broad_handler_is_detected() -> None:
+    source = "try:\n    pass\nexcept Exception as error:\n    warn(str(error))\n"
+    assert named_broad_handlers(source) != []
+
+
+def test_a_handler_without_a_name_is_fine() -> None:
+    assert named_broad_handlers("try:\n    pass\nexcept Exception:\n    pass\n") == []
+
+
+def test_the_mutation_of_binding_the_exception_is_detected(copy_of_the_package: Path) -> None:
+    mcp_copy = copy_of_the_package / "adapters" / "mcp"
+    append(
+        mcp_copy / "tool.py",
+        "\ntry:\n    pass\nexcept Exception as error:\n    TEXT = str(error)\n",
+    )
+
+    source = (mcp_copy / "tool.py").read_text(encoding="utf-8")
+
+    assert named_broad_handlers(source) != []
+
+
+def test_only_the_client_assigns_the_lost_state() -> None:
+    owners = {
+        path.name for path in MCP_DIR.glob("*.py") if "_LOST" in path.read_text(encoding="utf-8")
+    }
+
+    assert owners == {"client.py"}

@@ -14,6 +14,7 @@ from harness_agent.core.permissions.approvals import (
     clean_reason,
     rejection_message,
 )
+from harness_agent.core.permissions.ask_ceiling import AskCeilingPolicy
 from harness_agent.core.permissions.command_parser import (
     CommandPart,
     Dialect,
@@ -41,6 +42,7 @@ from harness_agent.core.permissions.rules import PermissionRules
 
 __all__ = [
     "AllowedCall",
+    "AskCeilingPolicy",
     "ApprovalGate",
     "ApprovalOutcome",
     "MAX_REASON_CHARS",

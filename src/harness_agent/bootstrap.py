@@ -94,7 +94,10 @@ from harness_agent.core import (
     AllowedCall,
     ApprovalGate,
     Approver,
+    AskCeilingPolicy,
     AuthorizedArea,
+    Briefing,
+    CommandKind,
     CommandPolicy,
     ContextCompactor,
     ContextSettings,
@@ -111,6 +114,7 @@ from harness_agent.core import (
     EventBus,
     EventType,
     ExactCallPolicy,
+    GatedCommandRunner,
     GitPolicy,
     InMemoryEventBus,
     InMemoryToolRegistry,
@@ -123,6 +127,7 @@ from harness_agent.core import (
     Role,
     RuleError,
     SessionLimits,
+    StartupRoutine,
     TaskCommand,
     TaskDefinition,
     ToolDefinition,
@@ -236,8 +241,10 @@ class Composition:
     model_view: ModelView | None = None
     manual_compactor_for: Callable[[str], ContextCompactor] | None = None
     mcp_clients: tuple[McpStdioClient, ...] = ()
+    mcp_tool_names: set[str] = field(default_factory=set)
     session_cursor: SessionCursor | None = None
     progress: ProgressRecorder | None = None
+    startup: StartupRoutine | None = None
 
     def close(self) -> None:
         """Close the session store; safe to call more than once."""
@@ -508,13 +515,19 @@ def compose(
         # understand be allowed; then the git rules (HU-11-02) deny destructive git calls, ask
         # writes without asking further in and allow pure reads; only then may the exact commands
         # of the task turn the "ask" of the default policy into "allow" (HU-11-03).
+        # The names of the MCP tools fill in after they connect (HU-08-03): the ceiling keeps
+        # any "allow" of the rules inside from reaching them without asking.
+        mcp_tool_names: set[str] = set()
         policy = ProtectedPolicy(
             CommandPolicy(
                 GitPolicy(
-                    ExactCallPolicy(
-                        DefaultPermissionPolicy(registry, area, config.permissions),
-                        _allowed_commands(commands, shell_tool.name),
-                        ask_names=config.permissions.ask,
+                    AskCeilingPolicy(
+                        ExactCallPolicy(
+                            DefaultPermissionPolicy(registry, area, config.permissions),
+                            _allowed_commands(commands, shell_tool.name),
+                            ask_names=config.permissions.ask,
+                        ),
+                        mcp_tool_names,
                     ),
                     dialect=deny_list.dialect,
                     tool=shell_tool.name,
@@ -556,6 +569,7 @@ def compose(
         # must not store it again. The ``skip`` goes by position.
         warning_sink = WarningSink()
         progress: ProgressRecorder | None = None
+        startup: StartupRoutine | None = None
         if task is not None and area is not None:
             # The progress file of the ticket (HU-11-08.1): a copy for the next session; SQLite
             # keeps the truth. Written by ``run_session`` after each turn and when it ends.
@@ -643,6 +657,11 @@ def compose(
                 renewer,
                 warning_sink,
             )
+        if task is not None and area is not None:
+            startup = _startup_routine(
+                task, ProgressFile(area.root), policy, registry, shell_tool, bus, session_id,
+                approver, clock, id_factory,
+            )  # fmt: skip
     except BaseException:
         store.close()
         raise
@@ -669,6 +688,7 @@ def compose(
         compactor_for=compactor_for,
         session_cursor=cursor,
         progress=progress,
+        startup=startup,
         model=config.model,
         model_view=ModelView(
             model=config.model,
@@ -682,6 +702,7 @@ def compose(
         manual_compactor_for=manual_compactor_for,
         mcp_clients=mcp_clients,
         registry=registry,
+        mcp_tool_names=mcp_tool_names,
     )
 
 
@@ -833,6 +854,51 @@ def _verifying_runner(
         return await loop.run_turn(session_id=session_id, task=text, history=history)
 
     return VerifyingRunner(run_turn, verifier, session_id)
+
+
+def _startup_routine(
+    task: TaskDefinition,
+    progress_file: ProgressFile,
+    policy: PermissionPolicy,
+    registry: InMemoryToolRegistry,
+    shell_tool: ShellTool,
+    bus: EventBus,
+    session_id: str,
+    approver: Approver | None,
+    clock: Callable[[], datetime] | None,
+    id_factory: Callable[[], str] | None,
+) -> StartupRoutine:
+    """The routine that reads the progress, the git log and runs the basic test (HU-11-08.2).
+
+    It only connects pieces: the commands go through the same policy chain and shell tool as the
+    ones of the agent, and the basic test is the ``pruebas`` command the task declares.
+    """
+
+    def emit(kind: EventType, payload: dict[str, Any]) -> None:
+        bus.emit(
+            Event.create(
+                session_id,
+                kind,
+                payload,
+                event_id=None if id_factory is None else id_factory(),
+                timestamp=None if clock is None else clock(),
+            )
+        )
+
+    runner = GatedCommandRunner(
+        policy,
+        shell_tool,
+        make_command_runner(registry, shell_tool.name),
+        emit,
+        gate=None if approver is None else ApprovalGate(approver),
+        tool_name=shell_tool.name,
+        command_argument=COMMAND_ARGUMENT,
+        timeout_argument=TIMEOUT_ARGUMENT,
+    )
+    tests = next((c for c in task.commands if c.kind is CommandKind.TESTS), None)
+    return StartupRoutine(
+        progress_file, runner, ticket=task.title, session_id=session_id, tests=tests
+    )
 
 
 @dataclass
@@ -1091,7 +1157,12 @@ async def run_session(
             capture.flush()  # an empty answer has no event; it is saved when the turn closes
         return result
 
+    pending_startup: list[Briefing] = []
+
     async def turn(task: str) -> object:
+        if pending_startup:
+            # The routine of a resumed ticket goes before the first real request, once (HU-11-08.2).
+            task = pending_startup.pop().with_request(task)
         # First the calls a cut left without a result: each gets its closing event, once (R21).
         _close_interrupted(composition.bus, active)
         # First the block (so the estimate of the compaction sees it), then the compaction.
@@ -1126,8 +1197,16 @@ async def run_session(
         await connect_all(composition.mcp_clients, composition.warning_sink.write)
         # Their tools join the registry before the first prompt (HU-08-02).
         await register_mcp_tools(
-            composition.mcp_clients, composition.registry, composition.warning_sink.write
+            composition.mcp_clients,
+            composition.registry,
+            composition.warning_sink.write,
+            composition.mcp_tool_names,
         )
+        if composition.startup is not None:
+            briefing = await composition.startup.run()
+            if briefing is not None:
+                _write_notice(stream, briefing.console_line)
+                pending_startup.append(briefing)
         code = await run_cli(
             composition.bus,
             run_turn,
