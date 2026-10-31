@@ -8,8 +8,9 @@ collisions belong to HU-08-05.
 
 from __future__ import annotations
 
+import asyncio
 import re
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, MutableSet, Sequence
 from typing import Protocol
 
 from harness_agent.adapters.mcp.errors import McpError
@@ -20,6 +21,9 @@ _UNSAFE_NAME = "<nombre no válido>"
 _OMITTED = "El servidor MCP '{server}' ofrece la herramienta '{tool}', pero se omitió: {reason}."
 _INVALID = "su nombre o su esquema no son válidos para el arnés"
 _DUPLICATE = "ya existe otra herramienta con ese nombre"
+_UNEXPECTED = (
+    "No se pudieron leer las herramientas del servidor MCP{name}: falló de forma inesperada."
+)
 
 
 class ToolSource(Protocol):
@@ -35,12 +39,17 @@ class ToolSource(Protocol):
 
 
 async def register_mcp_tools(
-    clients: Sequence[ToolSource], registry: ToolRegistry, warn: Callable[[str], None]
+    clients: Sequence[ToolSource],
+    registry: ToolRegistry,
+    warn: Callable[[str], None],
+    names: MutableSet[str] | None = None,
 ) -> int:
     """Discover the tools of every connected client and register them; return how many were.
 
     A client that is not connected is skipped (its connection failure was already reported). One
-    whose list cannot be read gives one warning and no tools. Cancellation propagates.
+    whose list cannot be read, for a known or an unexpected reason, gives one warning and no
+    tools (HU-08-04). Cancellation propagates. When ``names`` is given, the name of every
+    registered tool is added to it (the composition uses it for the ceiling of HU-08-03).
     """
     registered = 0
     for client in clients:
@@ -51,6 +60,12 @@ async def register_mcp_tools(
         except McpError as error:
             warn(str(error))
             continue
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            label = f" '{client.name}'" if _SAFE_NAME.fullmatch(client.name) else ""
+            warn(_UNEXPECTED.format(name=label))
+            continue
         for tool in tools:
             try:
                 registry.register(tool)
@@ -59,6 +74,8 @@ async def register_mcp_tools(
                 warn(_OMITTED.format(server=client.name, tool=_safe_name(tool.name), reason=reason))
             else:
                 registered += 1
+                if names is not None:
+                    names.add(tool.name)
     return registered
 
 

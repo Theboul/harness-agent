@@ -8,10 +8,19 @@ between servers (HU-08-04) and several servers (HU-08-05) add to this without re
 from __future__ import annotations
 
 import asyncio
+import re
 from collections.abc import Callable, Sequence
 from typing import Protocol
 
 from harness_agent.adapters.mcp.errors import McpError
+
+_SAFE_NAME = re.compile(r"[A-Za-z0-9_-]{1,64}")
+_UNEXPECTED = "El servidor MCP{name} falló de forma inesperada al conectar y se omitió."
+
+
+def _label(client: object) -> str:
+    name = getattr(client, "name", None)
+    return f" '{name}'" if isinstance(name, str) and _SAFE_NAME.fullmatch(name) else ""
 
 
 class Connectable(Protocol):
@@ -36,6 +45,8 @@ async def connect_all(clients: Sequence[Connectable], warn: Callable[[str], None
         except asyncio.CancelledError:
             await close_all(clients)
             raise
+        except Exception:
+            warn(_UNEXPECTED.format(name=_label(client)))  # nothing the server said is repeated
 
 
 async def close_all(clients: Sequence[Connectable]) -> None:

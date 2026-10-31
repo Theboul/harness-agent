@@ -83,11 +83,13 @@ class TestConnectAll:
         assert opened.events == ["connect", "close"]
         assert cancelled.events == ["connect", "close"]
 
-    async def test_an_unexpected_error_is_not_swallowed(self) -> None:
+    async def test_an_unexpected_error_is_a_fixed_warning_and_the_session_goes_on(self) -> None:
         client = StubClient("a", fail=RuntimeError("inesperado"))
+        warnings: list[str] = []
 
-        with pytest.raises(RuntimeError):
-            await connect_all([client], lambda _: None)
+        await connect_all([client], warnings.append)
+
+        assert len(warnings) == 1 and "inesperado" not in warnings[0]
 
 
 class TestCloseAll:
