@@ -47,6 +47,7 @@ SYSTEM_API = {
     "BashShell",
     "DEFAULT_DENIED_COMMANDS",
     "DeniedCommand",
+    "GitChanges",  # HU-11-05
     "PowerShellShell",
     "ProtectedPaths",
     "ShellStartError",
