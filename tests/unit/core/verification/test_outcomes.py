@@ -31,6 +31,7 @@ def test_the_values_are_the_ones_of_the_contract() -> None:
         "tiempo_agotado",
         "alterado",
         "pendiente_humano",
+        "confirmado_humano",
     ]
     assert [c.value for c in NotRunCause] == [
         "denegado",
