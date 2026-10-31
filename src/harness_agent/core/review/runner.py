@@ -24,7 +24,8 @@ from typing import Generic, Protocol, TypeVar
 
 from harness_agent.core.entities import Message
 from harness_agent.core.interfaces.system import TaskCriteriaItem
-from harness_agent.core.review.changes import ChangeSource, ChangeSourceError
+from harness_agent.core.review.approved import ApprovedChange, CommitObserver
+from harness_agent.core.review.changes import ChangeSet, ChangeSource, ChangeSourceError
 from harness_agent.core.review.decision import ChangeReviewer, Choice, ReviewDecision
 from harness_agent.core.review.messages import (
     commit_message,
@@ -38,6 +39,7 @@ from harness_agent.core.verification.runner import COMPLETED, TurnLike
 TurnT = TypeVar("TurnT", bound=TurnLike)
 TurnT_co = TypeVar("TurnT_co", covariant=True)
 
+AFTER_COMMIT_FAILED = "No se pudo continuar con el Pull Request; el commit sigue hecho."
 NO_DECISION = "Sin decisión: no se hizo commit."
 CRITERIA_UNREADABLE = "No se pudieron leer los criterios: no se revisa el cambio."
 NOT_A_SEMANTIC_ONE = "Solo se pueden confirmar o rechazar criterios semánticos pendientes."
@@ -80,6 +82,8 @@ class ReviewingRunner(Generic[TurnT]):
         session_id: The session whose criteria are reviewed.
         ticket: Title of the task, for the commit message; ``None`` if untitled.
         objective: Objective of the task, for the commit message.
+        after_commit: Told about each commit made after an approval (the Pull Request, HU-11-06);
+            a failure of it never fails the run.
     """
 
     def __init__(
@@ -93,6 +97,7 @@ class ReviewingRunner(Generic[TurnT]):
         session_id: str,
         ticket: str | None,
         objective: str,
+        after_commit: CommitObserver | None = None,
     ) -> None:
         self._inner = inner
         self._source = source
@@ -102,6 +107,7 @@ class ReviewingRunner(Generic[TurnT]):
         self._session_id = session_id
         self._ticket = ticket
         self._objective = objective
+        self._after_commit = after_commit
 
     async def run(self, task: str, history: list[Message]) -> TurnT:
         """Run ``task``; return the result of the last run."""
@@ -140,7 +146,7 @@ class ReviewingRunner(Generic[TurnT]):
             decision = await self._reviewer.choose(view)
             if decision.choice is Choice.APPROVE:
                 if view.can_approve:
-                    await self._commit()
+                    await self._commit(changes, items)
                     return None
                 self._reviewer.inform(STILL_BLOCKED[view.blockers[0]])
             elif decision.choice is Choice.REJECT:
@@ -158,13 +164,21 @@ class ReviewingRunner(Generic[TurnT]):
                     return None
                 items = reloaded
 
-    async def _commit(self) -> None:
+    async def _commit(self, changes: ChangeSet, items: list[TaskCriteriaItem]) -> None:
         try:
             identifier = await self._source.commit(commit_message(self._ticket, self._objective))
         except ChangeSourceError as error:
             self._reviewer.inform(error.message)
             return
         self._reviewer.inform(f"Commit hecho: {identifier}")
+        if self._after_commit is None:
+            return
+        approved = ApprovedChange(self._ticket, self._objective, identifier, changes, tuple(items))
+        try:
+            await self._after_commit.on_committed(approved)
+        except Exception:
+            # The commit is done and safe; the next step must never fail the run.
+            self._reviewer.inform(AFTER_COMMIT_FAILED)
 
     def _criterion(
         self, decision: ReviewDecision, view: ReviewView, items: list[TaskCriteriaItem]

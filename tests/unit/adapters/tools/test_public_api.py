@@ -49,6 +49,8 @@ SYSTEM_API = {
     "DeniedCommand",
     "DotenvResult",  # HU-00-08.1
     "GitChanges",  # HU-11-05
+    "GitHubPullRequests",  # HU-11-06
+    "ProcessResult",  # HU-11-06
     "MAX_DOTENV_BYTES",
     "merge_environment",
     "parse_dotenv",
