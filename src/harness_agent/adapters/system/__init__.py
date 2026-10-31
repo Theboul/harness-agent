@@ -15,6 +15,7 @@ from harness_agent.adapters.system.denied_commands import (
     program_aliases_for,
 )
 from harness_agent.adapters.system.environment_notice import environment_notice
+from harness_agent.adapters.system.git_changes import GitChanges
 from harness_agent.adapters.system.powershell_shell import PowerShellShell
 from harness_agent.adapters.system.protected_paths import ProtectedPaths
 from harness_agent.adapters.system.shell_errors import ShellStartError
@@ -26,6 +27,7 @@ __all__ = [
     "BashShell",
     "DEFAULT_DENIED_COMMANDS",
     "DeniedCommand",
+    "GitChanges",
     "OPTION_SYNONYMS",
     "PROGRAM_ALIASES",
     "PowerShellShell",

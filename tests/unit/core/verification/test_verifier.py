@@ -589,7 +589,7 @@ async def test_nothing_of_the_command_or_the_output_is_published_or_stored(
     assert SENTINEL not in rig.marks[0][1]
 
 
-# --- human confirmation of a semantic criterion (HU-11-05) -----------------------------------------
+# --- human confirmation of a semantic criterion (HU-11-05) ----------------------------------
 
 
 def test_confirming_a_semantic_criterion_marks_it_with_human_evidence(
