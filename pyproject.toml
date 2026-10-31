@@ -31,7 +31,7 @@ litellm = ["litellm[mcp]==1.106.2"]
 mcp = ["mcp==2.3.0"]
 
 [project.scripts]
-harness = "harness_agent.bootstrap:main"
+harness = "harness_agent.bootstrap:entry"
 
 [tool.setuptools.packages.find]
 where = ["src"]

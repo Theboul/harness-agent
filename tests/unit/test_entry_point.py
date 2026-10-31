@@ -18,16 +18,16 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class TestTheModuleEntry:
-    def test_running_the_package_calls_main_without_arguments_and_exits_with_its_code(
+    def test_running_the_package_calls_the_entry_and_exits_with_its_code(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         calls: list[tuple[object, ...]] = []
 
-        def fake_main(*args: object, **kwargs: object) -> int:
+        def fake_entry(*args: object, **kwargs: object) -> int:
             calls.append((args, tuple(kwargs.items())))
             return 7
 
-        monkeypatch.setattr(bootstrap, "main", fake_main)
+        monkeypatch.setattr(bootstrap, "entry", fake_entry)
 
         with pytest.raises(SystemExit) as raised:
             runpy.run_module("harness_agent", run_name="__main__")
@@ -40,12 +40,12 @@ class TestTheCommand:
     def test_pyproject_declares_the_harness_command(self) -> None:
         data = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
 
-        assert data["project"]["scripts"] == {"harness": "harness_agent.bootstrap:main"}
+        assert data["project"]["scripts"] == {"harness": "harness_agent.bootstrap:entry"}
 
-    def test_the_declared_target_exists_and_is_main(self) -> None:
+    def test_the_declared_target_exists_and_is_the_entry(self) -> None:
         data = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
         module_name, _, function_name = data["project"]["scripts"]["harness"].partition(":")
 
         target = getattr(importlib.import_module(module_name), function_name)
 
-        assert target is bootstrap.main
+        assert target is bootstrap.entry
