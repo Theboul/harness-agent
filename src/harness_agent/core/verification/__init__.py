@@ -20,6 +20,7 @@ from harness_agent.core.verification.feedback import (
 from harness_agent.core.verification.outcomes import (
     CommandOutcome,
     CommandRunner,
+    Confirmation,
     CriterionResult,
     CriterionStatus,
     NotRunCause,
@@ -39,6 +40,7 @@ __all__ = [
     "MAX_OUTPUT_TOTAL",
     "CommandOutcome",
     "CommandRunner",
+    "Confirmation",
     "CriteriaVerifier",
     "CriterionResult",
     "CriterionStatus",

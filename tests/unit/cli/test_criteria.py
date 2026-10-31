@@ -162,3 +162,20 @@ class TestBoard:
         board.update({"criterion": 10_000_000, "status": "cumplido"})
 
         assert board.lines() == []
+
+
+class TestConfirmedByPerson:
+    CONFIRMED = payload(3, "confirmado_humano", "El mensaje de error es claro")
+
+    def test_the_line_says_who_confirmed_it(self) -> None:
+        assert criterion_line(self.CONFIRMED) == (
+            "[x] 3 El mensaje de error es claro (confirmado por la persona)"
+        )
+
+    def test_the_board_counts_it_as_validated_not_as_an_objective_one(self) -> None:
+        board = CriteriaBoard()
+        for event in (EMAIL, FIXED, SEMANTIC, self.CONFIRMED):
+            board.update(event)
+
+        assert board.lines()[2].startswith("[x] 3 ")
+        assert board.summary_line() == "Tarea: verificada (2 de 2 criterios objetivos cumplidos)"

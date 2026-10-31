@@ -20,6 +20,7 @@ from harness_agent.core import (
     ApprovalAction,
     ApprovalGate,
     CommandOutcome,
+    Confirmation,
     CriteriaVerifier,
     CriterionDefinition,
     CriterionStatus,
@@ -586,3 +587,93 @@ async def test_nothing_of_the_command_or_the_output_is_published_or_stored(
     assert "criterio 1" in published  # the description is text of the task
     assert report.results[1].output == output  # only the report carries the output
     assert SENTINEL not in rig.marks[0][1]
+
+
+# --- human confirmation of a semantic criterion (HU-11-05) ----------------------------------
+
+
+def test_confirming_a_semantic_criterion_marks_it_with_human_evidence(
+    make: Callable[..., Rig],
+) -> None:
+    rig = make("check-a", None)
+
+    outcome = rig.verifier.confirm(rig.session_id, 2)
+
+    assert outcome is Confirmation.CONFIRMED
+    assert rig.passes() == [False, True]
+    assert len(rig.marks) == 1 and "persona" in rig.marks[0][1]
+    (payload,) = rig.of(EventType.CRITERION_VERIFIED)
+    assert payload["criterion"] == 2 and payload["total"] == 2
+    assert payload["status"] == "confirmado_humano" and payload["met"] is True
+    assert payload["exit_code"] is None and payload["program"] is None
+
+
+def test_confirming_twice_is_harmless_and_silent(make: Callable[..., Rig]) -> None:
+    rig = make(None)
+    rig.verifier.confirm(rig.session_id, 1)
+
+    assert rig.verifier.confirm(rig.session_id, 1) is Confirmation.ALREADY
+    assert len(rig.marks) == 1 and len(rig.of(EventType.CRITERION_VERIFIED)) == 1
+
+
+@pytest.mark.parametrize("index", [0, 3, -1, True])
+def test_only_an_existing_criterion_can_be_confirmed(make: Callable[..., Rig], index: int) -> None:
+    rig = make("check-a", None)
+
+    assert rig.verifier.confirm(rig.session_id, index) is Confirmation.NOT_CONFIRMABLE
+    assert rig.marks == []
+
+
+def test_an_objective_criterion_is_never_confirmed_by_a_person(make: Callable[..., Rig]) -> None:
+    rig = make("check-a", None)
+
+    assert rig.verifier.confirm(rig.session_id, 1) is Confirmation.NOT_CONFIRMABLE
+    assert rig.passes() == [False, False] and rig.marks == []
+
+
+def test_a_stored_criterion_that_differs_from_the_definition_is_tampering(
+    make: Callable[..., Rig],
+) -> None:
+    rig = make(None, stored=("echo algo",))
+
+    assert rig.verifier.confirm(rig.session_id, 1) is Confirmation.TAMPERED
+    assert rig.marks == []
+
+
+def test_a_store_that_cannot_mark_leaves_the_criterion_unconfirmed(
+    make: Callable[..., Rig],
+) -> None:
+    rig = make(None)
+
+    def broken(criteria_id: str, evidence: str) -> None:
+        raise RuntimeError("disco lleno")
+
+    rig.store.mark_passes = broken  # type: ignore[method-assign]
+
+    assert rig.verifier.confirm(rig.session_id, 1) is Confirmation.FAILED
+    assert rig.of(EventType.CRITERION_VERIFIED) == []
+
+
+async def test_a_later_round_reports_a_confirmed_criterion_as_confirmed(
+    make: Callable[..., Rig],
+) -> None:
+    rig = make("check-a", None)
+    rig.verifier.confirm(rig.session_id, 2)
+
+    report = await rig.verifier.verify(rig.session_id)
+
+    assert [r.status for r in report.results] == [
+        CriterionStatus.MET,
+        CriterionStatus.CONFIRMED_HUMAN,
+    ]
+    assert report.state is TaskState.VERIFIED
+
+
+def test_a_different_number_of_stored_criteria_blocks_the_confirmation(
+    make: Callable[..., Rig],
+) -> None:
+    rig = make(None, None, stored=(None,))
+
+    assert rig.verifier.confirm(rig.session_id, 1) is Confirmation.TAMPERED
+    assert rig.of(EventType.CRITERIA_TAMPERED) == [{"motivo": "criterios_no_coinciden"}]
+    assert rig.marks == []

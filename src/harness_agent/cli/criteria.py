@@ -27,7 +27,7 @@ MAX_CRITERIA_SHOWN = 100_000
 NOT_YET = "Todavía no se ha verificado ningún criterio."
 NOT_RUN = "no ejecutado"
 _PROGRAM = re.compile(r"[A-Za-z0-9._+-]{1,40}")
-_MARKS = {"cumplido": "[x]", "pendiente_humano": "[?]"}
+_MARKS = {"cumplido": "[x]", "confirmado_humano": "[x]", "pendiente_humano": "[?]"}
 _STATE_TEXT = {
     TaskState.VERIFIED: "verificada",
     TaskState.PENDING_HUMAN: "pendiente de validación humana",
@@ -41,6 +41,7 @@ _KNOWN = (
     "tiempo_agotado",
     "alterado",
     "pendiente_humano",
+    "confirmado_humano",
 )
 
 
@@ -68,6 +69,8 @@ def _detail(payload: Mapping[str, Any], status: str) -> str:
         return "criterio alterado: no se ejecutó"
     if status == "pendiente_humano":
         return "pendiente de validación humana"
+    if status == "confirmado_humano":
+        return "confirmado por la persona"
     return NOT_RUN
 
 
@@ -114,7 +117,9 @@ class CriteriaBoard:
     def summary_line(self) -> str:
         """The state of the task and how many objective criteria are met."""
         statuses = [status for _, status in self._rows.values()]
-        objective = [status for status in statuses if status != "pendiente_humano"]
+        objective = [
+            status for status in statuses if status not in ("pendiente_humano", "confirmado_humano")
+        ]
         met = sum(1 for status in objective if status == "cumplido")
         state = _STATE_TEXT[task_state(statuses)]
         return f"Tarea: {state} ({met} de {len(objective)} criterios objetivos cumplidos)"

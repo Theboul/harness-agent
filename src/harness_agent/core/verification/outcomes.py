@@ -24,6 +24,17 @@ class CriterionStatus(str, Enum):
     TIMED_OUT = "tiempo_agotado"
     TAMPERED = "alterado"
     PENDING_HUMAN = "pendiente_humano"
+    CONFIRMED_HUMAN = "confirmado_humano"
+
+
+class Confirmation(str, Enum):
+    """What happened when a person confirmed a semantic criterion (HU-11-05)."""
+
+    CONFIRMED = "confirmado"
+    ALREADY = "ya_confirmado"
+    NOT_CONFIRMABLE = "no_confirmable"
+    TAMPERED = "alterado"
+    FAILED = "error"
 
 
 class NotRunCause(str, Enum):
@@ -57,7 +68,8 @@ def task_state(statuses: Iterable[object]) -> TaskState:
     """
     values = [item.value if isinstance(item, CriterionStatus) else item for item in statuses]
     met, pending = CriterionStatus.MET.value, CriterionStatus.PENDING_HUMAN.value
-    if not values or any(value not in (met, pending) for value in values):
+    confirmed = CriterionStatus.CONFIRMED_HUMAN.value
+    if not values or any(value not in (met, pending, confirmed) for value in values):
         return TaskState.NOT_FINISHED
     return TaskState.PENDING_HUMAN if pending in values else TaskState.VERIFIED
 

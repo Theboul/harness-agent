@@ -13,7 +13,7 @@ Una vez por **cada criterio de la tarea**, en el orden de la tarea, al final de 
 | `criterion` | `int` | Posición del criterio, desde 1 |
 | `total` | `int` | Número de criterios de la tarea |
 | `description` | `str` | Descripción del criterio (texto de la tarea), en una línea, sin caracteres de control ni de formato, ≤ 120 caracteres |
-| `status` | `str` | `cumplido`, `no_cumplido`, `regresion`, `no_ejecutado`, `tiempo_agotado`, `alterado` o `pendiente_humano` |
+| `status` | `str` | `cumplido`, `no_cumplido`, `regresion`, `no_ejecutado`, `tiempo_agotado`, `alterado`, `pendiente_humano` o `confirmado_humano` (HU-11-05) |
 | `met` | `bool` | `true` solo con `cumplido` |
 | `exit_code` | `int \| null` | Código de salida; `null` si no se ejecutó, hubo tiempo agotado o es un criterio semántico |
 | `program` | `str \| null` | Nombre del programa del comando sin ruta (`pytest`); `null` si no hay comando o no es un nombre válido |
@@ -37,6 +37,7 @@ Una vez por **cada criterio de la tarea**, en el orden de la tarea, al final de 
 | El proceso se terminó por tiempo | `tiempo_agotado` | `false` | `null` |
 | Comando de SQLite distinto del de la definición, o la base alterada | `alterado` | `false` | `null` |
 | Criterio sin comando | `pendiente_humano` | `false` | `null` |
+| Criterio sin comando que la persona confirmó (HU-11-05) | `confirmado_humano` | `true` | `null` |
 
 ## Prueba explícita de no filtración
 

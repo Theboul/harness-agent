@@ -43,6 +43,7 @@ from harness_agent.core.verification.feedback import (
 from harness_agent.core.verification.outcomes import (
     CommandOutcome,
     CommandRunner,
+    Confirmation,
     CriterionResult,
     CriterionStatus,
     NotRunCause,
@@ -55,6 +56,8 @@ _CORRECTABLE_WITH_OUTPUT = (
     CriterionStatus.REGRESSION,
     CriterionStatus.TIMED_OUT,
 )
+HUMAN_EVIDENCE = "Confirmado por la persona al revisar el diff."
+_SATISFIED = (CriterionStatus.MET, CriterionStatus.CONFIRMED_HUMAN)
 _WITH_PROGRAM = (
     CriterionStatus.MET,
     CriterionStatus.NOT_MET,
@@ -125,6 +128,35 @@ class CriteriaVerifier:
             results.append(result)
         return VerificationReport(tuple(results))
 
+    def confirm(self, session_id: str, index: int) -> Confirmation:
+        """Mark a semantic criterion as met because a person confirmed it (HU-11-05).
+
+        Only a criterion without a command can be confirmed, and only if the stored row is the one
+        of the task definition. Confirming a criterion that is already met changes nothing.
+        """
+        definitions = self._task.criteria
+        if isinstance(index, bool) or not isinstance(index, int):
+            return Confirmation.NOT_CONFIRMABLE
+        if not 1 <= index <= len(definitions):
+            return Confirmation.NOT_CONFIRMABLE
+        items = self._load(session_id)
+        if items is None or len(items) != len(definitions):
+            self._emit(EventType.CRITERIA_TAMPERED, {"motivo": "criterios_no_coinciden"})
+            return Confirmation.TAMPERED
+        definition, item = definitions[index - 1], items[index - 1]
+        if item.command != definition.command:
+            self._emit(EventType.CRITERIA_TAMPERED, {"motivo": "comando_no_coincide"})
+            return Confirmation.TAMPERED
+        if definition.command is not None:
+            return Confirmation.NOT_CONFIRMABLE
+        if item.passes:
+            return Confirmation.ALREADY
+        if not self._store_pass(item, HUMAN_EVIDENCE):
+            return Confirmation.FAILED
+        result = self._result(index, definition.description, CriterionStatus.CONFIRMED_HUMAN)
+        self._emit(EventType.CRITERION_VERIFIED, self._payload(result, len(definitions)))
+        return Confirmation.CONFIRMED
+
     def _load(self, session_id: str) -> list[TaskCriteriaItem] | None:
         try:
             return list(self._store.load_criteria(session_id))
@@ -149,7 +181,12 @@ class CriteriaVerifier:
             self._emit(EventType.CRITERIA_TAMPERED, {"motivo": "comando_no_coincide"})
             return self._result(index, description, CriterionStatus.TAMPERED)
         if command is None:
-            return self._result(index, description, CriterionStatus.PENDING_HUMAN)
+            confirmed = item.passes
+            return self._result(
+                index,
+                description,
+                CriterionStatus.CONFIRMED_HUMAN if confirmed else CriterionStatus.PENDING_HUMAN,
+            )
         condition = parse_condition(definition.expectation)
         if condition is None:
             return self._not_run(index, description, NotRunCause.UNSUPPORTED_CONDITION)
@@ -177,7 +214,7 @@ class CriteriaVerifier:
         code = outcome.exit_code
         assert code is not None
         if condition_met(condition, code):
-            if not item.passes and not self._mark(item, code, outcome.output):
+            if not item.passes and not self._store_pass(item, evidence_text(code, outcome.output)):
                 return self._not_run(index, description, NotRunCause.ERROR)
             return self._result(
                 index, description, CriterionStatus.MET, exit_code=code, program=program
@@ -250,10 +287,10 @@ class CriteriaVerifier:
             return None
         return outcome if isinstance(outcome, CommandOutcome) else None
 
-    def _mark(self, item: TaskCriteriaItem, exit_code: int, output: str) -> bool:
+    def _store_pass(self, item: TaskCriteriaItem, evidence: str) -> bool:
         """The only call to ``mark_passes`` in the code base; ``False`` if the store failed."""
         try:
-            self._store.mark_passes(item.id, evidence_text(exit_code, output))
+            self._store.mark_passes(item.id, evidence)
         except Exception:
             return False
         return True
@@ -292,7 +329,7 @@ class CriteriaVerifier:
             "total": total,
             "description": one_line(result.description, MAX_DESCRIPTION_EVENT),
             "status": result.status.value,
-            "met": result.status is CriterionStatus.MET,
+            "met": result.status in _SATISFIED,
             "exit_code": result.exit_code,
             "program": result.program if shows_program else None,
         }

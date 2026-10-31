@@ -52,6 +52,7 @@ from harness_agent.adapters.storage import (
     attach_event_recorder,
 )
 from harness_agent.adapters.system import (
+    GitChanges,
     ProtectedPaths,
     WorkspaceArea,
     denied_commands_for,
@@ -74,6 +75,7 @@ from harness_agent.adapters.tools import (
 )
 from harness_agent.cli import (
     ConsoleApprover,
+    ConsoleReviewer,
     ModelView,
     SessionRow,
     attach_criteria_status,
@@ -97,6 +99,8 @@ from harness_agent.core import (
     AskCeilingPolicy,
     AuthorizedArea,
     Briefing,
+    ChangeReviewer,
+    ChangeSource,
     CommandKind,
     CommandPolicy,
     ContextCompactor,
@@ -124,12 +128,14 @@ from harness_agent.core import (
     ProtectedPolicy,
     Provider,
     ResumeError,
+    ReviewingRunner,
     Role,
     RuleError,
     SessionLimits,
     StartupRoutine,
     TaskCommand,
     TaskDefinition,
+    TaskRunner,
     ToolDefinition,
     VerifyingRunner,
     check_creation,
@@ -139,6 +145,7 @@ from harness_agent.core import (
     criteria_reference,
     git_instructions,
     make_items,
+    progress_file_name,
     rejection_message,
     resume_session,
     threshold_tokens,
@@ -230,7 +237,7 @@ class Composition:
     task_store: SqliteTaskStore | None = None
     task: TaskDefinition | None = None
     criteria_export: Path | None = None
-    runner: VerifyingRunner[TurnResult] | None = None
+    runner: TaskRunner[TurnResult] | None = None
     compactor: ContextCompactor | None = None
     warning_sink: WarningSink = field(default_factory=WarningSink)
     essential: EssentialRenewer | None = None
@@ -425,6 +432,8 @@ def compose(
     system_name: str | None = None,
     approver: Approver | None = None,
     retry_sleep: Callable[[float], Awaitable[None]] | None = None,
+    reviewer: ChangeReviewer | None = None,
+    changes: ChangeSource | None = None,
 ) -> Composition:
     """Build the connected system from ``config``; nothing is left half open on failure.
 
@@ -442,6 +451,10 @@ def compose(
             actions are denied (``main`` passes the terminal one).
         retry_sleep: Awaits the seconds between two tries of a provider call (HU-07-04); tests
             inject one that does not wait. Defaults to ``asyncio.sleep``.
+        reviewer: Shows the summary and the diff when a task is finished and asks the person to
+            approve the commit (HU-11-05); without one, or without task or work area, there is no
+            review.
+        changes: Where the change is read from and committed; git on the work area by default.
 
     Raises:
         ProviderDependencyError: The optional dependency of the real provider is missing.
@@ -640,9 +653,9 @@ def compose(
                 warn=_discard,
             )
 
-        runner: VerifyingRunner[TurnResult] | None = None
+        runner: TaskRunner[TurnResult] | None = None
         if task is not None:
-            runner = _verifying_runner(
+            verifying, verifier = _verifying_runner(
                 loop,
                 task,
                 task_store,
@@ -657,6 +670,27 @@ def compose(
                 renewer,
                 warning_sink,
             )
+            runner = verifying
+            if reviewer is not None and area is not None:
+                # The review of the diff (HU-11-05) wraps the verifying runner.
+                runner = ReviewingRunner(
+                    verifying,
+                    changes
+                    if changes is not None
+                    else GitChanges(
+                        area.root,
+                        environ=_git_environment(
+                            process_environment() if environ is None else environ
+                        ),
+                        exclude=(progress_file_name(task.title, session_id),),
+                    ),
+                    reviewer,
+                    task_store,
+                    verifier,
+                    session_id=session_id,
+                    ticket=task.title,
+                    objective=task.objective,
+                )
         if task is not None and area is not None:
             startup = _startup_routine(
                 task, ProgressFile(area.root), policy, registry, shell_tool, bus, session_id,
@@ -800,6 +834,12 @@ def _compactor(
     )
 
 
+def _git_environment(environ: Mapping[str, str]) -> dict[str, str]:
+    """The environment git runs with: the one of the process without the provider keys."""
+    removed = {name for name in PROVIDER_KEY_VARIABLES.values() if name}
+    return {name: value for name, value in environ.items() if name not in removed}
+
+
 def _verifying_runner(
     loop: AgentLoop,
     task: TaskDefinition,
@@ -814,7 +854,7 @@ def _verifying_runner(
     id_factory: Callable[[], str] | None,
     renewer: EssentialRenewer | None,
     warning_sink: WarningSink,
-) -> VerifyingRunner[TurnResult]:
+) -> tuple[VerifyingRunner[TurnResult], CriteriaVerifier]:
     """The runner that verifies the criteria of ``task`` each time the agent proposes to finish.
 
     It only connects pieces (HU-11-04.1): the policy and the shell tool are the ones of the agent,
@@ -853,7 +893,7 @@ def _verifying_runner(
         _renew_or_report(renewer, history, warning_sink)
         return await loop.run_turn(session_id=session_id, task=text, history=history)
 
-    return VerifyingRunner(run_turn, verifier, session_id)
+    return VerifyingRunner(run_turn, verifier, session_id), verifier
 
 
 def _startup_routine(
@@ -1265,6 +1305,7 @@ def main(
                 id_factory=id_factory,
                 environ=environ,
                 approver=ConsoleApprover(input_stream, output),
+                reviewer=ConsoleReviewer(input_stream, output),
             )
         except (ConfigError, ProviderDependencyError, SessionStoreError, StartupError) as problem:
             return _report_startup_failure(failures, str(problem))
