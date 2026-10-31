@@ -16,9 +16,10 @@ from __future__ import annotations
 import asyncio
 import os
 import platform
+import re
 import sys
 import uuid
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
@@ -58,9 +59,18 @@ from harness_agent.adapters.system import (
     denied_commands_for,
     environment_notice,
     interpreter_for,
+    merge_environment,
     option_synonyms_for,
     program_aliases_for,
+    read_dotenv,
     select_shell,
+)
+from harness_agent.adapters.tasks import (
+    GhRunner,
+    TaskSourceError,
+    load_github_issue,
+    load_task_file,
+    run_gh,
 )
 from harness_agent.adapters.tools import (
     COMMAND_ARGUMENT,
@@ -86,6 +96,7 @@ from harness_agent.cli import (
     run_cli,
 )
 from harness_agent.config import (
+    ENV_CONFIG_LOCATION,
     PROVIDER_KEY_VARIABLES,
     ConfigError,
     HarnessConfig,
@@ -135,6 +146,7 @@ from harness_agent.core import (
     StartupRoutine,
     TaskCommand,
     TaskDefinition,
+    TaskFormatError,
     TaskRunner,
     ToolDefinition,
     VerifyingRunner,
@@ -176,6 +188,17 @@ TEST_ONLY_PROVIDER_MESSAGE = (
     "elija un modelo real en config.toml (por ejemplo <proveedor>/<modelo>)."
 )
 
+DOTENV_FILE_NAME = ".env"
+DOTENV_UNREADABLE_NOTICE = "Aviso: no se pudo leer el archivo .env; se ignora."
+DOTENV_SKIPPED_NOTICE = "Aviso: el archivo .env tiene líneas no válidas; se ignoraron."
+DEFAULT_CONFIG_NAME = "config.toml"
+USAGE = "uso: harness [--tarea RUTA | --issue NÚMERO|URL]"
+_ISSUE_URL = re.compile(
+    r"^https://github\.com/([A-Za-z0-9_][A-Za-z0-9_.-]*/[A-Za-z0-9_][A-Za-z0-9_.-]*)"
+    r"/issues/([0-9]{1,9})/?$"
+)
+_ISSUE_NUMBER = re.compile(r"^[0-9]{1,9}$")
+
 TASKS_DIR_NAME = "tareas"
 _DATABASE_SIDE_FILES = ("-wal", "-shm", "-journal")
 
@@ -184,6 +207,82 @@ ProviderFactory = Callable[[HarnessConfig], Provider]
 
 class StartupError(Exception):
     """The system cannot start because of a choice of the user; the message is for the user."""
+
+
+@dataclass(frozen=True)
+class StartupArguments:
+    """What the command line asked for: a task from a file or from a GitHub issue (or neither)."""
+
+    task_file: str | None = None
+    issue_number: int | None = None
+    issue_repo: str | None = None
+
+
+def _issue_target(text: str) -> tuple[int, str | None]:
+    """The issue number (and repository, if a URL) named by ``text``."""
+    if _ISSUE_NUMBER.match(text) and int(text) >= 1:
+        return int(text), None
+    url = _ISSUE_URL.match(text)
+    if url is not None and int(url.group(2)) >= 1:
+        return int(url.group(2)), url.group(1)
+    raise StartupError(f"el issue indicado no es un número ni una URL de issue de GitHub; {USAGE}")
+
+
+def parse_arguments(argv: Sequence[str]) -> StartupArguments:
+    """Read ``--tarea RUTA`` or ``--issue NÚMERO|URL`` (also ``--opción=valor``).
+
+    The messages are fixed texts: an invalid argument is never repeated in them.
+
+    Raises:
+        StartupError: An unknown argument, a missing or repeated option, or both sources at once.
+    """
+    task_file: str | None = None
+    issue: str | None = None
+    items = list(argv)
+    index = 0
+    while index < len(items):
+        option, joined, value = items[index].partition("=")
+        index += 1
+        if option not in {"--tarea", "--issue"}:
+            raise StartupError(f"argumento no reconocido; {USAGE}")
+        if not joined:
+            if index >= len(items):
+                raise StartupError(f"falta el valor de una opción; {USAGE}")
+            value = items[index]
+            index += 1
+        if not value.strip():
+            raise StartupError(f"falta el valor de una opción; {USAGE}")
+        if (task_file if option == "--tarea" else issue) is not None:
+            raise StartupError(f"una opción está repetida; {USAGE}")
+        if option == "--tarea":
+            task_file = value
+        else:
+            issue = value
+    if task_file is not None and issue is not None:
+        raise StartupError(f"use --tarea o --issue, no las dos; {USAGE}")
+    if issue is None:
+        return StartupArguments(task_file=task_file)
+    number, repo = _issue_target(issue)
+    return StartupArguments(issue_number=number, issue_repo=repo)
+
+
+def _load_task(arguments: StartupArguments, gh_runner: GhRunner) -> TaskDefinition | None:
+    """The task the command line named, read and validated, or ``None`` for a plain session."""
+    if arguments.task_file is not None:
+        return load_task_file(arguments.task_file)
+    if arguments.issue_number is not None:
+        return load_github_issue(
+            arguments.issue_number, repo=arguments.issue_repo, runner=gh_runner
+        )
+    return None
+
+
+def _config_folder(config_path: str | os.PathLike[str] | None, environ: Mapping[str, str]) -> Path:
+    """The folder of the configuration file that ``load_config`` will use (for the ``.env``)."""
+    chosen: str | os.PathLike[str] | None = config_path
+    if chosen is None:
+        chosen = environ.get(ENV_CONFIG_LOCATION, "").strip() or DEFAULT_CONFIG_NAME
+    return Path(chosen).resolve().parent
 
 
 class WarningSink:
@@ -1278,11 +1377,20 @@ def main(
     provider_factory: ProviderFactory | None = None,
     clock: Callable[[], datetime] | None = None,
     id_factory: Callable[[], str] | None = None,
+    argv: Sequence[str] | None = None,
+    gh_runner: GhRunner | None = None,
+    changes: ChangeSource | None = None,
 ) -> int:
     """Load the configuration, compose the system, run the session and close the store.
 
-    This is the function behind ``python -m harness_agent`` and the ``harness`` command. Every
-    parameter is ``None`` in real use; tests inject the environment, the streams and the provider.
+    This is the function behind ``python -m harness_agent`` and the ``harness`` command (through
+    ``entry``). Every parameter is ``None`` in real use; tests inject the environment, the
+    streams, the provider and the ``gh`` runner.
+
+    ``argv`` holds the command line without the program name (``--tarea RUTA`` or ``--issue
+    NÚMERO|URL``); ``None`` means no arguments, never ``sys.argv``. A ``.env`` file next to the
+    configuration file fills the environment variables that are not already defined (the real
+    environment wins); its values are never shown and the process environment is not modified.
 
     A startup failure is written as one line in Spanish on ``error`` and never shows a trace or the
     text of an unexpected exception (it could hold a secret). A keyboard interrupt ends the whole
@@ -1297,17 +1405,35 @@ def main(
     composition: Composition | None = None
     try:
         try:
-            config = load_config(config_path, environ=environ)
+            arguments = parse_arguments(() if argv is None else argv)
+            real = process_environment() if environ is None else environ
+            dotenv = read_dotenv(_config_folder(config_path, real) / DOTENV_FILE_NAME)
+            if dotenv.unreadable:
+                _write_notice(failures, DOTENV_UNREADABLE_NOTICE)
+            elif dotenv.skipped:
+                _write_notice(failures, DOTENV_SKIPPED_NOTICE)
+            merged = merge_environment(real, dotenv.values)
+            config = load_config(config_path, environ=merged)
+            task = _load_task(arguments, run_gh if gh_runner is None else gh_runner)
             composition = compose(
                 config,
+                task=task,
                 provider_factory=provider_factory,
                 clock=clock,
                 id_factory=id_factory,
-                environ=environ,
+                environ=merged,
                 approver=ConsoleApprover(input_stream, output),
                 reviewer=ConsoleReviewer(input_stream, output),
+                changes=changes,
             )
-        except (ConfigError, ProviderDependencyError, SessionStoreError, StartupError) as problem:
+        except (
+            ConfigError,
+            ProviderDependencyError,
+            SessionStoreError,
+            StartupError,
+            TaskSourceError,
+            TaskFormatError,
+        ) as problem:
             return _report_startup_failure(failures, str(problem))
         except Exception as problem:
             kind = type(problem).__name__
@@ -1318,3 +1444,8 @@ def main(
     finally:
         if composition is not None:
             composition.close()
+
+
+def entry() -> int:
+    """Entry point of the ``harness`` command: ``main`` over the real command line."""
+    return main(argv=sys.argv[1:])

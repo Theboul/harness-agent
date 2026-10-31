@@ -14,6 +14,13 @@ from harness_agent.adapters.system.denied_commands import (
     option_synonyms_for,
     program_aliases_for,
 )
+from harness_agent.adapters.system.dotenv import (
+    MAX_DOTENV_BYTES,
+    DotenvResult,
+    merge_environment,
+    parse_dotenv,
+    read_dotenv,
+)
 from harness_agent.adapters.system.environment_notice import environment_notice
 from harness_agent.adapters.system.git_changes import GitChanges
 from harness_agent.adapters.system.powershell_shell import PowerShellShell
@@ -27,7 +34,9 @@ __all__ = [
     "BashShell",
     "DEFAULT_DENIED_COMMANDS",
     "DeniedCommand",
+    "DotenvResult",
     "GitChanges",
+    "MAX_DOTENV_BYTES",
     "OPTION_SYNONYMS",
     "PROGRAM_ALIASES",
     "PowerShellShell",
@@ -38,8 +47,11 @@ __all__ = [
     "denied_commands_for",
     "environment_notice",
     "interpreter_for",
+    "merge_environment",
     "option_synonyms_for",
+    "parse_dotenv",
     "program_aliases_for",
+    "read_dotenv",
     "select_shell",
     "windows_path_problem",
 ]

@@ -47,7 +47,12 @@ SYSTEM_API = {
     "BashShell",
     "DEFAULT_DENIED_COMMANDS",
     "DeniedCommand",
+    "DotenvResult",  # HU-00-08.1
     "GitChanges",  # HU-11-05
+    "MAX_DOTENV_BYTES",
+    "merge_environment",
+    "parse_dotenv",
+    "read_dotenv",
     "PowerShellShell",
     "ProtectedPaths",
     "ShellStartError",
