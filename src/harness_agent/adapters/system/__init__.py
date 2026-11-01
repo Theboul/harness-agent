@@ -23,6 +23,7 @@ from harness_agent.adapters.system.dotenv import (
 )
 from harness_agent.adapters.system.environment_notice import environment_notice
 from harness_agent.adapters.system.git_changes import GitChanges
+from harness_agent.adapters.system.github_pull_requests import GitHubPullRequests, ProcessResult
 from harness_agent.adapters.system.powershell_shell import PowerShellShell
 from harness_agent.adapters.system.protected_paths import ProtectedPaths
 from harness_agent.adapters.system.shell_errors import ShellStartError
@@ -36,6 +37,8 @@ __all__ = [
     "DeniedCommand",
     "DotenvResult",
     "GitChanges",
+    "GitHubPullRequests",
+    "ProcessResult",
     "MAX_DOTENV_BYTES",
     "OPTION_SYNONYMS",
     "PROGRAM_ALIASES",

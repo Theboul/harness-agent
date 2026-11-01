@@ -4,6 +4,7 @@ Only the standard library and ``harness_agent.core`` are used here. Git and the 
 reached through the ``Protocol`` ports ``ChangeSource`` and ``ChangeReviewer``.
 """
 
+from harness_agent.core.review.approved import ApprovedChange, CommitObserver
 from harness_agent.core.review.changes import (
     ChangeSet,
     ChangeSource,
@@ -32,6 +33,8 @@ from harness_agent.core.review.view import (
 )
 
 __all__ = [
+    "ApprovedChange",
+    "CommitObserver",
     "Blocker",
     "ChangeReviewer",
     "ChangeSet",

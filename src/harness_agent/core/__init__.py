@@ -184,8 +184,19 @@ from harness_agent.core.progress import (
     progress_file_name,
     render_progress,
 )
+from harness_agent.core.pullrequest import (
+    PROTECTED_BRANCHES,
+    REMOTE,
+    PublishError,
+    PullRequestDraft,
+    PullRequestFlow,
+    PullRequestHost,
+    PullRequestPrompter,
+    build_draft,
+)
 from harness_agent.core.redaction import HIDDEN_SECRET, hide_url_credentials
 from harness_agent.core.review import (
+    ApprovedChange,
     Blocker,
     ChangeReviewer,
     ChangeSet,
@@ -193,6 +204,7 @@ from harness_agent.core.review import (
     ChangeSourceError,
     ChangeStatus,
     Choice,
+    CommitObserver,
     CriterionConfirmer,
     CriterionView,
     FileChange,
@@ -372,7 +384,17 @@ __all__ = [
     "classify_git",
     "git_instructions",
     # Summary of changes and human approval of the diff (HU-11-05)
+    "ApprovedChange",
+    "PROTECTED_BRANCHES",
+    "REMOTE",
+    "PublishError",
+    "PullRequestDraft",
+    "PullRequestFlow",
+    "PullRequestHost",
+    "PullRequestPrompter",
+    "build_draft",
     "Blocker",
+    "CommitObserver",
     "ChangeReviewer",
     "ChangeSet",
     "ChangeSource",

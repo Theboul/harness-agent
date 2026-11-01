@@ -14,6 +14,7 @@ from harness_agent.cli.activity import ActivityRenderer
 from harness_agent.cli.app import attach_renderer, run_cli
 from harness_agent.cli.approval import ConsoleApprover
 from harness_agent.cli.criteria import CriteriaBoard, attach_criteria_status, criterion_line
+from harness_agent.cli.pullrequest import ConsolePullRequestPrompter
 from harness_agent.cli.render import render_event
 from harness_agent.cli.review import ConsoleReviewer
 from harness_agent.cli.review_view import review_block
@@ -30,6 +31,7 @@ from harness_agent.cli.style import Style, detect_style
 __all__ = [
     "ActivityRenderer",
     "ConsoleApprover",
+    "ConsolePullRequestPrompter",
     "ConsoleReviewer",
     "CriteriaBoard",
     "ModelView",
