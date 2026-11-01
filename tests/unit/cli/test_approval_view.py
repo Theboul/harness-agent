@@ -36,10 +36,11 @@ class TestLayout:
         assert lines[4] == "     pytest -q tests/"
         assert lines[5] == " Herramienta: shell"
         assert lines[6] == " Riesgo:      ALTO"
-        assert lines[7] == " Efecto:      Runs a command in the work area"
-        assert lines[8] == "-" * RULE_WIDTH
-        assert lines[9] == " [1] aprobar una vez   [2] aprobar para la sesión   [3] rechazar"
-        assert len(lines) == 10
+        effect = lines[7:-2]
+        assert effect[0].startswith(" Efecto:      Ejecuta un comando en tu equipo")
+        assert all(line.startswith(" " * 14) for line in effect[1:])
+        assert lines[-2] == "-" * RULE_WIDTH
+        assert lines[-1] == " [1] aprobar una vez   [2] aprobar para la sesión   [3] rechazar"
 
     def test_a_path_is_highlighted_and_named_in_the_sentence(self) -> None:
         lines = approval_block("write_file", details("write_file", path="src/app.py", content="x"))
@@ -170,3 +171,64 @@ class TestStyle:
         assert any(ESCAPE in line for line in painted)
         stripped = [re.sub(re.escape(ESCAPE) + r"\[[0-9;]*m", "", line) for line in painted]
         assert stripped == plain
+
+
+class TestEffect:
+    """The effect is shown whole, wrapped, and in Spanish for the native tools (HU-06-02 / UX-b)."""
+
+    LONG = (
+        "Una descripción larga de lo que hace la herramienta de un servidor externo, que antes "
+        "se cortaba con puntos suspensivos a los doscientos caracteres y dejaba a la persona sin "
+        "saber qué iba a ocurrir realmente, porque lo importante solía estar al final del texto."
+    )
+
+    @staticmethod
+    def effect_lines(lines: list[str]) -> list[str]:
+        start = next(n for n, line in enumerate(lines) if line.startswith(" Efecto:"))
+        end = next(n for n in range(start + 1, len(lines)) if lines[n] == "-" * RULE_WIDTH)
+        return lines[start:end]
+
+    def test_a_long_effect_is_wrapped_and_not_cut(self) -> None:
+        lines = approval_block("remota", {**details("remota"), "effect": self.LONG})
+        effect = self.effect_lines(lines)
+
+        assert len(effect) > 1
+        assert all(len(line) <= RULE_WIDTH for line in effect)
+        assert " ".join(part.strip() for part in effect).replace("Efecto: ", "").split() == (
+            self.LONG.split()
+        )
+        assert "…" not in "".join(effect) and "..." not in "".join(effect)
+
+    def test_an_absurdly_long_effect_is_bounded(self) -> None:
+        lines = approval_block("remota", {**details("remota"), "effect": "palabra " * 500})
+
+        assert sum(len(line.strip()) for line in self.effect_lines(lines)) < 1_100
+        assert self.effect_lines(lines)[-1].endswith("...")
+
+    @pytest.mark.parametrize(
+        ("tool", "start"),
+        [
+            ("leer_archivo", "Lee el contenido"),
+            ("escribir_archivo", "Crea o reemplaza"),
+            ("listar_archivos", "Lista los archivos"),
+            ("buscar_texto", "Busca un texto"),
+            ("shell", "Ejecuta un comando"),
+            ("preguntar_usuario", "Te hace una pregunta"),
+        ],
+    )
+    def test_native_tools_show_a_fixed_text_in_spanish(self, tool: str, start: str) -> None:
+        effect = self.effect_lines(approval_block(tool, {**details(tool), "effect": "English"}))
+
+        assert effect[0].startswith(f" Efecto:      {start}")
+        assert "English" not in " ".join(effect)
+
+    def test_a_tool_that_is_not_native_keeps_its_own_text(self) -> None:
+        effect = self.effect_lines(approval_block("otra", {**details("otra"), "effect": "Hace x"}))
+
+        assert effect == [" Efecto:      Hace x"]
+
+    def test_the_effect_is_cleaned_of_controls_and_line_breaks(self) -> None:
+        raw = "uno" + chr(27) + "[31m" + chr(10) + "dos" + chr(9) + "cuatro"
+        lines = approval_block("otra", {**details("otra"), "effect": raw})
+
+        assert self.effect_lines(lines) == [" Efecto:      uno[31m dos cuatro"]

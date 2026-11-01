@@ -9,6 +9,7 @@ today, the cause and the suggested action in complete sentences in Spanish (cont
 
 from __future__ import annotations
 
+import math
 import unicodedata
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -245,9 +246,36 @@ def _provider_message(value: object) -> str | None:
     return message if message.endswith(_SENTENCE_ENDINGS) else message + "."
 
 
+def _count(value: object) -> int | None:
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+def _wait(value: object) -> str | None:
+    """A wait in seconds as the person reads it (``2``, ``0,5``); ``None`` if it is not valid."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    if not math.isfinite(value) or value < 0:
+        return None
+    return str(int(value)) if value == int(value) else f"{value:.1f}".replace(".", ",")
+
+
+def _retry(payload: Mapping[str, Any]) -> str:
+    """``Reintentando (n de N) en X s...`` with only the fields that the event brings valid."""
+    attempt, maximum = _count(payload.get("attempt")), _count(payload.get("max_attempts"))
+    wait = _wait(payload.get("delay_seconds"))
+    parts = ["  [~] Reintentando"]
+    if attempt is not None and maximum is not None and 1 <= attempt <= maximum:
+        parts.append(f" ({attempt} de {maximum})")
+    if wait is not None:
+        parts.append(f" en {wait} s")
+    return "".join(parts) + "..."
+
+
 def _provider_error(payload: Mapping[str, Any]) -> str:
-    error_type = _text(payload.get("error_type"), MAX_NAME_CHARS, "Error")
     reason = payload.get("reason")
+    if reason == "retry":
+        return _retry(payload)
+    error_type = _text(payload.get("error_type"), MAX_NAME_CHARS, "Error")
     if reason == "provider_exception":
         message = _provider_message(payload.get("message"))
         if message is not None:
