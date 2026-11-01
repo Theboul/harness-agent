@@ -41,7 +41,10 @@ testpaths = ["tests"]
 pythonpath = ["src"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-addopts = "--cov=harness_agent --cov-report=term-missing"
+addopts = "--cov=harness_agent --cov-report=term-missing -m 'not install'"
+markers = [
+    "install: clean-install check in a temporary virtual environment (needs the network once, HU-00-07); excluded by default, run with: pytest -m install --no-cov tests/install",
+]
 
 [tool.coverage.run]
 source = ["src/harness_agent"]

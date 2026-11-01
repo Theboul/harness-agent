@@ -101,6 +101,20 @@ mypy src tests
 pytest --cov=harness_agent --cov-report=term-missing
 ```
 
+### Prueba de instalación limpia (HU-00-07)
+
+Crea un entorno virtual temporal, instala el proyecto desde este checkout con `--no-deps` y comprueba que `harness` y `python -m harness_agent` terminan con una línea «No se pudo iniciar: …» y salida 2 (sin traza) cuando no hay configuración, y que importar el paquete no carga `litellm` ni `mcp`. Necesita red una vez (pip descarga `setuptools` para construir), por eso está fuera de la ejecución normal de `pytest` (marca `install`) y la CI la corre como paso aparte en Ubuntu y Windows:
+
+```bash
+pytest -m install --no-cov tests/install
+```
+
+En Windows, si la ruta temporal del sistema es larga, define `HARNESS_INSTALL_ROOT` con una carpeta corta que exista (por ejemplo `C:	mp`): el límite de 260 caracteres de las rutas afecta a los entornos virtuales.
+
+### Cobertura mínima
+
+La CI exige que la suite completa cubra al menos el umbral fijado en `.github/workflows/ci.yml` (`--cov-fail-under`, único lugar donde vive). Una ejecución parcial local (`pytest ruta -k nombre`) no lo aplica.
+
 La configuración de ejemplo está en `config.example.toml`; copiarla a `config.toml` (ignorado por Git) y poner las claves solo en variables de entorno. `.env.example` lista las variables de entorno. El uso de la CLI se documentará cuando exista un punto de entrada ejecutable.
 
 ## Documentación
