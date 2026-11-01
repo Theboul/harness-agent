@@ -32,3 +32,15 @@ MAX_SHELL_TIMEOUT_SECONDS = 600
 
 MAX_COMMAND_CHARS = 8_000
 """Longest command text ``shell`` accepts."""
+
+MIN_OPTIONS = 2
+"""Fewest options ``preguntar_usuario`` accepts."""
+
+MAX_OPTIONS = 8
+"""Most options ``preguntar_usuario`` accepts."""
+
+MAX_QUESTION_CHARS = 300
+"""Longest question ``preguntar_usuario`` accepts."""
+
+MAX_OPTION_CHARS = 120
+"""Longest option text ``preguntar_usuario`` accepts."""

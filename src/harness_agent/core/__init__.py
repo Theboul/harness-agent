@@ -160,6 +160,7 @@ from harness_agent.core.permissions import (
     ExactCallPolicy,
     GitClass,
     GitPolicy,
+    OpenToolsPolicy,
     ParsedCommand,
     PermissionRules,
     ProtectedPolicy,
@@ -362,6 +363,7 @@ __all__ = [
     "EventDeliveryError",
     # Permission policy (HU-05-01)
     "DefaultPermissionPolicy",
+    "OpenToolsPolicy",
     "PermissionRules",
     "ProtectedPolicy",
     # Exact declared calls (HU-11-03)

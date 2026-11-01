@@ -48,7 +48,7 @@ class TestDetail:
         assert "Herramienta: shell" in shown
         assert "   cwd: ." in shown
         assert "Riesgo:      ALTO" in shown
-        assert "Efecto:      Runs a command in the work area" in shown
+        assert "Efecto:      Ejecuta un comando en tu equipo" in shown
         assert "[1] aprobar una vez" in shown
         assert "[2] aprobar para la sesión" in shown
         assert "[3] rechazar" in shown
