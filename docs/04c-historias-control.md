@@ -373,6 +373,37 @@ x Error: la ruta 'src/pago.py' no existe. Sugerencia: usa 'listar' para ver los 
 
 - **AC-01 — Comandos de control de sesión.** Dado la terminal, cuando escribo el comando de reanudar con un identificador, entonces se carga esa sesión; lo mismo para listar, nueva y salir.
 
+<a id="hu-06-06"></a>
+#### HU-06-06 — Varios modelos por alias y modo de planificación (propuesta)
+
+**Estado de la ficha:** historia **propuesta**, pendiente de ratificación del PO (como HU-06-05 y HU-00-08.1); sus criterios son propuestos y son inmutables una vez ratificados.
+**Prioridad:** Media · **PHU:** — · **Sprint:** Sprint 4 (cierre adelantado al 6-nov-2026) · **Desarrollador:** C — Control y conexiones
+**Requisitos:** RF-6.6 (relacionada) · **Depende de:** [HU-06-04](04c-historias-control.md#hu-06-04), [HU-05-07](04c-historias-control.md#hu-05-07)
+
+- **Como:** usuario operador
+- **Quiero:** usar dos modelos en una misma sesión (uno para planear y otro para implementar)
+- **Para:** aprovechar cada modelo sin reiniciar ni editar la configuración a mano
+- **Descripción:** `config.toml` declara alias de modelos; `/model <alias>` cambia el modelo en caliente, `/plan` usa el alias `plan` con el modo de solo lectura y `/implementar` vuelve al alias `build` (o al modelo predeterminado) sin solo lectura. El historial se conserva y las claves salen solo del entorno.
+
+**Flujo general**
+
+1. La persona declara `[models]` en `config.toml` y las claves de cada proveedor en el entorno.
+2. Escribe `/plan`: el agente explora con el modelo `plan` sin poder escribir.
+3. Escribe `/implementar`: el agente cambia al modelo `build` y puede escribir según los permisos.
+
+**Reglas de negocio**
+
+1. Las claves no se guardan en el repositorio ni se muestran; un proveedor sin clave falla al elegirlo, no al arrancar.
+2. Un modo de solo lectura fijado al arrancar (`--solo-lectura` o `read_only`) no se puede desactivar con `/implementar`.
+
+**Criterios de aceptación (propuestos)**
+
+- **AC-01 — Cambio de modelo en caliente.** Dado `[models]` con `plan` y `build`, cuando escribo `/model build`, entonces las llamadas siguientes van a ese modelo y el historial se conserva.
+- **AC-02 — Proveedor sin clave.** Dado un alias cuyo proveedor no tiene clave en el entorno, cuando lo elijo, entonces se avisa con un texto fijo que nombra la variable y el modelo activo no cambia; el arranque nunca falla por eso.
+- **AC-03 — Modo de planificación.** Cuando escribo `/plan`, entonces se usa el modelo `plan` y se deniega toda escritura; con `/implementar` se vuelve a `build` (o al predeterminado) y se desactiva el solo lectura.
+- **AC-04 — Compatibilidad.** Sin `[models]` el sistema se comporta como antes.
+- **AC-05 — Sin secretos.** Ninguna clave aparece en `/model`, avisos, eventos ni archivos del repositorio.
+
 ---
 
 [← 04b-historias-estado.md](04b-historias-estado.md) · [Índice](00-indice.md) · [04d-historias-conexiones.md →](04d-historias-conexiones.md)
