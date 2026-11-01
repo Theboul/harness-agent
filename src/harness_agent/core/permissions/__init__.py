@@ -36,6 +36,7 @@ from harness_agent.core.permissions.git_rules import (
     classify_git,
     git_instructions,
 )
+from harness_agent.core.permissions.open_tools import OpenToolsPolicy
 from harness_agent.core.permissions.policy import DefaultPermissionPolicy
 from harness_agent.core.permissions.protected import ProtectedPolicy
 from harness_agent.core.permissions.rules import PermissionRules
@@ -66,6 +67,7 @@ __all__ = [
     "GitPolicy",
     "classify_git",
     "git_instructions",
+    "OpenToolsPolicy",
     "PermissionRules",
     "ProtectedPolicy",
 ]

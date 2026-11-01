@@ -77,7 +77,11 @@ from harness_agent.adapters.tools import (
     COMMAND_ARGUMENT,
     DEFAULT_SHELL_TIMEOUT_SECONDS,
     TIMEOUT_ARGUMENT,
+    Answer,
+    AskFn,
+    AskUserTool,
     ListFilesTool,
+    Question,
     ReadFileTool,
     SearchTextTool,
     ShellTool,
@@ -87,6 +91,7 @@ from harness_agent.adapters.tools import (
 from harness_agent.cli import (
     ConsoleApprover,
     ConsolePullRequestPrompter,
+    ConsoleQuestioner,
     ConsoleReviewer,
     ModelView,
     SessionRow,
@@ -137,6 +142,7 @@ from harness_agent.core import (
     InMemoryEventBus,
     InMemoryToolRegistry,
     Message,
+    OpenToolsPolicy,
     PermissionPolicy,
     ProgressRecorder,
     ProtectedPolicy,
@@ -542,6 +548,7 @@ def compose(
     changes: ChangeSource | None = None,
     pull_request_prompter: PullRequestPrompter | None = None,
     pull_request_host: PullRequestHost | None = None,
+    ask: AskFn | None = None,
 ) -> Composition:
     """Build the connected system from ``config``; nothing is left half open on failure.
 
@@ -568,6 +575,9 @@ def compose(
             there is no Pull Request step.
         pull_request_host: Pushes and creates the Pull Request; git and ``gh`` on the work area by
             default.
+        ask: Shows a question with options to the person and returns the answer (HU-06-02);
+            with it the agent has the ``preguntar_usuario`` tool, which never asks for approval;
+            without one the tool does not exist.
 
     Raises:
         ProviderDependencyError: The optional dependency of the real provider is missing.
@@ -599,6 +609,11 @@ def compose(
         shell_tool,
     ):
         registry.register(tool)
+    open_tools: tuple[str, ...] = ()
+    if ask is not None:
+        ask_tool = AskUserTool(ask)
+        registry.register(ask_tool)
+        open_tools = (ask_tool.name,)
     commands = () if task is None else task.commands
     provisional = _provisional_prefix(system, area, commands)
     essential: tuple[EssentialItem, ...] = ()
@@ -655,7 +670,11 @@ def compose(
                 GitPolicy(
                     AskCeilingPolicy(
                         ExactCallPolicy(
-                            DefaultPermissionPolicy(registry, area, config.permissions),
+                            OpenToolsPolicy(
+                                DefaultPermissionPolicy(registry, area, config.permissions),
+                                open_tools,
+                                ask_names=config.permissions.ask,
+                            ),
                             _allowed_commands(commands, shell_tool.name),
                             ask_names=config.permissions.ask,
                         ),
@@ -1481,6 +1500,7 @@ def main(
                 changes=changes,
                 pull_request_prompter=ConsolePullRequestPrompter(input_stream, output),
                 pull_request_host=pull_request_host,
+                ask=console_ask(ConsoleQuestioner(input_stream, output)),
             )
         except (
             ConfigError,
@@ -1500,6 +1520,16 @@ def main(
     finally:
         if composition is not None:
             composition.close()
+
+
+def console_ask(questioner: ConsoleQuestioner) -> AskFn:
+    """Connect the console to the ``preguntar_usuario`` tool: its question in, its answer out."""
+
+    async def ask(question: Question) -> Answer | None:
+        reply = await questioner(question)
+        return None if reply is None else Answer(reply.number, reply.text)
+
+    return ask
 
 
 def entry() -> int:

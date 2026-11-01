@@ -17,6 +17,7 @@ import copy
 import dataclasses
 import importlib
 import json
+import logging
 import re
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from types import MappingProxyType
@@ -114,12 +115,28 @@ class _Revealable(Protocol):
     def reveal(self) -> str: ...
 
 
+# The loggers of LiteLLM write their own help text ("Give Feedback / Get Help", "LiteLLM.Info:
+# ...turn_on_debug()") on the terminal when a call fails. The harness reports the failure itself
+# (HU-06-05), so the library is kept quiet; the errors the adapter raises are not affected.
+_LITELLM_LOGGERS = ("LiteLLM", "LiteLLM Router", "LiteLLM Proxy")
+
+
+def _silence(module: Any) -> None:
+    """Turn off the debug help of LiteLLM and keep its loggers from writing to the terminal."""
+    module.suppress_debug_info = True
+    for name in _LITELLM_LOGGERS:
+        logger = logging.getLogger(name)
+        logger.setLevel(logging.CRITICAL + 1)
+        logger.propagate = False
+
+
 def _load_completion() -> CompletionFn:
     """Return the async completion function of LiteLLM, imported only now."""
     try:
         module = importlib.import_module("litellm")
     except ImportError as exc:
         raise ProviderDependencyError(_MISSING_LIBRARY) from exc
+    _silence(module)
     completion: CompletionFn = module.acompletion
     return completion
 
