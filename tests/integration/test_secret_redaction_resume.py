@@ -34,7 +34,8 @@ def make(
 ) -> tuple[Composition, FakeProvider]:
     workspace = tmp_path / "trabajo"
     workspace.mkdir(exist_ok=True)
-    config = make_config(tmp_path, workspace=workspace, api_key=Secret(PROVIDER_KEY))
+    provider_value = Secret(PROVIDER_KEY)
+    config = make_config(tmp_path, workspace=workspace, api_key=provider_value)
     provider = FakeProvider([ProviderResponse(content=text) for text in texts])
     composition = build(
         opened,

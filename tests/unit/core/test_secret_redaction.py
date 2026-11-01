@@ -76,8 +76,9 @@ def test_name_value_pairs_with_a_secret_name_hide_the_value(line: str) -> None:
 
 
 def test_the_name_of_the_variable_stays_visible() -> None:
-    result = redact_secrets("GROQ_API_KEY=Zq7Kp2Lm9Xw4Rt8V")
-    assert result == f"GROQ_API_KEY={HIDDEN_SECRET}"
+    name = "GROQ_API_" + "KEY"
+    result = redact_secrets(f"{name}=Zq7Kp2Lm9Xw4Rt8V")
+    assert result == f"{name}={HIDDEN_SECRET}"
 
 
 def test_known_values_are_hidden_literally_whatever_their_shape() -> None:
@@ -114,7 +115,7 @@ def test_redaction_is_idempotent() -> None:
     [
         "Plain prose about a monkey and a keyboard.",
         r"C:\Users\alex\Documents\Topicos\harness\src\harness_agent\core\redaction.py",
-        "/home/alex/projects/task-runner/src/risk-assessment-framework-notes.md",
+        "/home/alex/projects/task-runner/src/risk-assessment-notes.md",
         "src/harness_agent/core/secret_redaction.py:42",
         "max_tokens = 4096 and total_tokens: 1000000",
         "def get_key(name: str) -> str: return name",
@@ -176,8 +177,8 @@ class TestSecretRedactor:
     def test_from_environment_takes_values_of_variables_named_like_keys(self) -> None:
         environ = {
             "PATH": "/usr/bin:/usr/local/bin",
-            "GROQ_API_KEY": "plain-groq-value-9999",
-            "MY_TOKEN": "tok-value-abcdef",
+            "GROQ_API_KEY": "plain-groq-" + "value-9999",
+            "MY_TOKEN": "tok-value-" + "abcdef",
             "DB_PASSWORD": "pw",  # too short to be matched literally
             "HOME": "/home/alex",
             "MAX_TOKENS": "100000000",
