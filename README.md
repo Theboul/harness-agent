@@ -109,7 +109,7 @@ Crea un entorno virtual temporal, instala el proyecto desde este checkout con `-
 pytest -m install --no-cov tests/install
 ```
 
-En Windows, si la ruta temporal del sistema es larga, define `HARNESS_INSTALL_ROOT` con una carpeta corta que exista (por ejemplo `C:	mp`): el límite de 260 caracteres de las rutas afecta a los entornos virtuales.
+En Windows, si la ruta temporal del sistema es larga, define `HARNESS_INSTALL_ROOT` con una carpeta corta que exista (por ejemplo `C:\tmp`): el límite de 260 caracteres de las rutas afecta a los entornos virtuales.
 
 ### Cobertura mínima
 
