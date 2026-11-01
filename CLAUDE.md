@@ -73,12 +73,13 @@ ruff check .
 mypy src tests
 pytest --cov=harness_agent --cov-report=term-missing
 
+pytest -m install --no-cov tests/install   # instalación limpia en un venv temporal (HU-00-07; red una vez; en Windows HARNESS_INSTALL_ROOT=ruta corta)
 pytest tests/architecture          # fronteras hexagonales (rápido; correr al tocar core/ o cli/)
 python -m harness_agent            # o `harness` tras `pip install -e .`: sesión interactiva (necesita config.toml y la clave en el entorno)
 pytest tests/unit/core/permissions/test_policy.py -k nombre   # un test concreto
 ```
 
-CI: GitHub Actions en `ubuntu-latest` y `windows-latest`, solo Python 3.12, en push/PR a `main`. Omisiones esperadas en Windows local (32 con `pytest -rs`): los 5 tests de `tests/spikes/test_linux_sigterm_spike.py` (señales POSIX), unos 23 que necesitan crear enlaces simbólicos (se omiten si el sistema no concede el privilegio), 2 que necesitan `mkfifo` (tuberías POSIX) y 2 de nombres no válidos en Windows (nombre reservado y caracteres de control).
+CI: GitHub Actions en `ubuntu-latest` y `windows-latest`, solo Python 3.12, en push/PR a `main`. Exige cobertura >= 95 % del paquete (`--cov-fail-under` en `ci.yml`, único lugar del umbral; medido 99 %), >= 60 % de `core/` y corre la prueba de instalación (`tests/install`, marca `install`, excluida de `pytest` normal) (HU-00-07). Omisiones esperadas en Windows local (32 con `pytest -rs`): los 5 tests de `tests/spikes/test_linux_sigterm_spike.py` (señales POSIX), unos 23 que necesitan crear enlaces simbólicos (se omiten si el sistema no concede el privilegio), 2 que necesitan `mkfifo` (tuberías POSIX) y 2 de nombres no válidos en Windows (nombre reservado y caracteres de control).
 
 ## Arquitectura (hexagonal) y reglas duras
 
