@@ -53,11 +53,17 @@ class SqliteCompactionArchive:
     Args:
         store: The session store whose connection and tables are used.
         clock: Returns the current time; naive values are taken as UTC.
+        redact: Cleans the summary text before it is stored (HU-10-02); none by default.
     """
 
     def __init__(
-        self, store: SqliteSessionStore, *, clock: Callable[[], datetime] = _utc_now
+        self,
+        store: SqliteSessionStore,
+        *,
+        clock: Callable[[], datetime] = _utc_now,
+        redact: Callable[[str], str] | None = None,
     ) -> None:
+        self._redact = redact
         self._store = store
         self._clock = clock
 
@@ -116,7 +122,7 @@ class SqliteCompactionArchive:
                     commit.session_id,
                     desde,
                     hasta,
-                    commit.summary,
+                    commit.summary if self._redact is None else self._redact(commit.summary),
                     now.isoformat(),
                 ),
             )
