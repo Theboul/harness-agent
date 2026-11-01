@@ -45,6 +45,7 @@ class ModelView:
     max_seconds: int
     max_tokens: int
     max_output_tokens: int
+    read_only: bool = False
 
 
 def _one_line(text: str | None, limit: int) -> str:
@@ -85,18 +86,22 @@ def format_sessions(rows: Sequence[SessionRow]) -> str:
     return "\n".join(lines)
 
 
+READ_ONLY_LINE = "Modo: solo lectura (se deniega toda escritura)."
+
+
 def format_model(view: ModelView) -> str:
     """The model, the context window, the compaction threshold and the session limits."""
-    return "\n".join(
-        [
-            f"Modelo: {_one_line(view.model, MAX_GOAL_CHARS)}",
-            f"Ventana de contexto: {_number(view.window_tokens)} tokens",
-            f"Compactación automática desde: {_number(view.threshold_tokens)} tokens",
-            f"Límites de la sesión: {_number(view.max_turns)} turnos, "
-            f"{_number(view.max_seconds)} s, {_number(view.max_tokens)} tokens",
-            f"Máximo por respuesta del modelo: {_number(view.max_output_tokens)} tokens",
-        ]
-    )
+    lines = [
+        f"Modelo: {_one_line(view.model, MAX_GOAL_CHARS)}",
+        f"Ventana de contexto: {_number(view.window_tokens)} tokens",
+        f"Compactación automática desde: {_number(view.threshold_tokens)} tokens",
+        f"Límites de la sesión: {_number(view.max_turns)} turnos, "
+        f"{_number(view.max_seconds)} s, {_number(view.max_tokens)} tokens",
+        f"Máximo por respuesta del modelo: {_number(view.max_output_tokens)} tokens",
+    ]
+    if view.read_only:
+        lines.append(READ_ONLY_LINE)
+    return "\n".join(lines)
 
 
 def format_compaction(result: CompactionResult | None) -> str:

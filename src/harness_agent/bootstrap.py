@@ -150,6 +150,7 @@ from harness_agent.core import (
     PullRequestFlow,
     PullRequestHost,
     PullRequestPrompter,
+    ReadOnlyPolicy,
     ResumeError,
     ReviewingRunner,
     Role,
@@ -170,6 +171,7 @@ from harness_agent.core import (
     criteria_reference,
     git_instructions,
     make_items,
+    only_git_reads,
     progress_file_name,
     rejection_message,
     resume_session,
@@ -205,7 +207,12 @@ DOTENV_FILE_NAME = ".env"
 DOTENV_UNREADABLE_NOTICE = "Aviso: no se pudo leer el archivo .env; se ignora."
 DOTENV_SKIPPED_NOTICE = "Aviso: el archivo .env tiene líneas no válidas; se ignoraron."
 DEFAULT_CONFIG_NAME = "config.toml"
-USAGE = "uso: harness [--tarea RUTA | --issue NÚMERO|URL]"
+USAGE = "uso: harness [--solo-lectura] [--tarea RUTA | --issue NÚMERO|URL]"
+READ_ONLY_FLAG = "--solo-lectura"
+READ_ONLY_NOTICE = (
+    "Modo de solo lectura activo: se deniegan las escrituras, los comandos que no sean "
+    "lecturas de git y las herramientas desconocidas."
+)
 _ISSUE_URL = re.compile(
     r"^https://github\.com/([A-Za-z0-9_][A-Za-z0-9_.-]*/[A-Za-z0-9_][A-Za-z0-9_.-]*)"
     r"/issues/([0-9]{1,9})/?$"
@@ -229,6 +236,7 @@ class StartupArguments:
     task_file: str | None = None
     issue_number: int | None = None
     issue_repo: str | None = None
+    read_only: bool = False
 
 
 def _issue_target(text: str) -> tuple[int, str | None]:
@@ -251,9 +259,16 @@ def parse_arguments(argv: Sequence[str]) -> StartupArguments:
     """
     task_file: str | None = None
     issue: str | None = None
+    read_only = False
     items = list(argv)
     index = 0
     while index < len(items):
+        if items[index] == READ_ONLY_FLAG:
+            if read_only:
+                raise StartupError(f"una opción está repetida; {USAGE}")
+            read_only = True
+            index += 1
+            continue
         option, joined, value = items[index].partition("=")
         index += 1
         if option not in {"--tarea", "--issue"}:
@@ -274,9 +289,9 @@ def parse_arguments(argv: Sequence[str]) -> StartupArguments:
     if task_file is not None and issue is not None:
         raise StartupError(f"use --tarea o --issue, no las dos; {USAGE}")
     if issue is None:
-        return StartupArguments(task_file=task_file)
+        return StartupArguments(task_file=task_file, read_only=read_only)
     number, repo = _issue_target(issue)
-    return StartupArguments(issue_number=number, issue_repo=repo)
+    return StartupArguments(issue_number=number, issue_repo=repo, read_only=read_only)
 
 
 def _load_task(arguments: StartupArguments, gh_runner: GhRunner) -> TaskDefinition | None:
@@ -549,6 +564,7 @@ def compose(
     pull_request_prompter: PullRequestPrompter | None = None,
     pull_request_host: PullRequestHost | None = None,
     ask: AskFn | None = None,
+    read_only: bool = False,
 ) -> Composition:
     """Build the connected system from ``config``; nothing is left half open on failure.
 
@@ -578,6 +594,9 @@ def compose(
         ask: Shows a question with options to the person and returns the answer (HU-06-02);
             with it the agent has the ``preguntar_usuario`` tool, which never asks for approval;
             without one the tool does not exist.
+        read_only: Read-only mode (HU-05-07); it is also on when the configuration says so, and
+            neither can turn the other off. Every write is denied, as is every command that is
+            not a git read and every tool the mode does not list.
 
     Raises:
         ProviderDependencyError: The optional dependency of the real provider is missing.
@@ -601,19 +620,16 @@ def compose(
     shell_tool = ShellTool(
         shell, area, on_cancel=None if shell is None else shell.terminate_running
     )
-    for tool in (
-        ReadFileTool(area),
-        WriteFileTool(area),
-        ListFilesTool(area),
-        SearchTextTool(area),
-        shell_tool,
-    ):
+    read_tools = (ReadFileTool(area), ListFilesTool(area), SearchTextTool(area))
+    for tool in (read_tools[0], WriteFileTool(area), read_tools[1], read_tools[2], shell_tool):
         registry.register(tool)
+    read_names = [tool.name for tool in read_tools]
     open_tools: tuple[str, ...] = ()
     if ask is not None:
         ask_tool = AskUserTool(ask)
         registry.register(ask_tool)
         open_tools = (ask_tool.name,)
+        read_names.append(ask_tool.name)  # asking the person writes nothing
     commands = () if task is None else task.commands
     provisional = _provisional_prefix(system, area, commands)
     essential: tuple[EssentialItem, ...] = ()
@@ -665,7 +681,7 @@ def compose(
         # The names of the MCP tools fill in after they connect (HU-08-03): the ceiling keeps
         # any "allow" of the rules inside from reaching them without asking.
         mcp_tool_names: set[str] = set()
-        policy = ProtectedPolicy(
+        policy: PermissionPolicy = ProtectedPolicy(
             CommandPolicy(
                 GitPolicy(
                     AskCeilingPolicy(
@@ -693,6 +709,18 @@ def compose(
             protected,
             markers,
         )
+        if read_only or config.read_only:
+            # Outside and first (HU-05-07): its denial prevails over any "allow" of the chain, and
+            # only the reads (the files, the person and the git reads of the shell) go inside.
+            dialect = deny_list.dialect
+            policy = ReadOnlyPolicy(
+                policy,
+                read_names,
+                command_tool=shell_tool.name,
+                command_argument=COMMAND_ARGUMENT,
+                is_read_command=lambda command: only_git_reads(command, dialect),
+            )
+            notices = (*notices, READ_ONLY_NOTICE)
         task_options: dict[str, Any] = dict(store_options)
         clock_options: dict[str, Any] = {} if clock is None else {"clock": clock}
         renewer: EssentialRenewer | None = None
@@ -901,6 +929,7 @@ def compose(
             max_seconds=config.limits.max_seconds,
             max_tokens=config.limits.max_tokens,
             max_output_tokens=config.limits.max_output_tokens,
+            read_only=read_only or config.read_only,
         ),
         manual_compactor_for=manual_compactor_for,
         mcp_clients=mcp_clients,
@@ -1501,6 +1530,7 @@ def main(
                 pull_request_prompter=ConsolePullRequestPrompter(input_stream, output),
                 pull_request_host=pull_request_host,
                 ask=console_ask(ConsoleQuestioner(input_stream, output)),
+                read_only=arguments.read_only,
             )
         except (
             ConfigError,
