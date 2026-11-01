@@ -428,7 +428,7 @@ Actualizar esta tabla al cerrar cada historia.
 
 | ID | Historia | Prio. | PHU | Resp. | Estado | Commit/PR | Archivos | Evidencia |
 |---|---|---|---|---|---|---|---|---|
-| [HU-00-05.2](04a-historias-fundacion.md#hu-00-05.2) | Prueba de aislamiento de fallos de un servidor MCP | Alta | 1 | A — Núcleo | Pendiente |  |  |  |
+| [HU-00-05.2](04a-historias-fundacion.md#hu-00-05.2) | Prueba de aislamiento de fallos de un servidor MCP | Alta | 1 | A — Núcleo | En revisión | rama `claude/hu-00-05-2-mcp-isolation-956f76` (sin PR) | specs/048-mcp-session-fault-isolation/ (spec, plan, tasks), tests/integration/test_mcp_session_fault_tolerance.py (3 pruebas; sin cambios en `src/`) | `ruff format --check .` (552 ya formateados), `ruff check .` limpio, `mypy src tests` sin errores (552 archivos), `pytest tests/architecture` 754 pasadas, `pytest --cov` 8482 pasadas / 48 omitidas, cobertura 99 %; diff de protegidos vacío. Con servidores reales de Python (demostración y sondeo) y `run_session`: AC-01 servidor inexistente + dos sanos → un aviso fijo y las herramientas de los sanos y la nativa responden; AC-02 `crash` en la petición 1, la petición 2 recibe `[mcp_server_down]` en < 2 s, el otro servidor y la herramienta nativa siguen y la sesión sale con 0; servidor colgado → `[mcp_timeout]` sin bloquear a los demás; los pids de todos los servidores desaparecen al cerrar. Mutación de control: cambiar los códigos esperados hace fallar 2 de 3 pruebas. La revisión nativa no se ejecutó |
 | [HU-03-03](04b-historias-estado.md#hu-03-03) | Listar sesiones | Alta | 1 | B — Estado | Pendiente |  |  |  |
 | [HU-04-01](04b-historias-estado.md#hu-04-01) | Almacén de memoria separado del historial | Alta | 2 | B — Estado | Pendiente |  |  |  |
 | [HU-04-02](04b-historias-estado.md#hu-04-02) | Herramienta de memoria y carga al inicio | Alta | 3 | B — Estado | Pendiente |  |  |  |
@@ -525,6 +525,12 @@ Reparto de Sprint 4 por ratificar en el Planning (la semana y las 8 PHU de MCP y
 - *2026-10-31: **Para HU-08-05 (C).** Cada cliente ya es independiente (estado, tarea dueña, cierre); con el prefijo por servidor, `mcp_tool_names` seguirá siendo el conjunto de nombres registrados (los nombres con prefijo). El aviso por colisión ya identifica el servidor.*
 - *2026-10-31: **Limitación.** Un servidor perdido deja sus herramientas en la lista de definiciones que ve el modelo; si el modelo insiste, recibe el mismo error. Nada se reporta por evento (el catálogo no cambia): el error aparece como `tool_finished` con categoría `tool_error`.*
 - *2026-10-31: **Pendiente (humano).** H1 revisión cruzada, H2 CI remota en Ubuntu y Windows, H3 confirmación del PO/A de la decisión anterior y del techo de HU-08-03. Ninguna pasa a `Hecha` hasta entonces.*
+
+**Observaciones de HU-00-05.2**:
+- *2026-10-31: **Es solo evidencia.** No cambia `src/`: HU-08-04 ya implementó el aislamiento y probó cliente y bucle; esta historia prueba la sesión completa (`compose` + `run_session`) con servidores reales. Sin hallazgos de defectos.*
+- *2026-10-31: **Cobertura frente a la ficha.** AC-01 (inexistente al arrancar) y AC-02 (caída a mitad de sesión) cumplidos; la regla 1 (servidor real de demostración) se cumple con `tests/spikes/mcp_demo_server.py` sin modificar. Servidor colgado y ausencia de procesos huérfanos se añaden como evidencia extra.*
+- *2026-10-31: **Limitaciones.** Los dos servidores de prueba exponen `pid`: hasta HU-08-05 (prefijos) gana el primero y el segundo da un aviso, así que la prueba usa `env_names` y un archivo de pid. El «al instante» se mide con un tope de 2 s (no es un cronómetro fino). La prueba del servidor colgado tarda unos segundos (tope de 1 s más gracia).*
+- *2026-10-31: **Pendiente (humano).** H1 revisión cruzada por B o C; H2 CI remota en Ubuntu y Windows (la prueba usa procesos hijo; si fuera inestable allí, añadir una marca documentada).*
 
 **Observaciones de HU-06-02**:
 - *2026-10-31: **Respuesta libre por defecto.** La regla 1 de la ficha dice que siempre se acepta respuesta libre, así que `permitir_texto_libre` vale `true` si el modelo no lo indica; `false` solo restringe (cerrar la pregunta), nunca elige por la persona. Un número fuera de rango es inválido y no se trata como texto, de modo que una respuesta libre que sea solo un número no es posible. El PO debe confirmar el valor por defecto (H04).*
@@ -1025,6 +1031,9 @@ Reparto de Sprint 4 por ratificar en el Planning (la semana y las 8 PHU de MCP y
 | 2026-10-31 | **T003-T005** / [HU-06-02](04c-historias-control.md#hu-06-02): `cli/question_view.py` y `cli/question.py` (`ConsoleQuestioner`); `bootstrap.py` cablea `compose(ask=)`, `console_ask` y `main()`; integración con el bucle real. | HU-06-02 | Claude (carril C) |
 | 2026-10-31 | **T006-T008** / [HU-06-02](04c-historias-control.md#hu-06-02): UX-a (LiteLLM en silencio), UX-b (efecto completo y en español en el bloque de aprobación) y UX-c (línea «Reintentando (n de N) en X s…»). | HU-06-02 | Claude (carril C) |
 | 2026-10-31 | **T009-T011** / [HU-06-02](04c-historias-control.md#hu-06-02): guarda `test_ask_user_boundaries.py`, cuatro puertas de calidad, fronteras, diff de protegidos, `docs/PROGRESO.md` y `CLAUDE.md`. La fila pasa a `En revisión`. | HU-06-02 | Claude (carril C) |
+| 2026-10-31 | **T001** / [HU-00-05.2](04a-historias-fundacion.md#hu-00-05.2): spec 048 (spec, plan, tareas) y `.specify/feature.json`. | HU-00-05.2 | Claude (carril A) |
+| 2026-10-31 | **T001-T003** / [HU-00-05.2](04a-historias-fundacion.md#hu-00-05.2): `tests/integration/test_mcp_session_fault_tolerance.py`: AC-01 (servidor inexistente), AC-02 (caída a mitad de sesión con respuesta inmediata) y servidor colgado, con `run_session` y procesos reales, sin huérfanos. | HU-00-05.2 | Claude (carril A) |
+| 2026-10-31 | **T004-T006** / [HU-00-05.2](04a-historias-fundacion.md#hu-00-05.2): mutación de control, cuatro puertas, fronteras y `PROGRESO.md`. | HU-00-05.2 | Claude (carril A) |
 
 ## Decisiones abiertas
 
