@@ -30,6 +30,7 @@ from harness_agent.core.permissions.command_rules import (
     compile_rule,
 )
 from harness_agent.core.permissions.exact_calls import AllowedCall, ExactCallPolicy
+from harness_agent.core.permissions.git_reads import only_git_reads
 from harness_agent.core.permissions.git_rules import (
     GitClass,
     GitPolicy,
@@ -39,6 +40,7 @@ from harness_agent.core.permissions.git_rules import (
 from harness_agent.core.permissions.open_tools import OpenToolsPolicy
 from harness_agent.core.permissions.policy import DefaultPermissionPolicy
 from harness_agent.core.permissions.protected import ProtectedPolicy
+from harness_agent.core.permissions.read_only import ReadOnlyPolicy
 from harness_agent.core.permissions.rules import PermissionRules
 
 __all__ = [
@@ -67,7 +69,9 @@ __all__ = [
     "GitPolicy",
     "classify_git",
     "git_instructions",
+    "only_git_reads",
     "OpenToolsPolicy",
     "PermissionRules",
     "ProtectedPolicy",
+    "ReadOnlyPolicy",
 ]

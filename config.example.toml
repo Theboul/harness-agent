@@ -49,6 +49,9 @@ sessions_db = ".harness/sessions.db"
 # comandos: la lista base no se puede quitar ni vaciar. Se escriben como el comando real
 # (por ejemplo "terraform destroy").
 # deny_commands = []
+# Modo de solo lectura: deniega toda escritura, todo comando que no sea una lectura de git y toda
+# herramienta desconocida. También se activa con la bandera --solo-lectura; ninguna lo desactiva.
+# read_only = false
 
 # Servidores MCP por stdio (opcional; requiere el extra "mcp": pip install ".[mcp]"). Un servidor por
 # tabla [mcp_servers.<nombre>]. Si uno no arranca, el arnés inicia igualmente, avisa y lo deja sin
