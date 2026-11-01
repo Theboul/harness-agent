@@ -6,7 +6,7 @@
 
 - [x] T001 [US1] `tests/unit/core/permissions/test_open_tools.py` + `src/harness_agent/core/permissions/open_tools.py` (`OpenToolsPolicy`) + exports. Primero la prueba, vista fallar.
 - [x] T002 [US1] `tests/unit/adapters/tools/test_ask_user.py` + `src/harness_agent/adapters/tools/ask_user.py` (`AskUserTool`, `Question`, `Answer`, `AskFn`) + export.
-- [x] T003 [US1] `tests/unit/cli/test_question_view.py` + `src/harness_agent/cli/question_view.py`.
+- [x] T003 [US1] `tests/unit/cli/test_question.py` (clase `TestView`) + `src/harness_agent/cli/question_view.py`.
 - [x] T004 [US1] `tests/unit/cli/test_question.py` + `src/harness_agent/cli/question.py` (`ConsoleQuestioner`) + export.
 - [x] T005 [US1] `bootstrap.py`: `compose(…, ask=)`, registro, `OpenToolsPolicy`, `main()` inyecta la consola; `tests/integration/test_ask_user_loop.py` con `AgentLoop` real (AC-01, AC-02, fin de entrada).
 - [x] T006 [US2] UX-a: silencio de LiteLLM en `litellm_provider.py` + prueba con módulo falso.
