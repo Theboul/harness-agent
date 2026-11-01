@@ -82,6 +82,7 @@ harness-agent/
     ├── contracts/          # un contrato que corre contra el doble y la implementación real
     ├── integration/        # piezas reales juntas (AgentLoop + bus/política/registro/CLI)
     ├── architecture/       # guardas AST de fronteras y secretos
+    ├── install/            # prueba de instalación limpia en un venv temporal (marca `install`, fuera de la ejecución normal; HU-00-07)
     ├── spikes/             # spikes (SPK-01, SPK-02); algunos solo en Linux; conftest.py mantiene offline el de LiteLLM
     └── failures/           # (planeado: HU-00-05.1) fallos: cierre forzado, proveedor caído, MCP caído
 ```

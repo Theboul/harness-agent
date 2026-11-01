@@ -45,4 +45,10 @@ jobs:
         run: mypy src tests
 
       - name: Execute test suite with coverage (pytest)
-        run: pytest --cov=harness_agent --cov-report=term-missing
+        run: pytest --cov=harness_agent --cov-report=term-missing --cov-fail-under=95
+
+      - name: Check core coverage (minimum 60 percent, HU-00-07)
+        run: coverage report --include="*/harness_agent/core/*" --fail-under=60
+
+      - name: Clean-install check (temporary virtual environment, HU-00-07)
+        run: pytest -m install --no-cov tests/install

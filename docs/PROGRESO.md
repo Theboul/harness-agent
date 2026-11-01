@@ -379,7 +379,7 @@ Actualizar esta tabla al cerrar cada historia.
 |---|---|---|---|---|---|---|---|---|
 | [HU-00-05.1](04a-historias-fundacion.md#hu-00-05.1) | Pruebas de integración y de fallos del núcleo | Alta | 2 | A — Núcleo | Pendiente |  |  |  |
 | [HU-00-06](04a-historias-fundacion.md#hu-00-06) | README, guion de demostración y documento de arquitectura | Alta | 3 | B — Estado | Pendiente |  |  |  |
-| [HU-00-07](04a-historias-fundacion.md#hu-00-07) | Cobertura mínima y prueba de instalación | Media | 2 | C — Control y conexiones | Pendiente |  |  |  |
+| [HU-00-07](04a-historias-fundacion.md#hu-00-07) | Cobertura mínima y prueba de instalación | Media | 2 | C — Control y conexiones | En revisión | rama `claude/hu-00-07-coverage-install-cab9bc` (sin PR) | `.github/workflows/ci.yml`, `pyproject.toml`, `tests/install/`, `tests/unit/test_ci_quality_gates.py`, `README.md`, `CLAUDE.md`, `specs/046-coverage-install-check/` | Cobertura medida (suite completa en 5 fragmentos + `coverage combine`, Windows local): paquete 99 % (9 934 sentencias, 2 864 ramas), `core/` 100 %; umbral de la CI 95 % (paquete) y 60 % (`core/`). `pytest -m install --no-cov tests/install`: 4 pasan (~32 s). `ruff format --check`, `ruff check`, `mypy src tests` en 0; `pytest tests/architecture` + guardas nuevas: 745 pasan. Falta: revisión cruzada, CI remota en Ubuntu y Windows, instalación por una persona ajena (AC-02) |
 | [HU-01-07](04a-historias-fundacion.md#hu-01-07) | Varias llamadas a herramientas en un mismo turno | Media | 2 | A — Núcleo | Pendiente |  |  |  |
 | [HU-01-08](04a-historias-fundacion.md#hu-01-08) | Detección de llamadas repetidas | Media | 1 | A — Núcleo | Pendiente |  |  |  |
 | [HU-02-04](04b-historias-estado.md#hu-02-04) | Comando para compactar manualmente | Media | 1 | B — Estado | Pendiente |  |  |  |
@@ -560,6 +560,13 @@ Reparto de Sprint 4 por ratificar en el Planning (la semana y las 8 PHU de MCP y
 | [HU-IN-02](04d-historias-conexiones.md#hu-in-02) | Ejecución de comandos en entorno aislado | Baja | 5 | C — Control y conexiones | Pendiente |  |  |  |
 | [HU-IN-03](04d-historias-conexiones.md#hu-in-03) | Comparación del orquestador propio con LangGraph | Baja | 5 | A — Núcleo | Pendiente |  |  |  |
 | [HU-IN-04](04d-historias-conexiones.md#hu-in-04) | Panel de costos y consumo por sesión | Baja | 3 | B — Estado | Pendiente |  |  |  |
+
+**Observaciones de HU-00-07**:
+- *2026-10-31: **Umbral.** 95 % del paquete (medido 99 %) y 60 % de `core/` (medido 100 %), solo en `ci.yml`. No va en `fail_under` de `pyproject.toml` para no romper las ejecuciones parciales locales. Si Linux omite pruebas que Windows ejecuta, el margen de 4 puntos debería bastar, pero no se ha podido verificar en la CI remota.*
+- *2026-10-31: **Medición.** La suite completa tarda más de una hora de una sola vez en esta máquina; se midió en 5 fragmentos en paralelo con `COVERAGE_FILE` distintos y `coverage combine` con `[paths]` (sin ese mapeo, las rutas relativas y absolutas se cuentan por separado y dan un total falso).*
+- *2026-10-31: **Hallazgo para B/C (HU-10-02).** Bajo carga en paralelo falló una vez `tests/unit/core/test_redaction_linear.py::test_a_megabyte_is_fast[many-schemes]` (prueba de tiempo); en ejecución aislada no se comprobó. Posible fragilidad en la CI.*
+- *2026-10-31: **Instalación.** La prueba usa `pip install --no-deps` desde el checkout y necesita la red una vez (pip descarga `setuptools`); por eso está fuera de `pytest` normal. No hay `--no-index`.*
+- *2026-10-31: **Pendiente (humano).** H01 revisión cruzada, H02 CI remota en Ubuntu y Windows (pasos nuevos incluidos), H03 una persona ajena instala siguiendo el README y anota problemas (AC-02).*
 
 ## Registro de cambios
 
@@ -1009,6 +1016,7 @@ Reparto de Sprint 4 por ratificar en el Planning (la semana y las 8 PHU de MCP y
 | 2026-10-31 | **T004** / HU-00-08.1: guarda `test_dotenv_boundaries.py` (con autopruebas y mutaciones) y ajuste de `test_bootstrap_boundaries.py`, `test_public_api.py` y `test_entry_point.py`. | HU-00-08.1 | Claude (carril C) |
 | 2026-10-31 | **T006-T008** / HU-00-08.1: cuatro puertas de calidad, fronteras, diff de protegidos, `docs/PROGRESO.md` y `CLAUDE.md`. La fila pasa a `En revisión`; T005 (`.env.example`) queda pendiente por permisos. | HU-00-08.1 | Claude (carril C) |
 | 2026-10-31 | **T001–T002** / [HU-05-08](04c-historias-control.md#hu-05-08) (solo AC-02): spec 043 y `tests/integration/test_external_data_mcp.py` (resultado MCP con `is_external=True`, instrucción escondida sin efecto sobre la política); sin cambios de producción. AC-01 pendiente. | HU-05-08 | Claude (carril C) |
+| 2026-10-31 | **T001–T008** / [HU-00-07](04a-historias-fundacion.md#hu-00-07): spec 046; cobertura medida (99 % del paquete, 100 % de `core/`) y umbral 95 % / 60 % en `ci.yml`; prueba de instalación limpia `tests/install` (marca `install`, fuera de la ejecución normal, paso aparte en la CI); guarda `test_ci_quality_gates.py`; README, `CLAUDE.md` y `arbol.md`. La fila pasa a `En revisión` | HU-00-07 | Claude (carril C) |
 | 2026-10-31 | **T001–T002** / [HU-10-02](04d-historias-conexiones.md#hu-10-02): spec 045 y `core/secret_redaction.py` (`redact_secrets`, `SecretRedactor`, `is_secret_name`) con 40 pruebas (100 % de líneas y ramas, textos hostiles de hasta 3 MB en tiempo lineal). | Claude (B) |
 | 2026-10-31 | **T003–T004** / HU-10-02: `redact` en `clean_message`, `ConversationCapture`, `attach_event_recorder` y `SqliteCompactionArchive`; cableado en `compose()`; prueba de integración de `/reanudar` sin el secreto. | Claude (B) |
 | 2026-10-31 | **T005–T007** / HU-10-02: guarda `test_secret_redaction_boundaries.py`, cuatro puertas de calidad, fronteras, `docs/PROGRESO.md` y `CLAUDE.md`. La fila pasa a `En revisión`. | Claude (B) |
