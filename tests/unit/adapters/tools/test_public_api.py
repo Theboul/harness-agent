@@ -42,6 +42,11 @@ TOOLS_API = {
     # HU-11-04.1: runs a verification command through the shell tool.
     "make_command_runner",
     "outcome_from_result",
+    # HU-06-02: the question with options and the types of its ``ask`` function.
+    "AskUserTool",
+    "AskFn",
+    "Question",
+    "Answer",
 }
 SYSTEM_API = {
     "BashShell",

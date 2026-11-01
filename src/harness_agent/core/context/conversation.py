@@ -68,36 +68,40 @@ class MessageLog(Protocol):
         ...
 
 
-def _hide(value: Any) -> Any:
-    """``value`` with the credentials of URLs hidden in every text, at any depth."""
+def _hide(value: Any, redact: Callable[[str], str]) -> Any:
+    """``value`` with ``redact`` applied to every text, at any depth."""
     if isinstance(value, str):
-        return hide_url_credentials(value)
+        return redact(value)
     if isinstance(value, list):
-        return [_hide(item) for item in value]
+        return [_hide(item, redact) for item in value]
     if isinstance(value, tuple):
-        return tuple(_hide(item) for item in value)
+        return tuple(_hide(item, redact) for item in value)
     if isinstance(value, Mapping):
-        return {key: _hide(item) for key, item in value.items()}
+        return {key: _hide(item, redact) for key, item in value.items()}
     return value
 
 
-def clean_message(message: Message, *, replacement: str | None = None) -> Message:
+def clean_message(
+    message: Message,
+    *,
+    replacement: str | None = None,
+    redact: Callable[[str], str] = hide_url_credentials,
+) -> Message:
     """A copy of ``message`` that is safe to store.
 
-    The credentials of URLs are hidden in the content, in the content of the tool result and in
-    every text of the arguments (the keys and any value that is not a text stay as they are).
-    With ``replacement`` the content of the message and of its tool result become that text: it is
-    how a rejection is stored without the reason the person gave.
+    ``redact`` (by default the hiding of the credentials of URLs; the composition root passes the
+    general redaction of secrets, HU-10-02) is applied to the content, to the content of the tool
+    result and to every text of the arguments (the keys and any value that is not a text stay as
+    they are). With ``replacement`` the content of the message and of its tool result become that
+    text: it is how a rejection is stored without the reason the person gave.
     """
-    content = hide_url_credentials(message.content) if replacement is None else replacement
+    content = redact(message.content) if replacement is None else replacement
     calls = tuple(
-        ToolCall(call.id, call.name, _hide(call.arguments)) for call in message.tool_calls
+        ToolCall(call.id, call.name, _hide(call.arguments, redact)) for call in message.tool_calls
     )
     result = message.tool_result
     if result is not None:
-        result_content = (
-            hide_url_credentials(result.content) if replacement is None else replacement
-        )
+        result_content = redact(result.content) if replacement is None else replacement
         result = ToolResult(result.call_id, result_content, result.is_error)
     return dataclasses.replace(message, content=content, tool_calls=calls, tool_result=result)
 
@@ -131,6 +135,8 @@ class ConversationCapture:
         warn: Writes one line of warning for the person.
         rejected_text: The standard text of a rejection for a tool name (no reason): the one the
             loop writes when the person gave none.
+        redact: Cleans every text before it is stored (the general redaction of secrets); by
+            default only the credentials of URLs are hidden.
     """
 
     def __init__(
@@ -139,7 +145,9 @@ class ConversationCapture:
         *,
         warn: Callable[[str], None],
         rejected_text: Callable[[str], str],
+        redact: Callable[[str], str] = hide_url_credentials,
     ) -> None:
+        self._redact = redact
         self._log = log
         self._warn = warn
         self._rejected_text = rejected_text
@@ -297,7 +305,7 @@ class ConversationCapture:
             records.append(
                 MessageRecord(
                     self._next + index,
-                    clean_message(message, replacement=replacement),
+                    clean_message(message, replacement=replacement, redact=self._redact),
                     event_id if index == link else None,
                 )
             )

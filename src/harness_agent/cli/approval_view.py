@@ -9,7 +9,9 @@ arguments whose name looks like a secret are hidden. The decoration is ASCII on 
 
 from __future__ import annotations
 
+import textwrap
 from collections.abc import Mapping
+from types import MappingProxyType
 from typing import Any
 
 from .render import bounded, sanitize
@@ -18,7 +20,9 @@ from .style import PLAIN, Style
 RULE_WIDTH = 60
 MAX_PRIMARY_CHARS = 400
 MAX_VALUE_CHARS = 200
-MAX_EFFECT_CHARS = 200
+MAX_EFFECT_CHARS = 1_000
+EFFECT_LABEL = " Efecto:      "
+EFFECT_WIDTH = RULE_WIDTH - len(EFFECT_LABEL)
 MAX_NAME_CHARS = 64
 MAX_ARGUMENTS_SHOWN = 20
 HIDDEN_VALUE = "***"
@@ -33,6 +37,23 @@ OPTIONS_LINE = " [1] aprobar una vez   [2] aprobar para la sesión   [3] rechaza
 # The arguments that say what the call does, in order of preference, and the sentence of each.
 PRIMARY_ARGUMENTS = ("command", "path")
 _INDENT = "     "
+# What the person reads about each native tool, in Spanish and fixed: the descriptions the model
+# receives are written for the model and stay as they are (HU-06-02).
+EFFECT_TRANSLATIONS: Mapping[str, str] = MappingProxyType(
+    {
+        "leer_archivo": "Lee el contenido de un archivo de texto del área de trabajo. "
+        "No modifica nada.",
+        "escribir_archivo": "Crea o reemplaza un archivo de texto del área de trabajo con el "
+        "contenido que indique el agente.",
+        "listar_archivos": "Lista los archivos y carpetas de una carpeta del área de trabajo. "
+        "No modifica nada.",
+        "buscar_texto": "Busca un texto en un archivo o carpeta del área de trabajo y muestra "
+        "dónde aparece. No modifica nada.",
+        "shell": "Ejecuta un comando en tu equipo, empezando en la raíz del área de trabajo. "
+        "Puede cambiar archivos o el sistema.",
+        "preguntar_usuario": "Te hace una pregunta con opciones. No ejecuta nada.",
+    }
+)
 
 
 def _escaped(value: object, limit: int) -> str:
@@ -81,10 +102,18 @@ def _risk(details: Mapping[str, Any], style: Style) -> str:
     return style.paint(word, "bold", RISK_COLORS.get(word, "yellow"))
 
 
-def _effect(details: Mapping[str, Any]) -> str:
+def _effect(tool: str, details: Mapping[str, Any]) -> list[str]:
+    """The effect, whole and wrapped: fixed Spanish text for a native tool, else the given one."""
     effect = details.get("effect")
-    text = _escaped(effect, MAX_EFFECT_CHARS) if isinstance(effect, str) else ""
-    return text if text.strip() else NO_EFFECT
+    given = (
+        bounded(" ".join(sanitize(effect).split()), MAX_EFFECT_CHARS)
+        if isinstance(effect, str)
+        else ""
+    )
+    text = EFFECT_TRANSLATIONS.get(tool, given) if given.strip() else NO_EFFECT
+    wrapped = textwrap.wrap(text, EFFECT_WIDTH, break_long_words=True) or [NO_EFFECT]
+    padding = " " * len(EFFECT_LABEL)
+    return [EFFECT_LABEL + wrapped[0], *(padding + line for line in wrapped[1:])]
 
 
 def _argument_lines(arguments: Mapping[str, Any], primary: str | None) -> list[str]:
@@ -122,6 +151,6 @@ def approval_block(tool_name: str, details: Mapping[str, Any], style: Style = PL
     lines.append(f" Herramienta: {tool}")
     lines.extend(_argument_lines(arguments, primary))
     lines.append(f" Riesgo:      {_risk(details, style)}")
-    lines.append(f" Efecto:      {_effect(details)}")
+    lines.extend(_effect(tool, details))
     lines.extend([thin, OPTIONS_LINE])
     return lines

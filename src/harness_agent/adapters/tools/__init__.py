@@ -16,6 +16,7 @@ from harness_agent.adapters.tools._limits import (
     MAX_SHELL_TIMEOUT_SECONDS,
     MAX_WRITE_BYTES,
 )
+from harness_agent.adapters.tools.ask_user import Answer, AskFn, AskUserTool, Question
 from harness_agent.adapters.tools.list_files import ListFilesTool
 from harness_agent.adapters.tools.read_file import ReadFileTool
 from harness_agent.adapters.tools.search_text import SearchTextTool
@@ -29,6 +30,10 @@ __all__ = [
     "ListFilesTool",
     "SearchTextTool",
     "ShellTool",
+    "AskUserTool",
+    "AskFn",
+    "Question",
+    "Answer",
     "MAX_READ_BYTES",
     "MAX_WRITE_BYTES",
     "MAX_LIST_ENTRIES",

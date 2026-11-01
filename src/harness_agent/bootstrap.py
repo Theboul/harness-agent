@@ -77,7 +77,11 @@ from harness_agent.adapters.tools import (
     COMMAND_ARGUMENT,
     DEFAULT_SHELL_TIMEOUT_SECONDS,
     TIMEOUT_ARGUMENT,
+    Answer,
+    AskFn,
+    AskUserTool,
     ListFilesTool,
+    Question,
     ReadFileTool,
     SearchTextTool,
     ShellTool,
@@ -87,6 +91,7 @@ from harness_agent.adapters.tools import (
 from harness_agent.cli import (
     ConsoleApprover,
     ConsolePullRequestPrompter,
+    ConsoleQuestioner,
     ConsoleReviewer,
     ModelView,
     SessionRow,
@@ -137,6 +142,7 @@ from harness_agent.core import (
     InMemoryEventBus,
     InMemoryToolRegistry,
     Message,
+    OpenToolsPolicy,
     PermissionPolicy,
     ProgressRecorder,
     ProtectedPolicy,
@@ -148,6 +154,7 @@ from harness_agent.core import (
     ReviewingRunner,
     Role,
     RuleError,
+    SecretRedactor,
     SessionLimits,
     StartupRoutine,
     TaskCommand,
@@ -541,6 +548,7 @@ def compose(
     changes: ChangeSource | None = None,
     pull_request_prompter: PullRequestPrompter | None = None,
     pull_request_host: PullRequestHost | None = None,
+    ask: AskFn | None = None,
 ) -> Composition:
     """Build the connected system from ``config``; nothing is left half open on failure.
 
@@ -567,6 +575,9 @@ def compose(
             there is no Pull Request step.
         pull_request_host: Pushes and creates the Pull Request; git and ``gh`` on the work area by
             default.
+        ask: Shows a question with options to the person and returns the answer (HU-06-02);
+            with it the agent has the ``preguntar_usuario`` tool, which never asks for approval;
+            without one the tool does not exist.
 
     Raises:
         ProviderDependencyError: The optional dependency of the real provider is missing.
@@ -598,6 +609,11 @@ def compose(
         shell_tool,
     ):
         registry.register(tool)
+    open_tools: tuple[str, ...] = ()
+    if ask is not None:
+        ask_tool = AskUserTool(ask)
+        registry.register(ask_tool)
+        open_tools = (ask_tool.name,)
     commands = () if task is None else task.commands
     provisional = _provisional_prefix(system, area, commands)
     essential: tuple[EssentialItem, ...] = ()
@@ -620,6 +636,12 @@ def compose(
         except EssentialContextError as error:
             raise StartupError(str(error)) from None
     bus = InMemoryEventBus()
+    # What is written to disk is cleaned of secrets (HU-10-02): the key of the provider and the
+    # values of the key-like variables of the environment (the ``.env`` one included) are known.
+    redactor = SecretRedactor.from_environment(
+        process_environment() if environ is None else environ,
+        () if config.api_key is None else (config.api_key.reveal(),),
+    )
     store_options: dict[str, Any] = {}
     if clock is not None:
         store_options["clock"] = clock
@@ -648,7 +670,11 @@ def compose(
                 GitPolicy(
                     AskCeilingPolicy(
                         ExactCallPolicy(
-                            DefaultPermissionPolicy(registry, area, config.permissions),
+                            OpenToolsPolicy(
+                                DefaultPermissionPolicy(registry, area, config.permissions),
+                                open_tools,
+                                ask_names=config.permissions.ask,
+                            ),
                             _allowed_commands(commands, shell_tool.name),
                             ask_names=config.permissions.ask,
                         ),
@@ -719,6 +745,7 @@ def compose(
                 messages,
                 warn=warning_sink.write,
                 rejected_text=lambda name: rejection_message(name, None),
+                redact=redactor,
             )
             for kind in (
                 EventType.USER_MESSAGE,
@@ -727,7 +754,7 @@ def compose(
                 EventType.TOOL_FINISHED,
             ):
                 bus.subscribe(kind, capture.on_event)
-        attach_event_recorder(bus, store, (EventType.CONTEXT_COMPACTED,))
+        attach_event_recorder(bus, store, (EventType.CONTEXT_COMPACTED,), redact=redactor.value)
         # The limits of the session are mapped here: the core does not import ``config`` (HU-01-06).
         # ``max_tokens`` is the budget of the whole run, never the cap of one call.
         limits = SessionLimits(
@@ -737,13 +764,31 @@ def compose(
         )
         loop = AgentLoop(provider, registry, policy, bus, approver=approver, limits=limits)
         compactor = _compactor(
-            provider, store, config, session_id, registry, bus, warning_sink, clock, id_factory
+            provider,
+            store,
+            config,
+            session_id,
+            registry,
+            bus,
+            warning_sink,
+            clock,
+            id_factory,
+            redact=redactor,
         )
 
         def compactor_for(session: str) -> ContextCompactor:
             """The compactor of another session of this run (HU-03-04); the logic is the same."""
             return _compactor(
-                provider, store, config, session, registry, bus, warning_sink, clock, id_factory
+                provider,
+                store,
+                config,
+                session,
+                registry,
+                bus,
+                warning_sink,
+                clock,
+                id_factory,
+                redact=redactor,
             )
 
         def manual_compactor_for(session: str) -> ContextCompactor:
@@ -763,6 +808,7 @@ def compose(
                 id_factory,
                 settings=forced_context_settings(config.context),
                 warn=_discard,
+                redact=redactor,
             )
 
         runner: TaskRunner[TurnResult] | None = None
@@ -915,6 +961,7 @@ def _compactor(
     *,
     settings: ContextSettings | None = None,
     warn: Callable[[str], None] | None = None,
+    redact: Callable[[str], str] | None = None,
 ) -> ContextCompactor:
     """The compactor of the context (HU-02-03), connected to the pieces of the session.
 
@@ -945,7 +992,7 @@ def _compactor(
 
     return ContextCompactor(
         provider,
-        SqliteCompactionArchive(store, **archive_options),
+        SqliteCompactionArchive(store, redact=redact, **archive_options),
         config.context if settings is None else settings,
         session_id=session_id,
         model=lambda: config.model,
@@ -1453,6 +1500,7 @@ def main(
                 changes=changes,
                 pull_request_prompter=ConsolePullRequestPrompter(input_stream, output),
                 pull_request_host=pull_request_host,
+                ask=console_ask(ConsoleQuestioner(input_stream, output)),
             )
         except (
             ConfigError,
@@ -1472,6 +1520,16 @@ def main(
     finally:
         if composition is not None:
             composition.close()
+
+
+def console_ask(questioner: ConsoleQuestioner) -> AskFn:
+    """Connect the console to the ``preguntar_usuario`` tool: its question in, its answer out."""
+
+    async def ask(question: Question) -> Answer | None:
+        reply = await questioner(question)
+        return None if reply is None else Answer(reply.number, reply.text)
+
+    return ask
 
 
 def entry() -> int:
