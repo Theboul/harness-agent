@@ -219,6 +219,7 @@ from harness_agent.core.review import (
     criterion_rejection_notice,
     rejection_notice,
 )
+from harness_agent.core.secret_redaction import SecretRedactor, is_secret_name, redact_secrets
 from harness_agent.core.startup import (
     GIT_LOG_COMMAND,
     MAX_LOG_CHARS,
@@ -442,6 +443,10 @@ __all__ = [
     # Hiding of credentials in URLs (HU-11-02; HU-10-02 must absorb it)
     "HIDDEN_SECRET",
     "hide_url_credentials",
+    # General redaction of secrets (HU-10-02)
+    "SecretRedactor",
+    "is_secret_name",
+    "redact_secrets",
     # Task definition and parser (HU-11-01)
     "MAX_CRITERIA",
     "CriterionDefinition",
