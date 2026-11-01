@@ -77,9 +77,11 @@ def test_an_empty_skip_changes_nothing() -> None:
 def test_skip_is_positional_or_keyword_in_the_third_place() -> None:
     parameters = list(inspect.signature(attach_event_recorder).parameters.values())
 
-    assert [p.name for p in parameters] == ["bus", "store", "skip"]
+    assert [p.name for p in parameters] == ["bus", "store", "skip", "redact"]
     assert parameters[2].kind is inspect.Parameter.POSITIONAL_OR_KEYWORD
     assert parameters[2].default == ()
+    assert parameters[3].kind is inspect.Parameter.KEYWORD_ONLY  # HU-10-02
+    assert parameters[3].default is None
 
 
 def compact(store: SqliteSessionStore, sid: str) -> Event:

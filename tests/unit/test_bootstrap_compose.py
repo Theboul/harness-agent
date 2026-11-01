@@ -212,7 +212,7 @@ class TestTheOrderAndFailures:
                 super().__init__(*args, **kwargs)
                 stores.append(self)
 
-        def failing_recorder(*_args: Any) -> None:
+        def failing_recorder(*_args: Any, **_kwargs: Any) -> None:
             raise RuntimeError("fallo de prueba")
 
         monkeypatch.setattr(bootstrap, "SqliteSessionStore", RecordingStore)
