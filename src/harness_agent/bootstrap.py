@@ -36,6 +36,13 @@ from harness_agent.adapters.providers.litellm_provider import (
     LiteLLMProvider,
     ProviderDependencyError,
 )
+from harness_agent.adapters.providers.model_switch import (
+    DEFAULT_ALIAS,
+    ModelSwitch,
+    ModelSwitchError,
+    ModelUnavailable,
+    UnknownModelAlias,
+)
 from harness_agent.adapters.providers.retrying_provider import (
     RetryAttempt,
     RetryingProvider,
@@ -97,9 +104,14 @@ from harness_agent.cli import (
     SessionRow,
     attach_criteria_status,
     format_compaction,
+    format_implementing,
     format_model,
+    format_model_changed,
+    format_model_unavailable,
     format_new_session,
+    format_planning,
     format_sessions,
+    format_unknown_model,
     run_cli,
 )
 from harness_agent.config import (
@@ -151,6 +163,7 @@ from harness_agent.core import (
     PullRequestHost,
     PullRequestPrompter,
     ReadOnlyPolicy,
+    ReadOnlySwitch,
     ResumeError,
     ReviewingRunner,
     Role,
@@ -158,6 +171,7 @@ from harness_agent.core import (
     SecretRedactor,
     SessionLimits,
     StartupRoutine,
+    SwitchablePolicy,
     TaskCommand,
     TaskDefinition,
     TaskFormatError,
@@ -339,6 +353,13 @@ class SessionCursor:
     value: str
 
 
+@dataclass
+class WorkMode:
+    """Whether the planning mode of ``/plan`` is on (HU-06-06); the only state it keeps."""
+
+    planning: bool = False
+
+
 @dataclass(frozen=True)
 class Composition:
     """Everything one run needs, already connected; built once per run and never shared.
@@ -373,6 +394,10 @@ class Composition:
     compactor_for: Callable[[str], ContextCompactor] | None = None
     model: str = ""
     model_view: ModelView | None = None
+    current_view: Callable[[], ModelView] | None = None
+    model_switch: ModelSwitch | None = None
+    read_only_switch: ReadOnlySwitch | None = None
+    work_mode: WorkMode = field(default_factory=WorkMode)
     manual_compactor_for: Callable[[str], ContextCompactor] | None = None
     mcp_clients: tuple[McpStdioClient, ...] = ()
     mcp_tool_names: set[str] = field(default_factory=set)
@@ -603,7 +628,25 @@ def compose(
         SessionStoreError: The sessions database could not be opened or written.
         SchemaVersionError: The sessions database has an unknown schema version.
     """
-    provider = (provider_factory if provider_factory is not None else _default_provider)(config)
+    factory = provider_factory if provider_factory is not None else _default_provider
+    provider = factory(config)
+    aliases = {entry.alias: entry for entry in config.models}
+
+    def build_alias(alias: str) -> Provider:
+        """The provider of an alias, with its model and its own key (HU-06-06)."""
+        entry = aliases[alias]
+        if entry.key_variable is not None and entry.api_key is None:
+            raise ModelUnavailable("missing_key", entry.key_variable)
+        return factory(
+            replace(
+                config, model=entry.model, api_key=entry.api_key, key_variable=entry.key_variable
+            )
+        )
+
+    switch = ModelSwitch(
+        config.model, provider, {entry.alias: entry.model for entry in config.models}, build_alias
+    )
+    mode = WorkMode()
     area, notices = _build_area(config.paths.workspace_root)
     system = platform.system() if system_name is None else system_name
     shell = None
@@ -656,7 +699,11 @@ def compose(
     # values of the key-like variables of the environment (the ``.env`` one included) are known.
     redactor = SecretRedactor.from_environment(
         process_environment() if environ is None else environ,
-        () if config.api_key is None else (config.api_key.reveal(),),
+        tuple(
+            key.reveal()
+            for key in (config.api_key, *(entry.api_key for entry in config.models))
+            if key is not None
+        ),
     )
     store_options: dict[str, Any] = {}
     if clock is not None:
@@ -709,17 +756,25 @@ def compose(
             protected,
             markers,
         )
-        if read_only or config.read_only:
-            # Outside and first (HU-05-07): its denial prevails over any "allow" of the chain, and
-            # only the reads (the files, the person and the git reads of the shell) go inside.
-            dialect = deny_list.dialect
-            policy = ReadOnlyPolicy(
+        # The read-only mode (HU-05-07) wraps the chain outside and first: its denial prevails over
+        # any "allow" of the chain, and only the reads (the files, the person and the git reads of
+        # the shell) go inside. The switch (HU-06-06) lets ``/plan`` turn it on and off; a mode
+        # fixed at the start (the flag or the configuration) is locked on.
+        dialect = deny_list.dialect
+        fixed = read_only or config.read_only
+        read_switch = ReadOnlySwitch(enabled=fixed, locked=fixed)
+        policy = SwitchablePolicy(
+            ReadOnlyPolicy(
                 policy,
                 read_names,
                 command_tool=shell_tool.name,
                 command_argument=COMMAND_ARGUMENT,
                 is_read_command=lambda command: only_git_reads(command, dialect),
-            )
+            ),
+            policy,
+            read_switch,
+        )
+        if fixed:
             notices = (*notices, READ_ONLY_NOTICE)
         task_options: dict[str, Any] = dict(store_options)
         clock_options: dict[str, Any] = {} if clock is None else {"clock": clock}
@@ -740,10 +795,10 @@ def compose(
                 task_store,
                 config.context,
                 session_id=session_id,
-                model=lambda: config.model,
+                model=lambda: switch.model,
             )
         cursor = SessionCursor(session_id)
-        provider = _with_retries(provider, config, bus, cursor, retry_sleep)
+        provider = _with_retries(switch, config, bus, cursor, retry_sleep)
         # The archive stores ``context_compacted`` in its own transaction (HU-02-03): the recorder
         # must not store it again. The ``skip`` goes by position.
         warning_sink = WarningSink()
@@ -801,6 +856,7 @@ def compose(
             warning_sink,
             clock,
             id_factory,
+            lambda: switch.model,
             redact=redactor,
         )
 
@@ -816,6 +872,7 @@ def compose(
                 warning_sink,
                 clock,
                 id_factory,
+                lambda: switch.model,
                 redact=redactor,
             )
 
@@ -834,6 +891,7 @@ def compose(
                 warning_sink,
                 clock,
                 id_factory,
+                lambda: switch.model,
                 settings=forced_context_settings(config.context),
                 warn=_discard,
                 redact=redactor,
@@ -896,6 +954,25 @@ def compose(
     except BaseException:
         store.close()
         raise
+
+    def current_view() -> ModelView:
+        """What ``/model`` shows now: the active model, its window, the aliases and the mode."""
+        model = switch.model
+        return ModelView(
+            model=model,
+            window_tokens=config.context.window_for(model),
+            threshold_tokens=threshold_tokens(config.context, model),
+            max_turns=config.limits.max_turns,
+            max_seconds=config.limits.max_seconds,
+            max_tokens=config.limits.max_tokens,
+            max_output_tokens=config.limits.max_output_tokens,
+            read_only=read_switch.locked,
+            models=switch.aliases,
+            active_alias=switch.alias,
+            default_model=config.model,
+            planning=mode.planning,
+        )
+
     prefix = [message for _, message in provisional]
     mcp_clients = _mcp_clients(
         config, process_environment() if environ is None else environ, system
@@ -921,16 +998,11 @@ def compose(
         progress=progress,
         startup=startup,
         model=config.model,
-        model_view=ModelView(
-            model=config.model,
-            window_tokens=config.context.window_for(config.model),
-            threshold_tokens=threshold_tokens(config.context, config.model),
-            max_turns=config.limits.max_turns,
-            max_seconds=config.limits.max_seconds,
-            max_tokens=config.limits.max_tokens,
-            max_output_tokens=config.limits.max_output_tokens,
-            read_only=read_only or config.read_only,
-        ),
+        model_view=current_view(),
+        current_view=current_view,
+        model_switch=switch,
+        read_only_switch=read_switch,
+        work_mode=mode,
         manual_compactor_for=manual_compactor_for,
         mcp_clients=mcp_clients,
         registry=registry,
@@ -987,6 +1059,7 @@ def _compactor(
     warning_sink: WarningSink,
     clock: Callable[[], datetime] | None,
     id_factory: Callable[[], str] | None,
+    model: Callable[[], str],
     *,
     settings: ContextSettings | None = None,
     warn: Callable[[str], None] | None = None,
@@ -1024,7 +1097,7 @@ def _compactor(
         SqliteCompactionArchive(store, redact=redact, **archive_options),
         config.context if settings is None else settings,
         session_id=session_id,
-        model=lambda: config.model,
+        model=model,
         definitions=definitions,
         emit=emit,
         publish=bus.emit,
@@ -1153,6 +1226,8 @@ READ_FAILED = "No se pudo leer la sesión; la sesión actual sigue sin cambios."
 RESUME_NOT_AVAILABLE = "Reanudar no está disponible en esta sesión."
 LIST_FAILED = "No se pudo leer la lista de sesiones."
 MODEL_NOT_AVAILABLE = "Modelo no disponible en esta ejecución."
+PLAN_ALIAS = "plan"
+BUILD_ALIAS = "build"
 COMPACT_NOT_AVAILABLE = "Compactar no está disponible en esta ejecución."
 NEW_NOT_AVAILABLE = "Nueva sesión no está disponible en esta ejecución."
 NEW_FAILED = "No se pudo crear la sesión nueva; la sesión actual sigue sin cambios."
@@ -1202,7 +1277,7 @@ def _new_command(
         ):
             return NEW_NOT_AVAILABLE
         try:
-            session = composition.store.create_session(model=composition.model).id
+            session = composition.store.create_session(model=_active_model(composition)).id
             compactor = factory(session)
         except Exception:
             return NEW_FAILED
@@ -1247,14 +1322,86 @@ def _sessions_command(composition: Composition, active: _Active) -> Callable[[],
     return sessions
 
 
-def _model_command(composition: Composition) -> Callable[[], str]:
-    """The function behind ``/model``: the model and the limits in force, never a secret."""
+def _active_model(composition: Composition) -> str:
+    """The model in use now: the one of the switch, or the configured one without it."""
+    switch = composition.model_switch
+    return composition.model if switch is None else switch.model
 
-    def model() -> str:
-        view = composition.model_view
-        return MODEL_NOT_AVAILABLE if view is None else format_model(view)
+
+def _switch_failure(error: ModelSwitchError, name: str) -> str:
+    """The fixed line for a model that cannot be chosen; nothing of the error text is shown."""
+    if isinstance(error, UnknownModelAlias):
+        return format_unknown_model(name)
+    variable = error.variable if isinstance(error, ModelUnavailable) else None
+    return format_model_unavailable(name, variable)
+
+
+def _model_command(composition: Composition) -> Callable[[str], str]:
+    """The function behind ``/model [alias]``: the model in force, or a change to an alias.
+
+    Without argument it shows the aliases, the model and the limits (never a secret). With one it
+    switches the provider for the next calls (HU-06-06); the history is kept. A name that is not
+    an alias, or an alias whose provider cannot be built (a missing key), changes nothing.
+    """
+
+    def model(argument: str) -> str:
+        view, switch = composition.current_view, composition.model_switch
+        if view is None or switch is None:
+            return MODEL_NOT_AVAILABLE
+        if not argument:
+            return format_model(view())
+        try:
+            chosen = switch.select(argument)
+        except ModelSwitchError as error:
+            return _switch_failure(error, argument)
+        return format_model_changed(chosen, switch.alias)
 
     return model
+
+
+def _plan_command(composition: Composition) -> Callable[[], str]:
+    """The function behind ``/plan`` (HU-06-06): the ``plan`` model (or the default) and read-only.
+
+    Both changes or none: if the model cannot be chosen the mode stays as it was.
+    """
+
+    def plan() -> str:
+        switch, read_switch = composition.model_switch, composition.read_only_switch
+        if switch is None or read_switch is None:
+            return MODEL_NOT_AVAILABLE
+        name = PLAN_ALIAS if switch.has(PLAN_ALIAS) else DEFAULT_ALIAS
+        try:
+            chosen = switch.select(name)
+        except ModelSwitchError as error:
+            return _switch_failure(error, name)
+        read_switch.enable()
+        composition.work_mode.planning = True
+        return format_planning(chosen)
+
+    return plan
+
+
+def _implement_command(composition: Composition) -> Callable[[], str]:
+    """The function behind ``/implementar`` (HU-06-06): the ``build`` model (or the default).
+
+    It turns the read-only mode off unless it was fixed at the start (the flag or the
+    configuration), which no command can undo.
+    """
+
+    def implement() -> str:
+        switch, read_switch = composition.model_switch, composition.read_only_switch
+        if switch is None or read_switch is None:
+            return MODEL_NOT_AVAILABLE
+        name = BUILD_ALIAS if switch.has(BUILD_ALIAS) else DEFAULT_ALIAS
+        try:
+            chosen = switch.select(name)
+        except ModelSwitchError as error:
+            return _switch_failure(error, name)
+        kept = not read_switch.disable()
+        composition.work_mode.planning = False
+        return format_implementing(chosen, read_only_kept=kept)
+
+    return implement
 
 
 def _resume_command(
@@ -1275,7 +1422,7 @@ def _resume_command(
                 source,
                 argument,
                 prefix=composition.history_prefix,
-                current_model=composition.model,
+                current_model=_active_model(composition),
                 current_session_id=active.session_id,
                 known_incomplete=capture.incomplete_sessions,
             )
@@ -1422,11 +1569,22 @@ async def run_session(
             "Compacta el contexto ahora.",
             _compact_command(composition, active, history),
         ),
-        "/model": ("Muestra el modelo y los límites.", _model_command(composition)),
+        "/plan": (
+            "Planifica: modelo del alias plan y solo lectura.",
+            _plan_command(composition),
+        ),
+        "/implementar": (
+            "Implementa: modelo del alias build y escritura permitida.",
+            _implement_command(composition),
+        ),
     }
     if runner is not None:
         board = attach_criteria_status(composition.bus, stream)
         commands["/criterios"] = ("Muestra el estado de los criterios.", board.report)
+    model_entry = (
+        "Muestra el modelo y los alias; /model <alias> cambia de modelo.",
+        _model_command(composition),
+    )
     resume = (
         "Reanuda una sesión guardada por su identificador.",
         _resume_command(composition, active, history),
@@ -1452,7 +1610,7 @@ async def run_session(
             input_stream=input_stream,
             output=stream,
             commands=commands,
-            argument_commands={"/reanudar": resume},
+            argument_commands={"/reanudar": resume, "/model": model_entry},
         )
         if composition.progress is not None:
             composition.progress.finish(history)  # a normal end; a hard stop never gets here

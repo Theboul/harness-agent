@@ -57,6 +57,7 @@ AUTHORIZED_SUBMODULES = frozenset(
     {
         "harness_agent.core.loop",
         "harness_agent.adapters.providers.litellm_provider",
+        "harness_agent.adapters.providers.model_switch",
         "harness_agent.adapters.providers.retrying_provider",
     }
 )

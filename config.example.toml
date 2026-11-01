@@ -96,3 +96,13 @@ sessions_db = ".harness/sessions.db"
 # base_delay = 2
 # Tope de la espera, en segundos (de base_delay a 600).
 # max_delay = 30
+
+# Varios modelos en una misma sesión (opcional): cada alias apunta a un modelo de LiteLLM con la
+# forma <proveedor>/<modelo>. Con ellos, `/model <alias>` cambia de modelo sin reiniciar, `/plan`
+# usa el alias `plan` y activa el solo lectura, e `/implementar` vuelve al alias `build` (o al
+# `model` de arriba) y lo desactiva. La clave de cada proveedor sale SOLO del entorno o del .env
+# (GEMINI_API_KEY, GROQ_API_KEY…): aquí nunca se escribe. Si falta la clave de un proveedor, el
+# sistema arranca igual y avisa al elegir ese alias. `predeterminado` es un nombre reservado.
+# [models]
+# plan = "gemini/gemini-3.5-flash-lite"
+# build = "groq/openai/gpt-oss-120b"

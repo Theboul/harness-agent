@@ -36,7 +36,12 @@ class SessionRow:
 
 @dataclass(frozen=True)
 class ModelView:
-    """What ``/model`` shows: the model and the limits in force (no secrets)."""
+    """What ``/model`` shows: the model, the aliases, the mode and the limits (no secrets).
+
+    ``models`` lists the configured aliases with their model, ``active_alias`` is the one in use
+    (``None`` for the configured model, whose name is ``default_model``) and ``planning`` says the
+    planning mode of ``/plan`` is on (HU-06-06).
+    """
 
     model: str
     window_tokens: int
@@ -46,6 +51,10 @@ class ModelView:
     max_tokens: int
     max_output_tokens: int
     read_only: bool = False
+    models: tuple[tuple[str, str], ...] = ()
+    active_alias: str | None = None
+    default_model: str = ""
+    planning: bool = False
 
 
 def _one_line(text: str | None, limit: int) -> str:
@@ -87,21 +96,86 @@ def format_sessions(rows: Sequence[SessionRow]) -> str:
 
 
 READ_ONLY_LINE = "Modo: solo lectura (se deniega toda escritura)."
+PLANNING_LINE = "Modo: planificación (solo lectura; vuelve con /implementar)."
+DEFAULT_NAME = "predeterminado"
+
+
+def _model_lines(view: ModelView) -> list[str]:
+    """The aliases, the active one marked, and the configured model as the last choice."""
+    choices = [(alias, model, view.active_alias == alias) for alias, model in view.models]
+    choices.append((DEFAULT_NAME, view.default_model, view.active_alias is None))
+    lines = ["Modelos (cambia con /model <alias>):"]
+    for alias, model, active in choices:
+        marker = "*" if active else " "
+        shown = _one_line(model, MAX_GOAL_CHARS)
+        lines.append(f"{marker} {_one_line(alias, MAX_FIELD_CHARS)}  {shown}")
+    return lines
+
+
+def _label(alias: str | None) -> str:
+    return DEFAULT_NAME if alias is None else _one_line(f"alias {alias}", MAX_FIELD_CHARS)
 
 
 def format_model(view: ModelView) -> str:
-    """The model, the context window, the compaction threshold and the session limits."""
+    """The model, the aliases, the window, the compaction threshold, the limits and the mode."""
+    name = _one_line(view.model, MAX_GOAL_CHARS)
+    if view.models:
+        name = f"{name} ({_label(view.active_alias)})"
     lines = [
-        f"Modelo: {_one_line(view.model, MAX_GOAL_CHARS)}",
+        f"Modelo: {name}",
         f"Ventana de contexto: {_number(view.window_tokens)} tokens",
         f"Compactación automática desde: {_number(view.threshold_tokens)} tokens",
         f"Límites de la sesión: {_number(view.max_turns)} turnos, "
         f"{_number(view.max_seconds)} s, {_number(view.max_tokens)} tokens",
         f"Máximo por respuesta del modelo: {_number(view.max_output_tokens)} tokens",
     ]
-    if view.read_only:
+    if view.models:
+        lines.extend(_model_lines(view))
+    if view.planning:
+        lines.append(PLANNING_LINE)
+    elif view.read_only:
         lines.append(READ_ONLY_LINE)
     return "\n".join(lines)
+
+
+def format_model_changed(model: str, alias: str | None) -> str:
+    """The line after ``/model <alias>``."""
+    return f"Modelo activo: {_one_line(model, MAX_GOAL_CHARS)} ({_label(alias)})."
+
+
+def format_unknown_model(name: str) -> str:
+    """The line when ``/model`` gets a name that is not an alias."""
+    return (
+        f"No existe el modelo '{_one_line(name, MAX_FIELD_CHARS)}'. "
+        "Escribe /model para ver los disponibles."
+    )
+
+
+def format_model_unavailable(alias: str, variable: str | None) -> str:
+    """The line when the provider of an alias cannot be used; it names the variable, no secret."""
+    shown = _one_line(alias, MAX_FIELD_CHARS)
+    if variable is None:
+        return f"No se pudo cambiar a '{shown}'. El modelo activo no cambia."
+    return (
+        f"No se puede usar '{shown}': falta la variable de entorno "
+        f"{_one_line(variable, MAX_FIELD_CHARS)}. El modelo activo no cambia."
+    )
+
+
+def format_planning(model: str) -> str:
+    """The line after ``/plan``."""
+    return (
+        f"Modo planificación: modelo {_one_line(model, MAX_GOAL_CHARS)}, solo lectura "
+        "(se deniega toda escritura). Vuelve con /implementar."
+    )
+
+
+def format_implementing(model: str, *, read_only_kept: bool) -> str:
+    """The line after ``/implementar``; ``read_only_kept`` when the mode was fixed at the start."""
+    head = f"Modo implementación: modelo {_one_line(model, MAX_GOAL_CHARS)}"
+    if read_only_kept:
+        return f"{head}. El solo lectura sigue activo porque se fijó al arrancar."
+    return f"{head}; las escrituras siguen la política de permisos."
 
 
 def format_compaction(result: CompactionResult | None) -> str:
