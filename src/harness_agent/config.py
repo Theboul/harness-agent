@@ -83,6 +83,9 @@ _MAX_DENY_COMMAND_CHARS = 500
 _NOT_A_COMMAND_LIST = (
     "debe ser una lista de comandos no vacíos, de hasta 500 caracteres y sin caracteres de control."
 )
+# Read-only mode (HU-05-07): a boolean of ``[permissions]``, kept apart from ``PermissionRules``.
+_READ_ONLY_FIELD = "read_only"
+_NOT_A_BOOLEAN = "debe ser true o false."
 _MISSING_FIELD = "falta el campo obligatorio."
 _MODEL_FORM = "debe ser un texto con la forma <proveedor>/<modelo>."
 _NOT_AN_INTEGER = "debe ser un entero mayor que 0."
@@ -98,7 +101,7 @@ _TABLE_FIELDS: Mapping[str, tuple[str, ...]] = MappingProxyType(
         "context": _CONTEXT_FIELDS,
         "retries": _RETRY_FIELDS,
         "paths": _PATH_FIELDS,
-        "permissions": (*_PERMISSION_FIELDS, _DENY_COMMANDS_FIELD),
+        "permissions": (*_PERMISSION_FIELDS, _DENY_COMMANDS_FIELD, _READ_ONLY_FIELD),
     }
 )
 
@@ -365,6 +368,8 @@ class HarnessConfig:
             configuration cannot define a rule to allow.
         deny_commands: Shell commands added to the base deny list of the platform (HU-05-02);
             empty by default. They can only add: the base list cannot be removed.
+        read_only: Read-only mode (HU-05-07): every write is denied; ``False`` by default. The
+            command line can turn it on too, and neither can turn the other off.
         mcp_servers: MCP servers to connect to over stdio (HU-08-01), from the optional
             ``[mcp_servers.<name>]`` tables; empty by default.
         context: Size of the context window and when to compact it (HU-02-03); the defaults
@@ -381,6 +386,7 @@ class HarnessConfig:
     key_variable: str | None = None
     permissions: PermissionRules = PermissionRules()
     deny_commands: tuple[str, ...] = ()
+    read_only: bool = False
     context: ContextSettings = ContextSettings()
     mcp_servers: tuple[McpServerConfig, ...] = ()
     retries: Retries = Retries()
@@ -572,6 +578,15 @@ def _check_deny_commands(table: Mapping[str, Any], present: list[ConfigProblem])
     return ()
 
 
+def _check_read_only(table: Mapping[str, Any], present: list[ConfigProblem]) -> bool:
+    """The read-only switch: a real boolean (a text or a number is not accepted)."""
+    value = table.get(_READ_ONLY_FIELD, False)
+    if isinstance(value, bool):
+        return value
+    present.append(ConfigProblem(f"permissions.{_READ_ONLY_FIELD}", _NOT_A_BOOLEAN))
+    return False
+
+
 def _table(data: Mapping[str, Any], name: str, present: list[ConfigProblem]) -> Mapping[str, Any]:
     """The table ``name`` (empty if absent); a value that is not a table is a problem."""
     value = data.get(name, {})
@@ -688,6 +703,7 @@ def load_config(
     permissions_table = _table(data, "permissions", present)
     permissions = _check_permissions(permissions_table, present)
     deny_commands = _check_deny_commands(permissions_table, present)
+    read_only = _check_read_only(permissions_table, present)
     mcp_servers, mcp_problems = check_mcp_servers(_table(data, MCP_TABLE, present))
     present.extend(ConfigProblem(field, message) for field, message in mcp_problems)
     unknown = [ConfigProblem(name, _UNKNOWN_FIELD) for name in reported]
@@ -704,6 +720,7 @@ def load_config(
             source=file_path,
             permissions=permissions,
             deny_commands=deny_commands,
+            read_only=read_only,
             context=context,
             mcp_servers=mcp_servers,
             retries=retries,
@@ -720,6 +737,7 @@ def load_config(
         key_variable=variable,
         permissions=permissions,
         deny_commands=deny_commands,
+        read_only=read_only,
         context=context,
         mcp_servers=mcp_servers,
         retries=retries,

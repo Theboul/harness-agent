@@ -164,12 +164,14 @@ from harness_agent.core.permissions import (
     ParsedCommand,
     PermissionRules,
     ProtectedPolicy,
+    ReadOnlyPolicy,
     RuleError,
     RuleKind,
     classify_git,
     clean_reason,
     compile_rule,
     git_instructions,
+    only_git_reads,
     parse_command,
     rejection_message,
 )
@@ -367,6 +369,7 @@ __all__ = [
     "OpenToolsPolicy",
     "PermissionRules",
     "ProtectedPolicy",
+    "ReadOnlyPolicy",
     # Exact declared calls (HU-11-03)
     "AllowedCall",
     "ExactCallPolicy",
@@ -386,6 +389,7 @@ __all__ = [
     "GitPolicy",
     "classify_git",
     "git_instructions",
+    "only_git_reads",
     # Summary of changes and human approval of the diff (HU-11-05)
     "ApprovedChange",
     "PROTECTED_BRANCHES",
