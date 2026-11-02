@@ -44,7 +44,7 @@ ABOVE = "Aviso: el contexto sigue por encima del umbral"
 
 def settings() -> ContextSettings:
     return ContextSettings(
-        window_tokens=3_000,
+        window_tokens=2_800,
         threshold_percent=50,
         recent_percent=5,
         min_recent_messages=4,

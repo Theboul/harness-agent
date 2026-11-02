@@ -64,7 +64,7 @@ Step = ProviderResponse | ProviderError
 
 def settings(**more: object) -> ContextSettings:
     fields: dict[str, object] = {
-        "window_tokens": 3_000,
+        "window_tokens": 2_800,
         "threshold_percent": 50,
         "recent_percent": 5,
         "min_recent_messages": 4,
@@ -469,5 +469,7 @@ def test_the_numbers_of_the_scenario_are_the_measured_ones(
     )
     base = estimate_messages(list(session.composition.history_prefix)) + tools
 
-    assert threshold_tokens(settings(), MODEL) == 1_500
-    assert 700 < base < 900  # the prefix and the tools alone are far below the threshold
+    assert (
+        threshold_tokens(settings(), MODEL) == 1_400
+    )  # window 2 800 since HU-06-07 (the prefix lost the git text)
+    assert 600 < base < 900  # the prefix and the tools alone are far below the threshold

@@ -213,6 +213,12 @@ def _as_wire(raw: object) -> dict[str, Any]:
     return wire
 
 
+DEBUG_MAX_CHARS = 2000
+"""Cap of the debug detail of a failed call (HU-06-07)."""
+
+DebugFn = Callable[[str], None]
+
+
 class LiteLLMProvider(Provider):
     """``Provider`` over LiteLLM; the dependencies come by constructor and nothing is read.
 
@@ -222,6 +228,10 @@ class LiteLLMProvider(Provider):
         api_key: The key of the provider (a ``Secret``), or ``None`` if the provider needs none.
         completion: The async function that makes the call. By default, ``litellm.acompletion``
             loaded lazily; tests inject a fake one so that no library, network or key is needed.
+        debug: Opt-in sink for the detail of a failed call (HU-06-07). It gets
+            the text of the original exception, cleaned of the key and capped. That text may hold
+            content of the person (providers often echo the request): the caller decides where it
+            goes and it must never be written to disk. ``None`` (the default) reports nothing.
     """
 
     def __init__(
@@ -231,6 +241,7 @@ class LiteLLMProvider(Provider):
         max_output_tokens: int,
         api_key: _Revealable | None = None,
         completion: CompletionFn | None = None,
+        debug: DebugFn | None = None,
     ) -> None:
         name, slash, tail = model.partition("/") if isinstance(model, str) else ("", "", "")
         if not (slash and name.strip() and tail.strip()):
@@ -245,6 +256,7 @@ class LiteLLMProvider(Provider):
         self._max_output_tokens = max_output_tokens
         self._api_key = api_key
         self._completion = completion if completion is not None else _load_completion()
+        self._debug = debug
 
     @property
     def model(self) -> str:
@@ -282,6 +294,15 @@ class LiteLLMProvider(Provider):
             return canonical(message, retry_after=getattr(error, "retry_after", None))
         return canonical(message)
 
+    def _report(self, error: Exception) -> None:
+        """Hand the cleaned, capped detail of ``error`` to the debug sink, if there is one."""
+        if self._debug is None:
+            return
+        try:
+            self._debug(self._clean(str(error))[:DEBUG_MAX_CHARS])
+        except Exception:
+            pass  # a diagnostic aid never changes the error the loop gets
+
     def build_request(
         self, messages: Sequence[Message], tools: Sequence[ToolDefinition] | None
     ) -> dict[str, Any]:
@@ -315,6 +336,7 @@ class LiteLLMProvider(Provider):
         except ProviderError:
             raise
         except Exception as exc:
+            self._report(exc)
             raise self._canonical_error(exc) from exc
         wire = _as_wire(raw)
         _mark_unreadable_arguments(wire, _free_form_tools(tools), self._clean)

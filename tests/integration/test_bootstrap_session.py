@@ -182,7 +182,7 @@ class TestATaskFromStartToFinish:
         fourth_call = [m.content for m in run.provider.received[3]]
         # The history opens with the environment notice (HU-01-04); the first task follows it.
         assert fourth_call[0].startswith("Entorno de ejecución")
-        assert fourth_call[2] == "escribe notas.txt"
+        assert fourth_call[1] == "escribe notas.txt"  # no git text: a loose session (HU-06-07)
         assert "lee notas.txt" in fourth_call
 
 

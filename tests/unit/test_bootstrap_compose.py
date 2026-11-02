@@ -255,7 +255,12 @@ class TestTheDefaultProvider:
 
         class RecordingProvider(Provider):
             def __init__(
-                self, model: str, *, max_output_tokens: int, api_key: object = None
+                self,
+                model: str,
+                *,
+                max_output_tokens: int,
+                api_key: object = None,
+                debug: object = None,
             ) -> None:
                 built.append((model, max_output_tokens, api_key))
 

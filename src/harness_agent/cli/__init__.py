@@ -22,6 +22,8 @@ from harness_agent.cli.render import render_event
 from harness_agent.cli.review import ConsoleReviewer
 from harness_agent.cli.review_view import review_block
 from harness_agent.cli.session_commands import (
+    OFFER_OPTIONS,
+    OFFER_QUESTION,
     ModelView,
     SessionRow,
     format_compaction,
@@ -37,6 +39,8 @@ from harness_agent.cli.session_commands import (
 from harness_agent.cli.style import Style, detect_style
 
 __all__ = [
+    "OFFER_OPTIONS",
+    "OFFER_QUESTION",
     "ActivityRenderer",
     "ConsoleApprover",
     "ConsolePullRequestPrompter",

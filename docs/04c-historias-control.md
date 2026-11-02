@@ -404,6 +404,32 @@ x Error: la ruta 'src/pago.py' no existe. Sugerencia: usa 'listar' para ver los 
 - **AC-04 — Compatibilidad.** Sin `[models]` el sistema se comporta como antes.
 - **AC-05 — Sin secretos.** Ninguna clave aparece en `/model`, avisos, eventos ni archivos del repositorio.
 
+<a id="hu-06-07"></a>
+#### HU-06-07 — Pulido de uso del arnés (propuesta)
+
+**Estado de la ficha:** historia **propuesta**, pendiente de ratificación del PO (como HU-06-05 y HU-06-06); sus criterios son propuestos y son inmutables una vez ratificados.
+**Prioridad:** Media · **PHU:** — · **Sprint:** Sprint 4 (cierre adelantado al 6-nov-2026) · **Desarrollador:** C — Control y conexiones
+**Requisitos:** RF-6.6 (relacionada) · **Depende de:** [HU-06-06](04c-historias-control.md#hu-06-06), [HU-07-02](04d-historias-conexiones.md#hu-07-02), [HU-11-02](04e-historias-coding-harness.md#hu-11-02)
+
+- **Como:** usuario operador
+- **Quiero:** diagnosticar un error del proveedor, que el modelo sepa en qué modo está, no recibir instrucciones de git fuera de un ticket y pasar de planear a implementar con una pregunta
+- **Para:** gastar menos turnos y aprobaciones y poder depurar un 400 del proveedor sin editar código
+- **Descripción:** (1) `HARNESS_DEBUG_PROVIDER=1` muestra por `stderr` el texto del error del proveedor (sin la clave, ≤ 2 000 caracteres, sin escribirlo a disco); (2) `/plan` e `/implementar` avisan al modelo del modo en la siguiente petición; (3) las instrucciones de git solo se envían con una tarea; (4) al terminar un turno en `/plan` el arnés pregunta si pasar a implementar.
+
+**Reglas de negocio**
+
+1. El detalle del proveedor puede contener texto de la persona: es opt-in, solo `stderr`, nunca a disco.
+2. La decisión de implementar es siempre de la persona: el modelo no puede levantar el solo lectura; un modo fijado al arrancar no se ofrece.
+3. Sin respuesta o con una respuesta inválida se sigue en solo lectura (falla cerrada).
+
+**Criterios de aceptación (propuestos)**
+
+- **AC-01 — Depuración del proveedor.** Con `HARNESS_DEBUG_PROVIDER=1`, cuando el proveedor falla, `stderr` muestra el texto sin la clave y acotado; sin la variable no aparece nada.
+- **AC-02 — Aviso de modo.** Tras `/plan`, la siguiente petición lleva el aviso de solo lectura una sola vez; tras `/implementar`, el contrario.
+- **AC-03 — Git solo con tarea.** Una sesión sin tarea no recibe las instrucciones de git; con tarea sí.
+- **AC-04 — Oferta de implementar.** Al cerrar un turno en `/plan`, la opción `1` equivale a `/implementar`; cualquier otra mantiene el solo lectura; con el modo fijado al arrancar no se pregunta.
+- **AC-05 — Sin secretos.** Ninguna clave aparece en la salida de depuración, avisos ni archivos.
+
 ---
 
 [← 04b-historias-estado.md](04b-historias-estado.md) · [Índice](00-indice.md) · [04d-historias-conexiones.md →](04d-historias-conexiones.md)
