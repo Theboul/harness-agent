@@ -40,7 +40,8 @@ def test_a_true_value_gives_the_provider_a_sink_that_writes_one_clean_line_to_st
     value: str,
 ) -> None:
     seen = capture_debug(monkeypatch)
-    config = make_config(tmp_path, workspace=tmp_path, api_key=Secret(SENTINEL))
+    key = Secret(SENTINEL)
+    config = make_config(tmp_path, workspace=tmp_path, api_key=key)
 
     composition = compose(config, environ={"HARNESS_DEBUG_PROVIDER": value})
     try:
