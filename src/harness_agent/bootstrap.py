@@ -96,6 +96,8 @@ from harness_agent.adapters.tools import (
     make_command_runner,
 )
 from harness_agent.cli import (
+    OFFER_OPTIONS,
+    OFFER_QUESTION,
     ConsoleApprover,
     ConsolePullRequestPrompter,
     ConsoleQuestioner,
@@ -353,11 +355,38 @@ class SessionCursor:
     value: str
 
 
+PLANNING_NOTICE = (
+    "[Aviso del arnés] Modo planificación: solo lectura. No uses herramientas de escritura ni el "
+    "shell (solo se permiten las lecturas de git); cualquier otra operación se denegará. Lee "
+    "archivos, explora y propone un plan."
+)
+IMPLEMENTING_NOTICE = (
+    "[Aviso del arnés] Modo implementación: ya puedes escribir archivos y usar el shell según los "
+    "permisos; las operaciones que lo requieran pedirán aprobación."
+)
+
+
 @dataclass
 class WorkMode:
-    """Whether the planning mode of ``/plan`` is on (HU-06-06); the only state it keeps."""
+    """Whether the planning mode of ``/plan`` is on (HU-06-06), and whether the model was told.
+
+    ``told_planning`` is the mode the model has been informed of (HU-06-07): the notice of a
+    change of mode rides in front of the next request, once, and only if the two differ.
+    """
 
     planning: bool = False
+    told_planning: bool = False
+
+    def take_notice(self) -> str | None:
+        """The notice for the model if the mode changed since it was told, else ``None``."""
+        if self.planning == self.told_planning:
+            return None
+        self.told_planning = self.planning
+        return PLANNING_NOTICE if self.planning else IMPLEMENTING_NOTICE
+
+    def forget(self) -> None:
+        """The model starts from an empty conversation: it knows nothing about the mode."""
+        self.told_planning = False
 
 
 @dataclass(frozen=True)
@@ -404,13 +433,16 @@ class Composition:
     session_cursor: SessionCursor | None = None
     progress: ProgressRecorder | None = None
     startup: StartupRoutine | None = None
+    ask: AskFn | None = None
 
     def close(self) -> None:
         """Close the session store; safe to call more than once."""
         self.store.close()
 
 
-def _default_provider(config: HarnessConfig) -> Provider:
+def _default_provider(
+    config: HarnessConfig, debug: Callable[[str], None] | None = None
+) -> Provider:
     """The real provider: LiteLLM with the configured model, output cap and key."""
     if config.model.partition("/")[0] in TEST_ONLY_PROVIDERS:
         raise StartupError(TEST_ONLY_PROVIDER_MESSAGE)
@@ -418,7 +450,30 @@ def _default_provider(config: HarnessConfig) -> Provider:
         config.model,
         max_output_tokens=config.limits.max_output_tokens,
         api_key=config.api_key,
+        debug=debug,
     )
+
+
+DEBUG_PROVIDER_VARIABLE = "HARNESS_DEBUG_PROVIDER"
+DEBUG_PROVIDER_PREFIX = "[depuración del proveedor] "
+_DEBUG_ON = frozenset({"1", "true", "si", "sí", "yes", "on"})
+
+
+def _debug_sink(
+    environ: Mapping[str, str], redact: Callable[[str], str]
+) -> Callable[[str], None] | None:
+    """The provider-detail sink if ``HARNESS_DEBUG_PROVIDER`` is on, else ``None`` (HU-06-07).
+
+    The text goes to standard error as one line, cleaned of secrets, and is never saved: it may
+    hold content of the person that the provider echoed back.
+    """
+    if environ.get(DEBUG_PROVIDER_VARIABLE, "").strip().lower() not in _DEBUG_ON:
+        return None
+
+    def sink(text: str) -> None:
+        _write_notice(sys.stderr, DEBUG_PROVIDER_PREFIX + " ".join(redact(text).split()))
+
+    return sink
 
 
 def _with_retries(
@@ -551,12 +606,17 @@ def _deny_list(interpreter: str, added: tuple[str, ...]) -> DenyList:
 
 
 def _provisional_prefix(
-    system: str, area: AuthorizedArea | None, commands: tuple[TaskCommand, ...]
+    system: str,
+    area: AuthorizedArea | None,
+    commands: tuple[TaskCommand, ...],
+    task: TaskDefinition | None,
 ) -> list[tuple[str, Message]]:
     """The system messages that open every conversation, each with the origin it is recorded under.
 
     They are the instructions of the model (HU-01-04, HU-11-02, HU-11-03) and depend on nothing
-    that is opened later, so they are built before the store is.
+    that is opened later, so they are built before the store is. The git instructions (a branch
+    of their own, small commits) only make sense for a ticket, so a loose session does not get
+    them (HU-06-07).
     """
     pairs = [
         (
@@ -564,7 +624,7 @@ def _provisional_prefix(
             Message(role=Role.SYSTEM, content=environment_notice(system, interpreter_for(system))),
         )
     ]
-    if area is not None:
+    if area is not None and task is not None:
         # How to use git in the task (HU-11-02, Sp2-44); provisional until HU-02-01 assembles it.
         pairs.append(("git", Message(role=Role.SYSTEM, content=git_instructions())))
     commands_text = commands_notice(commands)
@@ -628,7 +688,24 @@ def compose(
         SessionStoreError: The sessions database could not be opened or written.
         SchemaVersionError: The sessions database has an unknown schema version.
     """
-    factory = provider_factory if provider_factory is not None else _default_provider
+    # What is written to disk is cleaned of secrets (HU-10-02): the key of the provider and the
+    # values of the key-like variables of the environment (the ``.env`` one included) are known.
+    redactor = SecretRedactor.from_environment(
+        process_environment() if environ is None else environ,
+        tuple(
+            key.reveal()
+            for key in (config.api_key, *(entry.api_key for entry in config.models))
+            if key is not None
+        ),
+    )
+    if provider_factory is not None:
+        factory = provider_factory
+    else:
+        sink = _debug_sink(process_environment() if environ is None else environ, redactor)
+
+        def factory(chosen: HarnessConfig) -> Provider:
+            return _default_provider(chosen, sink)
+
     provider = factory(config)
     aliases = {entry.alias: entry for entry in config.models}
 
@@ -674,7 +751,7 @@ def compose(
         open_tools = (ask_tool.name,)
         read_names.append(ask_tool.name)  # asking the person writes nothing
     commands = () if task is None else task.commands
-    provisional = _provisional_prefix(system, area, commands)
+    provisional = _provisional_prefix(system, area, commands, task)
     essential: tuple[EssentialItem, ...] = ()
     if task is not None:
         # The essential context of the task (HU-02-06.1) is checked before anything is opened, so a
@@ -695,16 +772,6 @@ def compose(
         except EssentialContextError as error:
             raise StartupError(str(error)) from None
     bus = InMemoryEventBus()
-    # What is written to disk is cleaned of secrets (HU-10-02): the key of the provider and the
-    # values of the key-like variables of the environment (the ``.env`` one included) are known.
-    redactor = SecretRedactor.from_environment(
-        process_environment() if environ is None else environ,
-        tuple(
-            key.reveal()
-            for key in (config.api_key, *(entry.api_key for entry in config.models))
-            if key is not None
-        ),
-    )
     store_options: dict[str, Any] = {}
     if clock is not None:
         store_options["clock"] = clock
@@ -997,6 +1064,7 @@ def compose(
         session_cursor=cursor,
         progress=progress,
         startup=startup,
+        ask=ask,
         model=config.model,
         model_view=current_view(),
         current_view=current_view,
@@ -1282,6 +1350,7 @@ def _new_command(
         except Exception:
             return NEW_FAILED
         history[:] = composition.history_prefix
+        composition.work_mode.forget()  # an empty conversation: the mode is told again
         active.session_id = session
         active.compactor = compactor
         active.closures.clear()
@@ -1404,6 +1473,28 @@ def _implement_command(composition: Composition) -> Callable[[], str]:
     return implement
 
 
+async def _offer_implement(
+    composition: Composition, implement: Callable[[], str], stream: TextIO
+) -> None:
+    """After a turn in the planning mode, ask whether to implement (HU-06-07).
+
+    The harness asks, never the model, and only a clear ``1`` applies ``/implementar``. No answer,
+    an invalid one or a failing question keep the read-only mode (fail closed). A mode fixed at
+    the start (the flag or the configuration) is never offered: nothing could turn it off.
+    """
+    read_switch, ask = composition.read_only_switch, composition.ask
+    if ask is None or read_switch is None or read_switch.locked:
+        return
+    if not composition.work_mode.planning:
+        return
+    try:
+        answer = await ask(Question(OFFER_QUESTION, OFFER_OPTIONS, allow_free_text=False))
+    except Exception:
+        return
+    if answer is not None and answer.number == 1:
+        _write_notice(stream, implement())
+
+
 def _resume_command(
     composition: Composition, active: _Active, history: list[Message]
 ) -> Callable[[str], str]:
@@ -1433,6 +1524,7 @@ def _resume_command(
         except Exception:
             return READ_FAILED
         history[:] = resumed.history
+        composition.work_mode.forget()  # the notice may not be in the resumed history
         active.session_id = session
         if composition.session_cursor is not None:
             composition.session_cursor.value = session
@@ -1541,6 +1633,7 @@ async def run_session(
             composition.progress.checkpoint(history)  # the turn ended: a complete checkpoint
         if capture is not None:
             capture.flush()  # an empty answer has no event; it is saved when the turn closes
+        await _offer_implement(composition, implement, stream)
         return result
 
     pending_startup: list[Briefing] = []
@@ -1549,6 +1642,10 @@ async def run_session(
         if pending_startup:
             # The routine of a resumed ticket goes before the first real request, once (HU-11-08.2).
             task = pending_startup.pop().with_request(task)
+        notice = composition.work_mode.take_notice()
+        if notice is not None:
+            # The mode changed since the model was told (HU-06-07): one notice, with the request.
+            task = f"{notice}\n\n{task}"
         # First the calls a cut left without a result: each gets its closing event, once (R21).
         _close_interrupted(composition.bus, active)
         # First the block (so the estimate of the compaction sees it), then the compaction.
@@ -1562,6 +1659,7 @@ async def run_session(
             session_id=active.session_id, task=task, history=history
         )
 
+    implement = _implement_command(composition)
     commands: dict[str, tuple[str, Callable[[], str | Awaitable[str]]]] = {
         "/sesiones": ("Lista las sesiones guardadas.", _sessions_command(composition, active)),
         "/nueva": ("Empieza una sesión nueva.", _new_command(composition, active, history)),
@@ -1575,7 +1673,7 @@ async def run_session(
         ),
         "/implementar": (
             "Implementa: modelo del alias build y escritura permitida.",
-            _implement_command(composition),
+            implement,
         ),
     }
     if runner is not None:

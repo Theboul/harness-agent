@@ -84,7 +84,9 @@ async def test_ac_01_and_ac_03_the_models_and_the_mode_follow_the_commands(
     # as always (a write inside the work area is allowed), not denied by the mode.
     assert providers[BUILD].call_count == 2
     seen = [str(message.content) for message in providers[BUILD].received[0]]
-    assert "explora el proyecto" in seen and "escribe el archivo" in seen
+    # The notices of the mode ride in front of the requests (HU-06-07).
+    assert any(text.endswith("explora el proyecto") for text in seen)
+    assert any(text.endswith("escribe el archivo") for text in seen)
     answer = tool_answers(providers[BUILD].received[1])[-1]
     assert answer.startswith("Archivo creado")
     assert (workspace / "otro.txt").exists()

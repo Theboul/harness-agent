@@ -2,8 +2,8 @@
 
 ``compose()`` puts ``GitPolicy`` between ``CommandPolicy`` and ``ExactCallPolicy``, adds the
 ``.git`` folder of the work area to the protected folders (as data, without changing the code of
-the protected area) and adds the git instructions to the prefix when there is a work area. Checked
-by behaviour through the loop.
+the protected area) and adds the git instructions to the prefix when there is a work area and a
+task (HU-06-07). Checked by behaviour through the loop.
 
 Safety: without a work area there is no shell at all; with one, ``select_shell`` is replaced by a
 recording double, so no command ever runs.
@@ -142,10 +142,21 @@ class TestWithAWorkArea:
 
         assert answer.startswith(ASKED)  # asked as any shell command, not denied
 
-    def test_the_prefix_has_the_git_instructions_after_the_environment(
+    def test_a_loose_session_has_no_git_instructions(
         self, tmp_path: Path, opened: list[Composition], shell: RecordingShell, workspace: Path
     ) -> None:
         composition = build(opened, make_config(tmp_path, workspace=workspace), system_name="Linux")
+
+        (environment,) = composition.history_prefix
+        assert environment.role is Role.SYSTEM and "git" not in environment.content.lower()
+
+    def test_a_task_session_has_the_git_instructions_after_the_environment(
+        self, tmp_path: Path, opened: list[Composition], shell: RecordingShell, workspace: Path
+    ) -> None:
+        task = parse_task("## Objetivo\nProbar.\n\n## Criterios de aceptación\n- Algo\n")
+        composition = build(
+            opened, make_config(tmp_path, workspace=workspace), task=task, system_name="Linux"
+        )
 
         environment, instructions = composition.history_prefix
         assert environment.role is Role.SYSTEM and "git" not in environment.content.lower()

@@ -149,7 +149,10 @@ def test_the_instructions_are_the_exact_texts_of_the_prefix_and_the_prefix_is_un
 
     assert values(composition, "instrucciones") == [m.content for m in composition.history_prefix]
     assert len(composition.history_prefix) == 2
-    assert composition.history_prefix == plain.history_prefix  # FR-022: the prefix does not change
+    # FR-022: the task adds nothing of its own to the prefix; the git instructions are the only
+    # difference with a loose session (HU-06-07) and they come after the common environment.
+    assert composition.history_prefix[:1] == plain.history_prefix
+    assert len(plain.history_prefix) == 1
 
 
 def test_with_the_commands_of_the_task_the_third_instruction_is_recorded_as_commands(

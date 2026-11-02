@@ -241,7 +241,8 @@ def test_without_commands_the_prefix_is_only_the_environment_notice(
 
     composition = build(opened, config, task=TASK if with_task else None)
 
-    assert len(composition.history_prefix) == 2
+    # The environment notice, plus the git instructions only when there is a task (HU-06-07).
+    assert len(composition.history_prefix) == (2 if with_task else 1)
 
 
 # --- the names and limits agree with the shell tool -------------------------------------------

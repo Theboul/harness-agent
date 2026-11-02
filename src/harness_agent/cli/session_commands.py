@@ -162,6 +162,10 @@ def format_model_unavailable(alias: str, variable: str | None) -> str:
     )
 
 
+OFFER_QUESTION = "Terminó el turno en modo planificación (solo lectura). ¿Qué sigue?"
+OFFER_OPTIONS = ("Pasar a implementar (como /implementar)", "Seguir planificando")
+
+
 def format_planning(model: str) -> str:
     """The line after ``/plan``."""
     return (
