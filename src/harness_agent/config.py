@@ -105,6 +105,17 @@ _TABLE_FIELDS: Mapping[str, tuple[str, ...]] = MappingProxyType(
     }
 )
 
+# Aliases of models (HU-06-06): ``[models]`` maps a name to ``<provider>/<model>``.
+MODELS_TABLE = "models"
+# The word that ``/model`` accepts to go back to the configured model (HU-06-06): not an alias.
+RESERVED_ALIAS = "predeterminado"
+_ALIAS_FORM = re.compile(r"^[a-z][a-z0-9_-]{0,31}$")
+_BAD_ALIAS = (
+    "el alias debe empezar con una letra minúscula y tener solo minúsculas, números, - y _ "
+    "(hasta 32 caracteres)."
+)
+_RESERVED_ALIAS_MESSAGE = "ese nombre está reservado para el modelo predeterminado."
+
 _ELLIPSIS = "…"
 _HIDDEN = "<secreto oculto>"
 
@@ -353,6 +364,24 @@ class Paths:
 
 
 @dataclass(frozen=True, slots=True)
+class ModelAlias:
+    """One model of the optional ``[models]`` table (HU-06-06).
+
+    Attributes:
+        alias: Name the person types after ``/model``.
+        model: ``<provider>/<model>`` in the LiteLLM form.
+        api_key: Key of its provider, only from the environment; ``None`` when the provider needs
+            none or the variable is not set (that is only reported when the alias is chosen).
+        key_variable: Name of the environment variable of the key, or ``None``.
+    """
+
+    alias: str
+    model: str
+    api_key: Secret | None = None
+    key_variable: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class HarnessConfig:
     """The complete configuration, typed and immutable, that the rest of the system receives.
 
@@ -376,6 +405,8 @@ class HarnessConfig:
             apply without a ``[context]`` section.
         retries: Retries of the provider calls that fail for a passing reason (HU-07-04); the
             defaults apply without a ``[retries]`` section.
+        models: Aliases of other models the person can switch to (HU-06-06), from the optional
+            ``[models]`` table; empty by default.
     """
 
     model: str
@@ -390,6 +421,7 @@ class HarnessConfig:
     context: ContextSettings = ContextSettings()
     mcp_servers: tuple[McpServerConfig, ...] = ()
     retries: Retries = Retries()
+    models: tuple[ModelAlias, ...] = ()
 
 
 def _locate(path: str | os.PathLike[str] | None, environ: Mapping[str, str]) -> tuple[Path, str]:
@@ -430,6 +462,17 @@ def _parse(path: Path, text: str) -> dict[str, Any]:
         raise ConfigSyntaxError(path, line) from None
 
 
+def _model_problem(value: object) -> str | None:
+    """Why ``value`` is not a ``<provider>/<model>`` of an admitted provider, or ``None``."""
+    provider, slash, name = value.partition("/") if isinstance(value, str) else ("", "", "")
+    if not (slash and provider.strip() and name.strip()):
+        return _MODEL_FORM
+    if provider not in PROVIDER_KEY_VARIABLES:
+        admitted = ", ".join(sorted(PROVIDER_KEY_VARIABLES))
+        return f"el proveedor no es uno de los admitidos ({admitted})."
+    return None
+
+
 def _check_model(
     data: Mapping[str, Any], missing: list[ConfigProblem], present: list[ConfigProblem]
 ) -> str:
@@ -437,18 +480,38 @@ def _check_model(
     if "model" not in data:
         missing.append(ConfigProblem("model", _MISSING_FIELD))
         return ""
-    value = data["model"]
-    provider, slash, name = value.partition("/") if isinstance(value, str) else ("", "", "")
-    if not (slash and provider.strip() and name.strip()):
-        present.append(ConfigProblem("model", _MODEL_FORM))
+    problem = _model_problem(data["model"])
+    if problem is not None:
+        present.append(ConfigProblem("model", problem))
         return ""
-    if provider not in PROVIDER_KEY_VARIABLES:
-        admitted = ", ".join(sorted(PROVIDER_KEY_VARIABLES))
-        present.append(
-            ConfigProblem("model", f"el proveedor no es uno de los admitidos ({admitted}).")
-        )
-        return ""
-    return str(value)
+    return str(data["model"])
+
+
+def _check_models(
+    table: Mapping[str, Any], environment: Mapping[str, str], present: list[ConfigProblem]
+) -> tuple[ModelAlias, ...]:
+    """The aliases: valid names, models of an admitted provider, keys only from the environment."""
+    aliases: list[ModelAlias] = []
+    for alias, value in table.items():
+        field = f"{MODELS_TABLE}.{alias}"
+        if not _ALIAS_FORM.match(alias):
+            present.append(ConfigProblem(field, _BAD_ALIAS))
+        elif alias == RESERVED_ALIAS:
+            present.append(ConfigProblem(field, _RESERVED_ALIAS_MESSAGE))
+        elif (problem := _model_problem(value)) is not None:
+            present.append(ConfigProblem(field, problem))
+        else:
+            variable = PROVIDER_KEY_VARIABLES[str(value).partition("/")[0]]
+            secret = None if variable is None else environment.get(variable)
+            aliases.append(
+                ModelAlias(
+                    alias,
+                    str(value),
+                    api_key=Secret(secret) if secret is not None and secret.strip() else None,
+                    key_variable=variable,
+                )
+            )
+    return tuple(aliases)
 
 
 def _check_limits(table: Mapping[str, Any], present: list[ConfigProblem]) -> Limits:
@@ -649,6 +712,16 @@ def _unknown_names(data: Mapping[str, Any]) -> tuple[list[str], list[str]]:
             _walk_names(value, key, every_name)
         elif key == MCP_TABLE:
             _mcp_names(value, reported, every_name)
+        elif key == MODELS_TABLE:
+            # Every alias is a name of the user (not an unknown field); its value is checked
+            # apart, but a name or a nested field that looks like a key is still a secret.
+            every_name.append(key)
+            if isinstance(value, dict):
+                for alias, inner in value.items():
+                    every_name.append(f"{key}.{alias}")
+                    _walk_names(inner, f"{key}.{alias}", every_name)
+            else:
+                _walk_names(value, key, every_name)
         elif key in _TABLE_FIELDS:
             known = _TABLE_FIELDS[key]
             if not isinstance(value, dict):
@@ -704,6 +777,7 @@ def load_config(
     permissions = _check_permissions(permissions_table, present)
     deny_commands = _check_deny_commands(permissions_table, present)
     read_only = _check_read_only(permissions_table, present)
+    models = _check_models(_table(data, MODELS_TABLE, present), environment, present)
     mcp_servers, mcp_problems = check_mcp_servers(_table(data, MCP_TABLE, present))
     present.extend(ConfigProblem(field, message) for field, message in mcp_problems)
     unknown = [ConfigProblem(name, _UNKNOWN_FIELD) for name in reported]
@@ -724,6 +798,7 @@ def load_config(
             context=context,
             mcp_servers=mcp_servers,
             retries=retries,
+            models=models,
         )
     value = environment.get(variable)
     if value is None or not value.strip():
@@ -741,4 +816,5 @@ def load_config(
         context=context,
         mcp_servers=mcp_servers,
         retries=retries,
+        models=models,
     )

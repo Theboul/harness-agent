@@ -117,6 +117,27 @@ La CI exige que la suite completa cubra al menos el umbral fijado en `.github/wo
 
 La configuración de ejemplo está en `config.example.toml`; copiarla a `config.toml` (ignorado por Git) y poner las claves solo en variables de entorno. `.env.example` lista las variables de entorno. El uso de la CLI se documentará cuando exista un punto de entrada ejecutable.
 
+## Varios modelos: planear con uno e implementar con otro
+
+Además del `model` de siempre, `config.toml` admite alias de modelos (LiteLLM, `<proveedor>/<modelo>`). Las claves de cada proveedor van **solo** en el entorno o en el `.env` (`GEMINI_API_KEY`, `GROQ_API_KEY`…), nunca en el archivo.
+
+```toml
+model = "groq/openai/gpt-oss-120b"
+
+[models]
+plan = "gemini/gemini-3.5-flash-lite"
+build = "groq/openai/gpt-oss-120b"
+```
+
+| Comando | Qué hace |
+|---|---|
+| `/model` | Lista los alias, el modelo activo y el modo; nunca muestra claves. |
+| `/model <alias>` | Cambia de modelo en caliente (`predeterminado` vuelve al `model` de arriba); el historial se conserva. |
+| `/plan` | Cambia al alias `plan` (o al predeterminado si no existe) y activa el solo lectura: no se puede escribir. |
+| `/implementar` | Vuelve al alias `build` (o al predeterminado) y desactiva el solo lectura, salvo que se fijara con `--solo-lectura` o `read_only = true`. |
+
+Si falta la clave de un proveedor el sistema arranca igual; avisa al elegir ese alias y no cambia nada.
+
 ## Documentación
 
 - [`docs/00-indice.md`](docs/00-indice.md): índice de la documentación (visión, arquitectura, plan, historias y trazabilidad).

@@ -79,7 +79,7 @@ class TestHelp:
         shown = await drive(composition, "/ayuda")
 
         assert "  /sesiones  Lista las sesiones guardadas." in shown
-        assert "  /model  Muestra el modelo y los límites." in shown
+        assert "  /model  Muestra el modelo y los alias; /model <alias> cambia de modelo." in shown
 
 
 class TestSessionsCommand:
@@ -167,7 +167,7 @@ class TestModelCommand:
     ) -> None:
         composition, _ = make(tmp_path, opened)
 
-        shown = await drive(replace(composition, model_view=None), "/model")
+        shown = await drive(replace(composition, model_view=None, current_view=None), "/model")
 
         assert "tarea> Modelo no disponible en esta ejecución." in shown.splitlines()
 

@@ -47,6 +47,7 @@ class TestModelView:
             max_seconds=90,
             max_tokens=5_000,
             max_output_tokens=777,
+            default_model=MODEL,
         )
 
     def test_an_unlisted_model_uses_the_default_window(

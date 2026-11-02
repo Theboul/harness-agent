@@ -37,6 +37,7 @@ from harness_agent.core.permissions.git_rules import (
     classify_git,
     git_instructions,
 )
+from harness_agent.core.permissions.mode_switch import ReadOnlySwitch, SwitchablePolicy
 from harness_agent.core.permissions.open_tools import OpenToolsPolicy
 from harness_agent.core.permissions.policy import DefaultPermissionPolicy
 from harness_agent.core.permissions.protected import ProtectedPolicy
@@ -74,4 +75,6 @@ __all__ = [
     "PermissionRules",
     "ProtectedPolicy",
     "ReadOnlyPolicy",
+    "ReadOnlySwitch",
+    "SwitchablePolicy",
 ]
