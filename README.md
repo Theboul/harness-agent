@@ -138,6 +138,10 @@ build = "groq/openai/gpt-oss-120b"
 
 Si falta la clave de un proveedor el sistema arranca igual; avisa al elegir ese alias y no cambia nada.
 
+Tras `/plan` o `/implementar` el modelo recibe un aviso del modo con tu siguiente petición (una vez por cambio). Al terminar un turno en `/plan` el arnés pregunta `1` pasar a implementar / `2` seguir planificando; sin respuesta o con una respuesta inválida se sigue en solo lectura, y no se pregunta si el solo lectura se fijó al arrancar.
+
+Para diagnosticar un error del proveedor (p. ej. un 400) arranca con `HARNESS_DEBUG_PROVIDER=1`: el texto del error sale por `stderr` (sin la clave, ≤ 2 000 caracteres, nunca a disco). Ojo: puede incluir texto de tu petición, porque el proveedor suele repetirlo.
+
 ## Documentación
 
 - [`docs/00-indice.md`](docs/00-indice.md): índice de la documentación (visión, arquitectura, plan, historias y trazabilidad).
