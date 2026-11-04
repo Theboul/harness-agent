@@ -154,6 +154,29 @@ Tras `/plan` o `/implementar` el modelo recibe un aviso del modo con tu siguient
 
 Para diagnosticar un error del proveedor (p. ej. un 400) arranca con `HARNESS_DEBUG_PROVIDER=1`: el texto del error sale por `stderr` (sin la clave, ≤ 2 000 caracteres, nunca a disco). Ojo: puede incluir texto de tu petición, porque el proveedor suele repetirlo.
 
+## Conmutación por fallo entre modelos (opcional, apagada por defecto)
+
+Si el modelo en uso falla por un motivo ajeno a tu petición (cuota agotada, límite de tasa, tiempo agotado, servicio no disponible o error de conexión) y ya agotó sus reintentos, el arnés puede pasar solo al siguiente modelo de una lista de respaldo, repetir la misma llamada y avisarte. Se activa con una lista de alias de `[models]` (ver arriba), en el orden en que se prueban; el `model` de siempre va primero y no se escribe en la lista:
+
+```toml
+model = "groq/openai/gpt-oss-120b"
+
+[models]
+plan = "gemini/gemini-3.5-flash-lite"
+build = "groq/openai/gpt-oss-120b"
+respaldo = "ollama/llama3.1"
+
+[failover]
+models = ["plan", "respaldo"]   # hasta 8 alias; sin esta sección (o vacía) no cambia nada
+```
+
+- **Qué conmuta y qué no.** Solo los cinco fallos de arriba. Una clave inválida, una petición mal formada, un rechazo por política de contenido y cualquier error desconocido **no** conmutan: ves el error.
+- **Sin bucles.** En una petición cada modelo se prueba como máximo una vez y no se vuelve atrás; si todos fallan ves un error fijo (`FailoverExhausted`) y la petición siguiente empieza la lista de nuevo.
+- **Qué ves.** Una línea «Cambio de modelo por fallo: A a B (motivo).» y un evento `provider_switched` en el registro de la sesión (solo nombres de modelo y la clase del error, nunca el texto del proveedor).
+- **El cambio se queda.** El modelo de respaldo pasa a ser el modelo activo (`/model` lo muestra; `/model predeterminado` vuelve al de `model`). Tras el cambio, la compactación del contexto usa la ventana y el umbral del modelo nuevo (`[context.windows]`) desde la petición siguiente.
+- **Claves.** Como siempre, solo en el entorno o en el `.env`. Si falta la clave de un alias de respaldo, el arnés arranca, avisa con el nombre de la variable y deja ese alias fuera de la lista.
+- **Costo en el peor caso.** Una llamada puede hacer (modelos de la lista) × `[retries] max_attempts` intentos antes del error final; bájalos con `[retries] max_attempts` si pesa.
+
 ## Documentación
 
 - [`docs/00-indice.md`](docs/00-indice.md): índice de la documentación (visión, arquitectura, plan, historias y trazabilidad).

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import math
 
-from harness_agent.core import QuotaExceeded
+from harness_agent.core import ProviderError, QuotaExceeded
 
 
 def valid_wait_hint(value: object) -> float | None:
@@ -33,3 +33,21 @@ class RateLimited(QuotaExceeded):
     def __init__(self, message: str, *, retry_after: float | None = None) -> None:
         super().__init__(message)
         self.retry_after = valid_wait_hint(retry_after)
+
+
+EXHAUSTED_MESSAGE = (
+    "Todos los modelos de la lista de respaldo fallaron en esta petición; se probó cada uno una "
+    "sola vez. Vuelve a intentarlo más tarde."
+)
+
+
+class FailoverExhausted(ProviderError):
+    """Every model of the failover list failed in the same turn (HU-07-05).
+
+    The text is fixed: it never carries what a provider said, so it can be shown and saved as it
+    is. It is a ``ProviderError`` that the failover does not treat as eligible, so nothing tries
+    again after it.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(EXHAUSTED_MESSAGE)

@@ -18,7 +18,7 @@ import math
 import os
 import re
 import tomllib
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
@@ -98,12 +98,15 @@ _NOT_A_TABLE = "debe ser una tabla."
 _NOT_A_NAME_LIST = "debe ser una lista de textos no vacíos."
 _KEY_NAME_MARKERS = ("key", "secret", "token", "password", "passwd", "credential")
 _UNKNOWN_FIELD = "campo desconocido en el esquema."
+# Optional ``[failover]`` section (HU-07-05).
+_FAILOVER_FIELDS = ("models",)
 _TABLE_FIELDS: Mapping[str, tuple[str, ...]] = MappingProxyType(
     {
         "limits": _LIMIT_FIELDS,
         "context": _CONTEXT_FIELDS,
         "retries": _RETRY_FIELDS,
         "subagents": _SUBAGENT_FIELDS,
+        "failover": _FAILOVER_FIELDS,
         "paths": _PATH_FIELDS,
         "permissions": (*_PERMISSION_FIELDS, _DENY_COMMANDS_FIELD, _READ_ONLY_FIELD),
     }
@@ -119,6 +122,16 @@ _BAD_ALIAS = (
     "(hasta 32 caracteres)."
 )
 _RESERVED_ALIAS_MESSAGE = "ese nombre está reservado para el modelo predeterminado."
+
+# Failover between models (HU-07-05): ``[failover] models`` lists aliases of ``[models]`` to fall
+# back to, in order. The default model always goes first and is not written in the list.
+FAILOVER_TABLE = "failover"
+MAX_FAILOVER_MODELS = 8
+_FAILOVER_NOT_A_LIST = "debe ser una lista de alias de [models], como textos no vacíos."
+_FAILOVER_TOO_MANY = f"admite hasta {MAX_FAILOVER_MODELS} alias."
+_FAILOVER_UNKNOWN_ALIAS = "nombra un alias que no está en [models]."
+_FAILOVER_REPEATED = "no admite alias repetidos."
+_FAILOVER_RESERVED = "el modelo predeterminado ya va primero; no se escribe en la lista."
 
 _ELLIPSIS = "…"
 _HIDDEN = "<secreto oculto>"
@@ -429,6 +442,8 @@ class HarnessConfig:
             ``[models]`` table; empty by default.
         subagents: Limits of each subagent (HU-09-04); the defaults apply without a
             ``[subagents]`` section.
+        failover: Aliases of ``[models]`` to fall back to when the active model fails for a reason
+            outside the request (HU-07-05), in order; empty (the failover is off) by default.
     """
 
     model: str
@@ -445,6 +460,7 @@ class HarnessConfig:
     retries: Retries = Retries()
     models: tuple[ModelAlias, ...] = ()
     subagents: SubagentSettings = SubagentSettings()
+    failover: tuple[str, ...] = ()
 
 
 def _locate(path: str | os.PathLike[str] | None, environ: Mapping[str, str]) -> tuple[Path, str]:
@@ -535,6 +551,35 @@ def _check_models(
                 )
             )
     return tuple(aliases)
+
+
+def _check_failover(
+    table: Mapping[str, Any], known: Collection[str], present: list[ConfigProblem]
+) -> tuple[str, ...]:
+    """The ``[failover]`` list: existing aliases of ``[models]``, no repeats, at most eight.
+
+    A problem names the field and never repeats a value: what the person typed may be anything.
+    """
+    field = f"{FAILOVER_TABLE}.models"
+    value = table.get("models", [])
+    if not (
+        isinstance(value, list) and all(isinstance(item, str) and item.strip() for item in value)
+    ):
+        present.append(ConfigProblem(field, _FAILOVER_NOT_A_LIST))
+        return ()
+    if len(value) > MAX_FAILOVER_MODELS:
+        present.append(ConfigProblem(field, _FAILOVER_TOO_MANY))
+        return ()
+    if RESERVED_ALIAS in value:
+        present.append(ConfigProblem(field, _FAILOVER_RESERVED))
+        return ()
+    if len(set(value)) != len(value):
+        present.append(ConfigProblem(field, _FAILOVER_REPEATED))
+        return ()
+    if any(item not in known for item in value):
+        present.append(ConfigProblem(field, _FAILOVER_UNKNOWN_ALIAS))
+        return ()
+    return tuple(value)
 
 
 def _check_limits(table: Mapping[str, Any], present: list[ConfigProblem]) -> Limits:
@@ -821,6 +866,9 @@ def load_config(
     deny_commands = _check_deny_commands(permissions_table, present)
     read_only = _check_read_only(permissions_table, present)
     models = _check_models(_table(data, MODELS_TABLE, present), environment, present)
+    failover = _check_failover(
+        _table(data, FAILOVER_TABLE, present), {entry.alias for entry in models}, present
+    )
     mcp_servers, mcp_problems = check_mcp_servers(_table(data, MCP_TABLE, present))
     present.extend(ConfigProblem(field, message) for field, message in mcp_problems)
     unknown = [ConfigProblem(name, _UNKNOWN_FIELD) for name in reported]
@@ -843,6 +891,7 @@ def load_config(
             retries=retries,
             models=models,
             subagents=subagents,
+            failover=failover,
         )
     value = environment.get(variable)
     if value is None or not value.strip():
@@ -862,4 +911,5 @@ def load_config(
         retries=retries,
         models=models,
         subagents=subagents,
+        failover=failover,
     )
