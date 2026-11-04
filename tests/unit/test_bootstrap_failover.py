@@ -10,6 +10,7 @@ import io
 from collections.abc import Iterator
 from dataclasses import replace
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -25,12 +26,20 @@ from harness_agent.core import (
     ProviderResponse,
     ProviderTimeout,
     QuotaExceeded,
+    TracingProvider,
 )
 from harness_agent.core.loop import TurnStatus
 from tests.doubles import FakeProvider
 from tests.unit.bootstrap_support import SENTINEL, make_config
 
 DEFAULT = "openai/modelo-de-prueba"
+
+
+def inside_the_tracing(composition: Composition) -> Provider:
+    """The provider the loop calls is the tracing wrapper (HU-10-01); this is the chain inside."""
+    return cast(TracingProvider, composition.loop._provider).inner
+
+
 UNO = "gemini/modelo-uno"
 DOS = "groq/modelo-dos"
 KEY_VALUE = "valor-de-clave-de-prueba-uno"
@@ -105,7 +114,7 @@ async def test_by_default_there_is_no_failover(tmp_path: Path, opened: list[Comp
     composition = open_with(opened, config_with(tmp_path, UNO_ALIAS), factory)
 
     assert composition.failover is None
-    assert isinstance(composition.loop._provider, RetryingProvider)
+    assert isinstance(inside_the_tracing(composition), RetryingProvider)
     assert composition.notices == ()
 
 
@@ -132,7 +141,7 @@ async def test_the_wrapper_is_the_provider_of_the_loop_and_sits_outside_the_retr
     composition = open_with(opened, config, Factory({}))
 
     assert isinstance(composition.failover, FailoverProvider)
-    assert composition.loop._provider is composition.failover
+    assert inside_the_tracing(composition) is composition.failover
     assert isinstance(composition.failover.inner, RetryingProvider)
 
 
@@ -291,7 +300,7 @@ async def test_when_no_alias_is_usable_there_is_no_wrapper_but_there_is_a_notice
     composition = open_with(opened, config, Factory({}))
 
     assert composition.failover is None
-    assert isinstance(composition.loop._provider, RetryingProvider)
+    assert isinstance(inside_the_tracing(composition), RetryingProvider)
     assert any("sinclave" in notice for notice in composition.notices)
 
 

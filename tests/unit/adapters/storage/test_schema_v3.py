@@ -137,7 +137,7 @@ def open_and_close(path: Path) -> None:
 
 
 def test_the_version_is_three() -> None:
-    assert SCHEMA_VERSION == 6
+    assert SCHEMA_VERSION == 7
 
 
 @pytest.mark.parametrize("version", [1, 2])
@@ -150,12 +150,14 @@ def test_an_old_database_migrates_to_three_and_keeps_every_row(
 
     open_and_close(path)
 
-    assert user_version(path) == 6
+    assert user_version(path) == 7
     after = dump(path)
     assert after.pop("resumenes") == []
     assert after.pop("contexto_esencial") == []
     assert after.pop("mensajes") == []
     assert after.pop("memorias") == []
+    assert after.pop("auditoria") == []
+    assert after.pop("trazas") == []
     if version == 1:  # the criteria tables of version 2 arrive empty on the way
         assert after.pop("criterios") == [] and after.pop("criterios_sello") == []
     assert after == before  # every table that already existed is identical, row by row
@@ -171,7 +173,7 @@ def test_reopening_a_migrated_database_changes_nothing(tmp_path: Path, version: 
     open_and_close(path)
     open_and_close(path)
 
-    assert user_version(path) == 6
+    assert user_version(path) == 7
     assert dump(path) == first
 
 
@@ -184,7 +186,7 @@ def test_a_migrated_database_has_the_same_table_as_a_new_one(tmp_path: Path, ver
     open_and_close(fresh)
 
     assert table_sql(old, "resumenes") == table_sql(fresh, "resumenes")
-    assert user_version(fresh) == 6
+    assert user_version(fresh) == 7
     for name in ("sessions", "events", "criterios", "criterios_sello"):
         assert table_sql(old, name) == table_sql(fresh, name)
 

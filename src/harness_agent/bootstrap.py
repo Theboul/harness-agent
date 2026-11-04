@@ -18,6 +18,7 @@ import os
 import platform
 import re
 import sys
+import time
 import uuid
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
@@ -53,12 +54,14 @@ from harness_agent.adapters.storage import (
     EXPORT_FILE_NAME,
     ProgressFile,
     SessionStoreError,
+    SqliteAuditStore,
     SqliteCompactionArchive,
     SqliteEssentialStore,
     SqliteMemoryStore,
     SqliteMessageStore,
     SqliteSessionStore,
     SqliteTaskStore,
+    SqliteTraceStore,
     attach_event_recorder,
 )
 from harness_agent.adapters.system import (
@@ -129,12 +132,19 @@ from harness_agent.config import (
     process_environment,
 )
 from harness_agent.core import (
+    AUDIT_READ_FAILED,
+    AUDIT_TABLE_ROWS,
     DELEGATE_TOOL_NAME,
     MEMORY_TOOL_NAME,
+    TRACE_READ_FAILED,
+    TRACE_TABLE_ROWS,
+    TRACES_OFF,
     AllowedCall,
     ApprovalGate,
     Approver,
+    ArgumentsTap,
     AskCeilingPolicy,
+    AuditRecorder,
     AuthorizedArea,
     Briefing,
     ChangeReviewer,
@@ -190,12 +200,18 @@ from harness_agent.core import (
     TaskFormatError,
     TaskRunner,
     ToolDefinition,
+    ToolRegistry,
+    TraceSink,
+    TracingProvider,
+    TracingRegistry,
     VerifyingRunner,
     check_creation,
     check_session_id,
     commands_notice,
     compile_rule,
     criteria_reference,
+    format_audit,
+    format_traces,
     git_instructions,
     make_items,
     only_git_reads,
@@ -449,6 +465,8 @@ class Composition:
     startup: StartupRoutine | None = None
     ask: AskFn | None = None
     subagent_runner: SubagentRunner | None = None
+    audit: SqliteAuditStore | None = None
+    traces: SqliteTraceStore | None = None
 
     def close(self) -> None:
         """Close the session store; safe to call more than once."""
@@ -932,6 +950,12 @@ def compose(
         )
         if fixed:
             notices = (*notices, READ_ONLY_NOTICE)
+        # The audit (HU-05-05): the outermost wrapper hands back the decision of the chain
+        # untouched and remembers the redacted arguments of each call; the recorder below writes
+        # the row when the decision is published. Every user of ``policy`` after this line (the
+        # loop, the subagents, the verifier and the startup routine) goes through it.
+        tap = ArgumentsTap(policy, redactor.value)
+        policy = tap
         task_options: dict[str, Any] = dict(store_options)
         clock_options: dict[str, Any] = {} if clock is None else {"clock": clock}
         renewer: EssentialRenewer | None = None
@@ -960,6 +984,43 @@ def compose(
         if failover_aliases:  # off by default (HU-07-05): without a list nothing is wrapped
             failover = _with_failover(provider, switch, failover_aliases, bus, cursor, warning_sink)
             provider = failover
+        # The traces (HU-10-01): a measured copy of the provider and of the registry per session,
+        # outside the retries and the failover, so a call is one trace. Only if the
+        # configuration leaves them on (they are on by default).
+        chain = provider
+        trace_log = SqliteTraceStore(store) if config.traces.enabled else None
+        trace_sink = None if trace_log is None else TraceSink(trace_log, warning_sink.write)
+        stamp = clock if clock is not None else (lambda: datetime.now(timezone.utc))
+        clean = redactor.value  # the names and results of a trace pass through the redactor too
+
+        def provider_for(session: Callable[[], str]) -> Provider:
+            """The provider that one session calls."""
+            if config.traces.enabled and trace_sink is not None:
+                return TracingProvider(
+                    chain,
+                    trace_sink,
+                    session,
+                    lambda: switch.model,
+                    clock=stamp,
+                    monotonic=time.perf_counter,
+                    redact=clean,
+                )
+            return chain
+
+        def registry_for(base: ToolRegistry, session: Callable[[], str]) -> ToolRegistry:
+            """The registry that one session's loop consults."""
+            if config.traces.enabled and trace_sink is not None:
+                return TracingRegistry(
+                    base,
+                    trace_sink,
+                    session,
+                    clock=stamp,
+                    monotonic=time.perf_counter,
+                    redact=clean,
+                )
+            return base
+
+        provider = provider_for(lambda: cursor.value)
         # The archive stores ``context_compacted`` in its own transaction (HU-02-03): the recorder
         # must not store it again. The ``skip`` goes by position.
         progress: ProgressRecorder | None = None
@@ -998,6 +1059,12 @@ def compose(
             ):
                 bus.subscribe(kind, capture.on_event)
         attach_event_recorder(bus, store, (EventType.CONTEXT_COMPACTED,), redact=redactor.value)
+        # After the event recorder: the audit row of a decision, and its answer. No switch: a
+        # failure here reaches the bus and the tool does not run (the audit fails closed).
+        audit_log = SqliteAuditStore(store)
+        audit_recorder = AuditRecorder(audit_log, tap, redactor.value)
+        bus.subscribe(EventType.PERMISSION_DECIDED, audit_recorder.on_decided)
+        bus.subscribe(EventType.APPROVAL_RESOLVED, audit_recorder.on_resolved)
         # The limits of the session are mapped here: the core does not import ``config`` (HU-01-06).
         # ``max_tokens`` is the budget of the whole run, never the cap of one call.
         limits = SessionLimits(
@@ -1005,7 +1072,14 @@ def compose(
             max_seconds=config.limits.max_seconds,
             max_tokens=config.limits.max_tokens,
         )
-        loop = AgentLoop(provider, registry, policy, bus, approver=approver, limits=limits)
+        loop = AgentLoop(
+            provider,
+            registry_for(registry, lambda: cursor.value),
+            policy,
+            bus,
+            approver=approver,
+            limits=limits,
+        )
         # The subagents (HU-09-01, HU-09-03, HU-09-04). Each delegation runs its own loop with the
         # provider, the bus and the very same policy as this one (so it inherits deny, the protected
         # paths and the read-only mode, and never has more permissions), a view of the registry
@@ -1022,8 +1096,11 @@ def compose(
 
             async def run_child(session: str, text: str, history: list[Message]) -> TurnResult:
                 child = AgentLoop(
-                    provider,
-                    RegistryView(registry, {DELEGATE_TOOL_NAME, MEMORY_TOOL_NAME}),
+                    provider_for(lambda: session),
+                    registry_for(
+                        RegistryView(registry, {DELEGATE_TOOL_NAME, MEMORY_TOOL_NAME}),
+                        lambda: session,
+                    ),
                     policy,
                     bus,
                     approver=None
@@ -1202,6 +1279,8 @@ def compose(
         warning_sink=warning_sink,
         essential=renewer,
         memory=memory_loader,
+        audit=audit_log,
+        traces=trace_log,
         capture=capture,
         messages=messages,
         compactor_for=compactor_for,
@@ -1510,6 +1589,59 @@ def _new_command(
         return format_new_session(session)
 
     return new_session
+
+
+def _session_to_show(argument: str, active: _Active) -> str:
+    """The session ``/auditoria`` and ``/trazas`` read: the one in force, or the one written."""
+    if not argument.strip():
+        return active.session_id
+    return check_session_id(argument)
+
+
+def _audit_command(composition: Composition, active: _Active) -> Callable[[str], str]:
+    """The function behind ``/auditoria [id]`` (HU-05-05): it never raises and writes nothing.
+
+    It shows the latest decisions of the session (and of its subagents) as a short table. A
+    badly written identifier gets the usual line; a failure to read gets a fixed one.
+    """
+
+    def audit(argument: str) -> str:
+        log = composition.audit
+        if log is None:
+            return AUDIT_READ_FAILED
+        try:
+            session = _session_to_show(argument, active)
+            rows = log.rows(session, AUDIT_TABLE_ROWS)
+            return format_audit(rows, total=log.count(session), session_id=session)
+        except ResumeError as error:
+            return str(error)
+        except Exception:
+            return AUDIT_READ_FAILED
+
+    return audit
+
+
+def _traces_command(composition: Composition, active: _Active) -> Callable[[str], str]:
+    """The function behind ``/trazas [id]`` (HU-10-01): it never raises and writes nothing.
+
+    With the traces off it says so. Otherwise it shows the latest calls of the session (and of its
+    subagents) as a short table.
+    """
+
+    def traces(argument: str) -> str:
+        log = composition.traces
+        if log is None:
+            return TRACES_OFF
+        try:
+            session = _session_to_show(argument, active)
+            rows = log.rows(session, TRACE_TABLE_ROWS)
+            return format_traces(rows, total=log.count(session), session_id=session)
+        except ResumeError as error:
+            return str(error)
+        except Exception:
+            return TRACE_READ_FAILED
+
+    return traces
 
 
 def _sessions_command(composition: Composition, active: _Active) -> Callable[[], str]:
@@ -1839,6 +1971,14 @@ async def run_session(
         "Muestra el modelo y los alias; /model <alias> cambia de modelo.",
         _model_command(composition),
     )
+    audit_entry = (
+        "Muestra la auditoría de las decisiones; /auditoria <id> la de otra sesión.",
+        _audit_command(composition, active),
+    )
+    traces_entry = (
+        "Muestra las trazas de las llamadas; /trazas <id> las de otra sesión.",
+        _traces_command(composition, active),
+    )
     resume = (
         "Reanuda una sesión guardada por su identificador.",
         _resume_command(composition, active, history),
@@ -1864,7 +2004,12 @@ async def run_session(
             input_stream=input_stream,
             output=stream,
             commands=commands,
-            argument_commands={"/reanudar": resume, "/model": model_entry},
+            argument_commands={
+                "/reanudar": resume,
+                "/model": model_entry,
+                "/auditoria": audit_entry,
+                "/trazas": traces_entry,
+            },
         )
         if composition.progress is not None:
             composition.progress.finish(history)  # a normal end; a hard stop never gets here

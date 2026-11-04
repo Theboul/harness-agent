@@ -301,6 +301,8 @@ async def test_the_reason_is_not_stored_in_the_database(
         "contexto_esencial",
         "mensajes",
         "memorias",
+        "auditoria",
+        "trazas",
     }
     assert rows
     assert not any(SENTINEL in row for row in rows)

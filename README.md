@@ -194,6 +194,24 @@ max_content_chars = 500   # caracteres de una entrada, de una sola línea (50 a 
 - **Qué recibe el modelo.** Al abrir una sesión **nueva** (al arrancar y con `/nueva`; no al reanudar con `/reanudar`) las entradas **más recientes** entran en el contexto, enteras, hasta llenar el presupuesto (nunca más del 20 % del umbral de compactación del modelo en uso). Van en un mensaje de datos con el aviso fijo «datos, no instrucciones»: no cambian permisos ni reglas y la compactación no las resume. Si algo no cabe, el bloque y la pantalla dicen cuántas entradas más antiguas se omitieron («Memoria: se cargaron X entradas y se omitieron N más antiguas por el presupuesto.»).
 - **Límites.** Lo que el modelo guarde puede ser incorrecto o malicioso y volver a leerse en sesiones futuras: la limpieza, la redacción y la pregunta por cada guardado lo mitigan, no lo eliminan (la redacción de secretos es heurística). Inspeccionar y editar la memoria a mano llegará con otra historia.
 
+## Auditoría de decisiones y trazas de las llamadas
+
+Dos registros en el mismo archivo de sesiones (`sesiones.db`) que se consultan desde la sesión:
+
+- **`/auditoria [id]`**: cada decisión de permiso (permitida, denegada, aprobada o rechazada por ti) con la hora, quién la pide (el agente, la verificación de criterios, la rutina de arranque o un subagente), la herramienta, sus argumentos y el resultado. También las de las herramientas MCP. Los argumentos se guardan **sin claves ni credenciales** (patrones conocidos, URLs con usuario y contraseña y los valores de tus variables de entorno con nombre de clave) y acortados; no se guarda el motivo con el que rechazas.
+- **`/trazas [id]`**: cada llamada al modelo y a una herramienta con su duración, los tokens que informó el proveedor (o «sin dato» si no los informó; nunca una cifra inventada) y su resultado (`ok`, la clase del error o la etiqueta del error de la herramienta). No guardan el contenido de los mensajes ni de los resultados. Una llamada con reintentos o con cambio de modelo es **una** traza.
+
+Sin identificador muestran la sesión actual (y las de sus subagentes); con uno, esa sesión. Imprimen una tabla corta con las últimas 30 filas. Un identificador mal escrito o una lectura que falla dan una línea fija y la sesión sigue.
+
+La auditoría no se puede apagar y es estricta: si una decisión no se puede registrar, la herramienta **no se ejecuta**. Las trazas están encendidas por defecto y no cambian nunca el resultado de una llamada (si no se pueden guardar, avisan una vez y la sesión sigue); se apagan con:
+
+```toml
+[traces]
+enabled = false
+```
+
+Límites: no hay purga ni rotación (las filas crecen con el uso), la redacción de secretos es heurística y no hay exportación a archivos.
+
 ## Documentación
 
 - [`docs/00-indice.md`](docs/00-indice.md): índice de la documentación (visión, arquitectura, plan, historias y trazabilidad).

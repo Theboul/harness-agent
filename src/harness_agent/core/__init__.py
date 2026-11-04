@@ -4,6 +4,21 @@ Domain entities, canonical message and event definitions, and abstract
 contracts for the agent harness. Contains zero third-party dependencies.
 """
 
+from harness_agent.core.audit import (
+    AUDIT_READ_FAILED,
+    AUDIT_TABLE_ROWS,
+    NO_AUDIT_ROWS,
+    NO_DATA,
+    ArgumentsTap,
+    AuditEntry,
+    AuditLog,
+    AuditRecorder,
+    AuditRow,
+    format_audit,
+    origin_of,
+    prepare_arguments,
+    resolution_of,
+)
 from harness_agent.core.context import (
     CONTEXT_FIELD_RANGES,
     DEFAULT_BUDGET_TOKENS,
@@ -320,6 +335,21 @@ from harness_agent.core.tools import (
     check_max_output_chars,
     omission_notice,
     truncate_output,
+)
+from harness_agent.core.tracing import (
+    NO_TRACE_ROWS,
+    TRACE_READ_FAILED,
+    TRACE_TABLE_ROWS,
+    TRACE_WARNING,
+    TRACES_OFF,
+    TraceLog,
+    TraceRecord,
+    TraceRow,
+    TraceSink,
+    TracingProvider,
+    TracingRegistry,
+    format_traces,
+    result_category,
 )
 from harness_agent.core.verification import (
     MAX_DESCRIPTION_EVENT,
@@ -687,4 +717,32 @@ __all__ = [
     "LimitReached",
     "LimitTracker",
     "SessionLimits",
+    # Audit of the decisions (HU-05-05)
+    "AUDIT_READ_FAILED",
+    "AUDIT_TABLE_ROWS",
+    "NO_AUDIT_ROWS",
+    "NO_DATA",
+    "ArgumentsTap",
+    "AuditEntry",
+    "AuditLog",
+    "AuditRecorder",
+    "AuditRow",
+    "format_audit",
+    "origin_of",
+    "prepare_arguments",
+    "resolution_of",
+    # Traces of the calls (HU-10-01)
+    "NO_TRACE_ROWS",
+    "TRACE_READ_FAILED",
+    "TRACES_OFF",
+    "TRACE_TABLE_ROWS",
+    "TRACE_WARNING",
+    "TraceLog",
+    "TraceRecord",
+    "TraceRow",
+    "TraceSink",
+    "TracingProvider",
+    "TracingRegistry",
+    "format_traces",
+    "result_category",
 ]

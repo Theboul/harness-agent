@@ -79,7 +79,7 @@ def table_sql(path: Path, name: str) -> str:
 
 
 def test_the_version_is_six() -> None:
-    assert SCHEMA_VERSION == 6
+    assert SCHEMA_VERSION == 7
 
 
 @pytest.mark.parametrize("version", [1, 2, 3, 4, 5])
@@ -90,9 +90,11 @@ def test_an_old_database_migrates_to_six_and_keeps_every_row(tmp_path: Path, ver
 
     open_and_close(path)
 
-    assert user_version(path) == 6
+    assert user_version(path) == 7
     after = dump(path)
     assert after.pop("memorias") == []
+    assert after.pop("auditoria") == []
+    assert after.pop("trazas") == []
     for name in NEW_TABLES[version]:  # the tables of the steps in between arrive empty
         stored = after.pop(name)
         assert stored == before.get(name, [])
@@ -109,7 +111,7 @@ def test_reopening_a_migrated_database_changes_nothing(tmp_path: Path, version: 
     open_and_close(path)
     open_and_close(path)
 
-    assert user_version(path) == 6
+    assert user_version(path) == 7
     assert dump(path) == first
 
 
@@ -121,7 +123,7 @@ def test_a_migrated_database_has_the_same_tables_as_a_new_one(tmp_path: Path, ve
     open_and_close(old)
     open_and_close(fresh)
 
-    assert user_version(fresh) == 6
+    assert user_version(fresh) == 7
     for name in ("memorias", "mensajes", "contexto_esencial", "resumenes", "sessions", "events"):
         assert table_sql(old, name) == table_sql(fresh, name)
 
@@ -181,7 +183,7 @@ def test_a_version_seven_database_is_refused_without_being_modified(tmp_path: Pa
     path = tmp_path / "future.db"
     make_old_database(path, 5)
     connection = sqlite3.connect(path)
-    connection.execute("PRAGMA user_version = 7")
+    connection.execute("PRAGMA user_version = 8")
     connection.commit()
     connection.close()
     before = path.read_bytes()
