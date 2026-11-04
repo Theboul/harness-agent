@@ -32,6 +32,7 @@ from harness_agent.adapters.mcp import (
     connect_all,
     register_mcp_tools,
 )
+from harness_agent.adapters.providers.failover_provider import FailoverProvider, Switched
 from harness_agent.adapters.providers.litellm_provider import (
     LiteLLMProvider,
     ProviderDependencyError,
@@ -438,6 +439,7 @@ class Composition:
     mcp_clients: tuple[McpStdioClient, ...] = ()
     mcp_tool_names: set[str] = field(default_factory=set)
     session_cursor: SessionCursor | None = None
+    failover: FailoverProvider | None = None
     progress: ProgressRecorder | None = None
     startup: StartupRoutine | None = None
     ask: AskFn | None = None
@@ -532,6 +534,64 @@ def _with_retries(
         observer=record,
         **options,
     )
+
+
+def _failover_aliases(config: HarnessConfig) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """The aliases of ``[failover]`` that can be used, and one fixed notice per one left out.
+
+    An alias whose provider needs a key that is not in the environment is left out at the start
+    (HU-07-05): the notice names the alias and the variable, never a value.
+    """
+    by_alias = {entry.alias: entry for entry in config.models}
+    usable: list[str] = []
+    notices: list[str] = []
+    for alias in config.failover:
+        entry = by_alias[alias]
+        if entry.key_variable is not None and entry.api_key is None:
+            notices.append(
+                f"Modelo de respaldo «{alias}» omitido: falta la variable {entry.key_variable} "
+                "del entorno."
+            )
+        else:
+            usable.append(alias)
+    return tuple(usable), tuple(notices)
+
+
+def _with_failover(
+    provider: Provider,
+    switch: ModelSwitch,
+    aliases: tuple[str, ...],
+    bus: EventBus,
+    cursor: SessionCursor,
+    warning_sink: WarningSink,
+) -> FailoverProvider:
+    """``provider`` wrapped with the failover between models (HU-07-05).
+
+    Each switch is a ``provider_switched`` event in the session that is active at that moment, with
+    the two models and the class of the error and nothing of its text, and one fixed line on the
+    screen.
+    """
+
+    def record(change: Switched) -> None:
+        try:
+            warning_sink.write(
+                f"Cambio de modelo por fallo: {change.from_model} a {change.to_model} "
+                f"({change.error_type})."
+            )
+        finally:
+            bus.emit(
+                Event.create(
+                    cursor.value,
+                    EventType.PROVIDER_SWITCHED,
+                    {
+                        "from_model": change.from_model,
+                        "to_model": change.to_model,
+                        "reason": change.error_type,
+                    },
+                )
+            )
+
+    return FailoverProvider(provider, switch, aliases, observer=record, warn=warning_sink.write)
 
 
 def _build_area(root: Path | None) -> tuple[AuthorizedArea | None, tuple[str, ...]]:
@@ -745,6 +805,8 @@ def compose(
     )
     mode = WorkMode()
     area, notices = _build_area(config.paths.workspace_root)
+    failover_aliases, failover_notices = _failover_aliases(config)
+    notices = (*notices, *failover_notices)
     system = platform.system() if system_name is None else system_name
     shell = None
     if area is not None:
@@ -887,10 +949,14 @@ def compose(
                 model=lambda: switch.model,
             )
         cursor = SessionCursor(session_id)
+        warning_sink = WarningSink()
         provider = _with_retries(switch, config, bus, cursor, retry_sleep)
+        failover: FailoverProvider | None = None
+        if failover_aliases:  # off by default (HU-07-05): without a list nothing is wrapped
+            failover = _with_failover(provider, switch, failover_aliases, bus, cursor, warning_sink)
+            provider = failover
         # The archive stores ``context_compacted`` in its own transaction (HU-02-03): the recorder
         # must not store it again. The ``skip`` goes by position.
-        warning_sink = WarningSink()
         progress: ProgressRecorder | None = None
         startup: StartupRoutine | None = None
         if task is not None and area is not None:
@@ -1119,6 +1185,7 @@ def compose(
         messages=messages,
         compactor_for=compactor_for,
         session_cursor=cursor,
+        failover=failover,
         progress=progress,
         startup=startup,
         ask=ask,
@@ -1376,6 +1443,8 @@ def _compact_command(
             return COMPACT_NOT_AVAILABLE
         # As before any request: the calls a cut left without a result get their closing first.
         _close_interrupted(composition.bus, active)
+        if composition.failover is not None:
+            composition.failover.begin_turn()  # the command is a request too (HU-07-05)
         return format_compaction(await factory(active.session_id).before_turn(history))
 
     return compact
@@ -1699,6 +1768,8 @@ async def run_session(
     pending_startup: list[Briefing] = []
 
     async def turn(task: str) -> object:
+        if composition.failover is not None:
+            composition.failover.begin_turn()  # a request of the person: the list starts over
         if pending_startup:
             # The routine of a resumed ticket goes before the first real request, once (HU-11-08.2).
             task = pending_startup.pop().with_request(task)

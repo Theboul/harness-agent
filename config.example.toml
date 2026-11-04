@@ -121,3 +121,18 @@ sessions_db = ".harness/sessions.db"
 # [models]
 # plan = "gemini/gemini-3.5-flash-lite"
 # build = "groq/openai/gpt-oss-120b"
+
+# Conmutación por fallo (opcional, HU-07-05): si el modelo en uso falla por un motivo ajeno a la
+# petición (cuota agotada, límite de tasa, tiempo agotado, servicio no disponible o error de
+# conexión) y ya agotó sus reintentos, el arnés pasa al siguiente modelo de esta lista, repite la
+# misma llamada y lo muestra en pantalla y en el registro de la sesión. Cada nombre es un alias de
+# la tabla de modelos, en el orden en que se prueban; el modelo principal de arriba siempre va
+# primero y no se escribe aquí (`predeterminado` no es válido). En una petición cada modelo se
+# prueba como máximo una vez y no se vuelve atrás; si todos fallan, la persona ve un error y la
+# petición siguiente empieza de nuevo. Una clave inválida, una petición mal formada, una política
+# de contenido o un error desconocido NO conmutan: se muestra el error. El cambio queda hasta que
+# se elija otro modelo (`/model predeterminado` vuelve al principal). Está apagada por defecto
+# (sin lista, nada cambia) y admite hasta 8 alias. En el peor caso una llamada hace (modelos) x
+# max_attempts intentos. Si falta la clave de un alias de respaldo se avisa al arrancar y se omite.
+# [failover]
+# models = ["plan", "build"]

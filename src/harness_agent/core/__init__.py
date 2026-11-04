@@ -102,6 +102,11 @@ from harness_agent.core.events import (
     Event,
     EventType,
 )
+from harness_agent.core.failover import (
+    ELIGIBLE_ERRORS,
+    FailoverTurn,
+    is_failover_eligible,
+)
 from harness_agent.core.in_memory_event_bus import EventDeliveryError, InMemoryEventBus
 from harness_agent.core.interfaces import (
     ApprovalAction,
@@ -385,6 +390,10 @@ __all__ = [
     "UnknownToolError",
     "ToolValidationError",
     "Violation",
+    # Failover between models (HU-07-05)
+    "ELIGIBLE_ERRORS",
+    "FailoverTurn",
+    "is_failover_eligible",
     # In-memory event bus (HU-01-05)
     "InMemoryEventBus",
     "EventDeliveryError",
