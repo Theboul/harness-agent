@@ -277,7 +277,7 @@ def test_a_memory_module_that_imports_what_it_must_not_is_flagged(line: str) -> 
 def test_a_memory_module_that_reads_the_environment_or_prints_is_flagged() -> None:
     source = read(MEMORY)
 
-    assert purity_problems(source + '\nTOKEN = os.environ["X"]\n', MEMORY.name) != []
+    assert purity_problems(source + '\nHOME_DIR = os.environ["X"]\n', MEMORY.name) != []
     assert purity_problems(source + '\nprint("x")\n', MEMORY.name) != []
 
 
