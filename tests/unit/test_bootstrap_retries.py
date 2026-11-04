@@ -9,6 +9,7 @@ from __future__ import annotations
 import dataclasses
 from collections.abc import Iterator
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -16,7 +17,14 @@ from harness_agent.adapters.providers.errors import RateLimited
 from harness_agent.adapters.providers.retrying_provider import RetryingProvider
 from harness_agent.bootstrap import Composition
 from harness_agent.config import HarnessConfig, Retries
-from harness_agent.core import Event, EventType, ProviderResponse, ProviderTimeout, QuotaExceeded
+from harness_agent.core import (
+    Event,
+    EventType,
+    ProviderResponse,
+    ProviderTimeout,
+    QuotaExceeded,
+    TracingProvider,
+)
 from harness_agent.core.loop import TurnStatus
 from tests.doubles import FakeProvider
 from tests.unit.bootstrap_support import SENTINEL, build, make_config, one_turn
@@ -103,7 +111,8 @@ async def test_the_wrapper_is_the_provider_the_loop_uses(
 ) -> None:
     composition = build(opened, make_config(tmp_path), FakeProvider([OK]))
 
-    assert isinstance(composition.loop._provider, RetryingProvider)
+    wrapper = cast(TracingProvider, composition.loop._provider)  # the traces (HU-10-01)
+    assert isinstance(wrapper.inner, RetryingProvider)
 
 
 async def test_each_retry_is_a_provider_error_event_with_no_data_of_the_error(

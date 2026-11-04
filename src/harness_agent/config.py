@@ -70,6 +70,8 @@ _PATH_FIELDS = ("workspace_root", "sessions_db")
 # Optional ``[subagents]`` section (HU-09-04): the limits of each subagent, apart from the
 # session's.
 _SUBAGENT_FIELDS = ("enabled", "max_turns", "max_seconds", "max_tokens")
+# Optional ``[traces]`` section (HU-10-01): the traces are on by default; it only turns them off.
+_TRACE_FIELDS = ("enabled",)
 # Optional ``[memory]`` section (HU-04-01 and HU-04-02): off by default.
 _MEMORY_FIELDS = ("enabled", "budget_tokens", "max_entries", "max_content_chars")
 _PERMISSION_FIELDS = ("deny", "ask")
@@ -112,6 +114,7 @@ _TABLE_FIELDS: Mapping[str, tuple[str, ...]] = MappingProxyType(
         "subagents": _SUBAGENT_FIELDS,
         "failover": _FAILOVER_FIELDS,
         "memory": _MEMORY_FIELDS,
+        "traces": _TRACE_FIELDS,
         "paths": _PATH_FIELDS,
         "permissions": (*_PERMISSION_FIELDS, _DENY_COMMANDS_FIELD, _READ_ONLY_FIELD),
     }
@@ -361,6 +364,13 @@ class Limits:
 
 
 @dataclass(frozen=True, slots=True)
+class TraceSettings:
+    """The traces of the calls to the model and to the tools (HU-10-01): on unless turned off."""
+
+    enabled: bool = True
+
+
+@dataclass(frozen=True, slots=True)
 class Retries:
     """Retries of the provider calls that fail for a passing reason (HU-07-04), in seconds.
 
@@ -467,6 +477,7 @@ class HarnessConfig:
     subagents: SubagentSettings = SubagentSettings()
     memory: MemorySettings = MemorySettings()
     failover: tuple[str, ...] = ()
+    traces: TraceSettings = TraceSettings()
 
 
 def _locate(path: str | os.PathLike[str] | None, environ: Mapping[str, str]) -> tuple[Path, str]:
@@ -655,6 +666,17 @@ def _check_memory(table: Mapping[str, Any], present: list[ConfigProblem]) -> Mem
             message = f"debe ser un entero entre {low} y {high}."
             present.append(ConfigProblem(f"memory.{field}", message))
     return MemorySettings(**values)
+
+
+def _check_traces(table: Mapping[str, Any], present: list[ConfigProblem]) -> TraceSettings:
+    """The ``[traces]`` section: one boolean; the message never repeats the value."""
+    if "enabled" not in table:
+        return TraceSettings()
+    value = table["enabled"]
+    if isinstance(value, bool):
+        return TraceSettings(enabled=value)
+    present.append(ConfigProblem("traces.enabled", _NOT_A_BOOLEAN))
+    return TraceSettings()
 
 
 def _check_subagents(table: Mapping[str, Any], present: list[ConfigProblem]) -> SubagentSettings:
@@ -889,6 +911,7 @@ def load_config(
     retries = _check_retries(_table(data, "retries", present), present)
     subagents = _check_subagents(_table(data, "subagents", present), present)
     memory = _check_memory(_table(data, "memory", present), present)
+    traces = _check_traces(_table(data, "traces", present), present)
     paths = _check_paths(_table(data, "paths", present), file_path.parent, present)
     permissions_table = _table(data, "permissions", present)
     permissions = _check_permissions(permissions_table, present)
@@ -922,6 +945,7 @@ def load_config(
             subagents=subagents,
             failover=failover,
             memory=memory,
+            traces=traces,
         )
     value = environment.get(variable)
     if value is None or not value.strip():
@@ -943,4 +967,5 @@ def load_config(
         subagents=subagents,
         failover=failover,
         memory=memory,
+        traces=traces,
     )

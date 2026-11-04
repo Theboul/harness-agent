@@ -28,6 +28,7 @@ from harness_agent.core import (
     SubagentApprover,
     SubagentRunner,
     ToolCall,
+    TracingRegistry,
 )
 from harness_agent.core.loop import AgentLoop
 from tests.doubles import DummyApprover, DummyTool, FakeProvider
@@ -196,8 +197,13 @@ async def test_the_loop_of_the_subagent_shares_provider_policy_and_bus_with_its_
 
     main, child = Spy.built
     assert child["policy"] is main["policy"]  # the very object: deny, protected and read-only
-    assert child["provider"] is main["provider"] and child["bus"] is main["bus"]
-    assert isinstance(child["registry"], RegistryView) and child["registry"] is not main["registry"]
+    # Each loop calls its own tracing wrapper, tied to its session (HU-10-01); the chain is shared.
+    assert child["provider"] is not main["provider"]
+    assert child["provider"].inner is main["provider"].inner and child["bus"] is main["bus"]
+    assert (
+        isinstance(child["registry"], TracingRegistry) and child["registry"] is not main["registry"]
+    )
+    assert isinstance(child["registry"]._inner, RegistryView)
     assert (main["limits"].max_turns, child["limits"].max_turns) == (30, 4)
     assert (child["limits"].max_seconds, child["limits"].max_tokens) == (60, 1000)
     assert isinstance(child["approver"], SubagentApprover)

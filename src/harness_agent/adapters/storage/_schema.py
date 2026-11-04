@@ -5,7 +5,8 @@ at version 1 (sessions and events, HU-03-01) is migrated to the current one with
 data. Version 2 adds the ``criterios`` tables (HU-11-01), version 3 the ``resumenes`` table of the
 automatic compaction (HU-02-03), version 4 the ``contexto_esencial`` table (HU-02-06.1) and
 version 5 the ``mensajes`` table of the resumable conversation (HU-03-04) and version 6 the
-``memorias`` table of the persistent memory (HU-04-01). A
+``memorias`` table of the persistent memory (HU-04-01) and version 7 the ``auditoria`` and
+``trazas`` tables of the audit and the traces (HU-05-05, HU-10-01). A
 database at the current version is accepted as is; anything else (a newer version, or a database
 that has tables but no version) is refused without being modified. Every change runs in one
 transaction.
@@ -17,7 +18,7 @@ import sqlite3
 
 from harness_agent.adapters.storage.errors import SchemaVersionError
 
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 
 _V1 = """
 CREATE TABLE sessions (
@@ -130,8 +131,45 @@ CREATE TABLE memorias (
 CREATE INDEX idx_memorias_actualizada ON memorias (actualizada, id);
 """
 
+# The audit of the decisions (HU-05-05) and the traces of the calls (HU-10-01). Both tables are
+# evidence: they have no foreign key (nothing that happens to a session may stop them or erase them)
+# and no CHECK on values (a payload nobody foresaw must still be recorded). ``argumentos`` is
+# already redacted and shortened by the core; ``trazas`` holds metadata only. A null token count
+# means the provider gave no usage.
+_V7 = """
+CREATE TABLE auditoria (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    sesion_id     TEXT NOT NULL,
+    llamada_id    TEXT NOT NULL,
+    herramienta   TEXT NOT NULL,
+    argumentos    TEXT NOT NULL,
+    decision      TEXT NOT NULL,
+    resolucion    TEXT NOT NULL,
+    razon         TEXT,
+    accion        TEXT,
+    fuente        TEXT,
+    origen        TEXT NOT NULL,
+    decidida      TEXT NOT NULL,
+    resuelta      TEXT
+);
+CREATE INDEX idx_auditoria_sesion ON auditoria (sesion_id, id);
+CREATE TABLE trazas (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    sesion_id       TEXT NOT NULL,
+    tipo            TEXT NOT NULL,
+    nombre          TEXT NOT NULL,
+    inicio          TEXT NOT NULL,
+    duracion_ms     INTEGER NOT NULL,
+    tokens_entrada  INTEGER,
+    tokens_salida   INTEGER,
+    resultado       TEXT NOT NULL,
+    tamano          INTEGER NOT NULL
+);
+CREATE INDEX idx_trazas_sesion ON trazas (sesion_id, id);
+"""
+
 # What each version adds on top of the one before it.
-_STEPS = {1: _V1, 2: _V2, 3: _V3, 4: _V4, 5: _V5, 6: _V6}
+_STEPS = {1: _V1, 2: _V2, 3: _V3, 4: _V4, 5: _V5, 6: _V6, 7: _V7}
 
 
 def _script(first: int) -> str:

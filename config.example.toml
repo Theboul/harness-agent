@@ -130,6 +130,15 @@ sessions_db = ".harness/sessions.db"
 # Caracteres de una entrada, de una sola línea (de 50 a 2000).
 # max_content_chars = 500
 
+# Trazas estructuradas (opcional): cada llamada al modelo y a una herramienta deja una traza con su
+# tipo, duración, tokens y resultado (nunca el contenido de los mensajes ni de los resultados), que
+# se consulta con /trazas. Están encendidas por defecto; esta sección solo sirve para apagarlas. La
+# auditoría de las decisiones de permisos (/auditoria) no se apaga. Un valor que no sea true o false
+# detiene el arranque.
+# [traces]
+# Guarda las trazas (true) o no las guarda (false).
+# enabled = true
+
 # Varios modelos en una misma sesión (opcional): cada alias apunta a un modelo de LiteLLM con la
 # forma <proveedor>/<modelo>. Con ellos, `/model <alias>` cambia de modelo sin reiniciar, `/plan`
 # usa el alias `plan` y activa el solo lectura, e `/implementar` vuelve al alias `build` (o al
