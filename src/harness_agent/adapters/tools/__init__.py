@@ -17,6 +17,7 @@ from harness_agent.adapters.tools._limits import (
     MAX_WRITE_BYTES,
 )
 from harness_agent.adapters.tools.ask_user import Answer, AskFn, AskUserTool, Question
+from harness_agent.adapters.tools.delegar import DelegateTool
 from harness_agent.adapters.tools.list_files import ListFilesTool
 from harness_agent.adapters.tools.read_file import ReadFileTool
 from harness_agent.adapters.tools.search_text import SearchTextTool
@@ -31,6 +32,7 @@ __all__ = [
     "SearchTextTool",
     "ShellTool",
     "AskUserTool",
+    "DelegateTool",
     "AskFn",
     "Question",
     "Answer",

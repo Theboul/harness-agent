@@ -47,6 +47,8 @@ TOOLS_API = {
     "AskFn",
     "Question",
     "Answer",
+    # HU-09-01: the delegation tool (authorized change of an existing test, spec 051).
+    "DelegateTool",
 }
 SYSTEM_API = {
     "BashShell",

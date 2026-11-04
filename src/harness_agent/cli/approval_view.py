@@ -116,6 +116,14 @@ def _effect(tool: str, details: Mapping[str, Any]) -> list[str]:
     return [EFFECT_LABEL + wrapped[0], *(padding + line for line in wrapped[1:])]
 
 
+def _requester(details: Mapping[str, Any]) -> list[str]:
+    """The line that says which subagent asks (HU-09-03); nothing when the request is not its."""
+    requester = details.get("requested_by")
+    if not isinstance(requester, str) or not requester.strip():
+        return []
+    return [f" Pide:        {_escaped(requester.strip(), MAX_NAME_CHARS)}"]
+
+
 def _argument_lines(arguments: Mapping[str, Any], primary: str | None) -> list[str]:
     rest = [(name, value) for name, value in arguments.items() if name != primary]
     if not rest:
@@ -144,7 +152,7 @@ def approval_block(tool_name: str, details: Mapping[str, Any], style: Style = PL
     arguments: Mapping[str, Any] = raw_arguments if isinstance(raw_arguments, dict) else {}
     primary = _primary_key(arguments)
     rule, thin = "=" * RULE_WIDTH, "-" * RULE_WIDTH
-    lines = [rule, style.paint(TITLE, "bold"), thin, _sentence(primary, tool)]
+    lines = [rule, style.paint(TITLE, "bold"), thin, *_requester(details), _sentence(primary, tool)]
     if primary is not None:
         highlighted = _shown(primary, arguments[primary], MAX_PRIMARY_CHARS)
         lines.append(_INDENT + style.paint(highlighted, "bold", "cyan"))

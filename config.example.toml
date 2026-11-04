@@ -97,6 +97,21 @@ sessions_db = ".harness/sessions.db"
 # Tope de la espera, en segundos (de base_delay a 600).
 # max_delay = 30
 
+# Subagentes (opcional, HU-09-01, HU-09-03 y HU-09-04): si se activa, el agente recibe la
+# herramienta delegar, que entrega una subtarea a un subagente en una sesión hija con el contexto
+# vacío y devuelve solo un resultado breve. Está apagada por defecto. Los límites de cada subagente
+# son propios de cada delegación e independientes de los límites de la sesión. Un valor inválido
+# detiene el arranque. Los números de ejemplo son los valores por defecto.
+# [subagents]
+# Activa la herramienta delegar (true) o la quita (false).
+# enabled = false
+# Llamadas al modelo que puede hacer un subagente; al alcanzarlas termina con un resultado parcial.
+# max_turns = 10
+# Segundos que puede tardar una delegación.
+# max_seconds = 300
+# Presupuesto de tokens (entrada más salida) de un subagente.
+# max_tokens = 50000
+
 # Varios modelos en una misma sesión (opcional): cada alias apunta a un modelo de LiteLLM con la
 # forma <proveedor>/<modelo>. Con ellos, `/model <alias>` cambia de modelo sin reiniciar, `/plan`
 # usa el alias `plan` y activa el solo lectura, e `/implementar` vuelve al alias `build` (o al
