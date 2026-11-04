@@ -55,6 +55,7 @@ from harness_agent.adapters.storage import (
     SessionStoreError,
     SqliteCompactionArchive,
     SqliteEssentialStore,
+    SqliteMemoryStore,
     SqliteMessageStore,
     SqliteSessionStore,
     SqliteTaskStore,
@@ -90,6 +91,7 @@ from harness_agent.adapters.tools import (
     AskUserTool,
     DelegateTool,
     ListFilesTool,
+    MemoryTool,
     Question,
     ReadFileTool,
     SearchTextTool,
@@ -128,6 +130,7 @@ from harness_agent.config import (
 )
 from harness_agent.core import (
     DELEGATE_TOOL_NAME,
+    MEMORY_TOOL_NAME,
     AllowedCall,
     ApprovalGate,
     Approver,
@@ -159,6 +162,7 @@ from harness_agent.core import (
     InMemoryEventBus,
     InMemoryToolRegistry,
     LoopSubagentRunner,
+    MemoryLoader,
     Message,
     OpenToolsPolicy,
     PermissionPolicy,
@@ -426,6 +430,7 @@ class Composition:
     compactor: ContextCompactor | None = None
     warning_sink: WarningSink = field(default_factory=WarningSink)
     essential: EssentialRenewer | None = None
+    memory: MemoryLoader | None = None
     capture: ConversationCapture | None = None
     messages: SqliteMessageStore | None = None
     compactor_for: Callable[[str], ContextCompactor] | None = None
@@ -1018,7 +1023,7 @@ def compose(
             async def run_child(session: str, text: str, history: list[Message]) -> TurnResult:
                 child = AgentLoop(
                     provider,
-                    RegistryView(registry, {DELEGATE_TOOL_NAME}),
+                    RegistryView(registry, {DELEGATE_TOOL_NAME, MEMORY_TOOL_NAME}),
                     policy,
                     bus,
                     approver=None
@@ -1036,6 +1041,21 @@ def compose(
                 redact=redactor,
             )
             registry.register(DelegateTool(subagent_runner))
+        # The persistent memory (HU-04-01, HU-04-02): a tool to save and forget, and the loading of
+        # the most recent entries when a session starts. Only if the configuration turns it on.
+        memory_loader: MemoryLoader | None = None
+        if config.memory.enabled:  # off by default: one more tool in every request
+            memory_log = SqliteMemoryStore(
+                store, max_entries=config.memory.max_entries, **clock_options
+            )
+            registry.register(MemoryTool(memory_log, config.memory, redactor))
+            memory_loader = MemoryLoader(
+                memory_log,
+                config.memory,
+                config.context,
+                model=lambda: switch.model,
+                warn=warning_sink.write,
+            )
         compactor = _compactor(
             provider,
             store,
@@ -1181,6 +1201,7 @@ def compose(
         compactor=compactor,
         warning_sink=warning_sink,
         essential=renewer,
+        memory=memory_loader,
         capture=capture,
         messages=messages,
         compactor_for=compactor_for,
@@ -1477,6 +1498,8 @@ def _new_command(
         except Exception:
             return NEW_FAILED
         history[:] = composition.history_prefix
+        if composition.memory is not None:
+            composition.memory.load_into(history)  # a new session gets the memory (HU-04-02)
         composition.work_mode.forget()  # an empty conversation: the mode is told again
         active.session_id = session
         if composition.session_cursor is not None:
@@ -1744,6 +1767,8 @@ async def run_session(
     for notice in composition.notices:
         _write_notice(stream, notice)
     history: list[Message] = list(composition.history_prefix)
+    if composition.memory is not None:
+        composition.memory.load_into(history)  # the memory of earlier sessions (HU-04-02)
     capture = composition.capture
     if capture is not None and composition.messages is not None:
         last = composition.messages.last_position(composition.session_id)

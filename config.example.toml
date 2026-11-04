@@ -112,6 +112,24 @@ sessions_db = ".harness/sessions.db"
 # Presupuesto de tokens (entrada más salida) de un subagente.
 # max_tokens = 50000
 
+# Memoria persistente (opcional, HU-04-01 y HU-04-02): si se activa, el agente recibe la herramienta
+# memoria para guardar datos breves que sobreviven a las sesiones y a su compactación. Al abrir una
+# sesión nueva (no al reanudar) los datos más recientes entran en el contexto como datos y nunca como
+# instrucciones, dentro de un presupuesto de tokens, y se avisa de lo que no cabe. Cada guardado
+# pregunta a la persona. La memoria vive en el archivo de sesiones y es la misma para todo lo que
+# lo use. Está apagada por defecto. Un valor inválido o un campo desconocido detiene el arranque.
+# Los números de ejemplo son los valores por defecto.
+# [memory]
+# Activa la herramienta memoria y la carga al abrir una sesión (true) o las quita (false).
+# enabled = false
+# Presupuesto del bloque de memoria al abrir una sesión, en tokens (de 400 a 8000). Nunca pasa del
+# 20 % del umbral de compactación del modelo en uso.
+# budget_tokens = 2000
+# Entradas que guarda la memoria (de 1 a 1000); con la memoria llena hay que olvidar una.
+# max_entries = 200
+# Caracteres de una entrada, de una sola línea (de 50 a 2000).
+# max_content_chars = 500
+
 # Varios modelos en una misma sesión (opcional): cada alias apunta a un modelo de LiteLLM con la
 # forma <proveedor>/<modelo>. Con ellos, `/model <alias>` cambia de modelo sin reiniciar, `/plan`
 # usa el alias `plan` y activa el solo lectura, e `/implementar` vuelve al alias `build` (o al

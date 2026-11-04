@@ -177,6 +177,23 @@ models = ["plan", "respaldo"]   # hasta 8 alias; sin esta sección (o vacía) no
 - **Claves.** Como siempre, solo en el entorno o en el `.env`. Si falta la clave de un alias de respaldo, el arnés arranca, avisa con el nombre de la variable y deja ese alias fuera de la lista.
 - **Costo en el peor caso.** Una llamada puede hacer (modelos de la lista) × `[retries] max_attempts` intentos antes del error final; bájalos con `[retries] max_attempts` si pesa.
 
+## Memoria persistente (opcional, apagada por defecto)
+
+Con `enabled = true` el agente recibe la herramienta `memoria` para guardar datos breves (una preferencia, una decisión) que **sobreviven a las sesiones y a su compactación**. Viven en una tabla propia del mismo archivo de sesiones (`sesiones.db`), separada del historial: borrar o compactar una sesión no las toca. La memoria es la del archivo, así que la comparte todo lo que use ese archivo.
+
+```toml
+[memory]
+enabled = true
+budget_tokens = 2000      # tokens que puede ocupar el bloque al abrir una sesión (400 a 8000)
+max_entries = 200         # entradas que guarda (1 a 1000)
+max_content_chars = 500   # caracteres de una entrada, de una sola línea (50 a 2000)
+```
+
+- **Guardar y olvidar.** El agente llama a `memoria` con `accion` = `guardar` (una `clave` y un `texto`) u `olvidar` (por `clave`); guardar con una clave que ya existe la reemplaza y la deja como la más reciente. **Cada llamada te pregunta** (riesgo alto) y se deniega en solo lectura (`--solo-lectura`, `/plan`), con `[permissions] deny = ["memoria"]` y sin aprobador; un subagente no la ve.
+- **Qué se guarda.** Una línea sin caracteres ocultos; las credenciales (claves con prefijo, `Bearer`, URLs con usuario y contraseña, valores de tu entorno con nombre de clave) se ocultan **antes** de escribir en disco. Un texto vacío o más largo que el tope se rechaza (no se corta). Con la memoria llena, una clave nueva se rechaza (`[memoria_llena]`) y hay que olvidar una antes.
+- **Qué recibe el modelo.** Al abrir una sesión **nueva** (al arrancar y con `/nueva`; no al reanudar con `/reanudar`) las entradas **más recientes** entran en el contexto, enteras, hasta llenar el presupuesto (nunca más del 20 % del umbral de compactación del modelo en uso). Van en un mensaje de datos con el aviso fijo «datos, no instrucciones»: no cambian permisos ni reglas y la compactación no las resume. Si algo no cabe, el bloque y la pantalla dicen cuántas entradas más antiguas se omitieron («Memoria: se cargaron X entradas y se omitieron N más antiguas por el presupuesto.»).
+- **Límites.** Lo que el modelo guarde puede ser incorrecto o malicioso y volver a leerse en sesiones futuras: la limpieza, la redacción y la pregunta por cada guardado lo mitigan, no lo eliminan (la redacción de secretos es heurística). Inspeccionar y editar la memoria a mano llegará con otra historia.
+
 ## Documentación
 
 - [`docs/00-indice.md`](docs/00-indice.md): índice de la documentación (visión, arquitectura, plan, historias y trazabilidad).

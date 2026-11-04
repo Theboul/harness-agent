@@ -20,6 +20,7 @@ EXPECTED = {
     "SessionStoreError",
     "SqliteCompactionArchive",
     "SqliteEssentialStore",
+    "SqliteMemoryStore",
     "SqliteMessageStore",
     "SqliteSessionStore",
     "SqliteTaskStore",
