@@ -4,7 +4,8 @@ The version lives in ``PRAGMA user_version``. A new database gets the current sc
 at version 1 (sessions and events, HU-03-01) is migrated to the current one without touching its
 data. Version 2 adds the ``criterios`` tables (HU-11-01), version 3 the ``resumenes`` table of the
 automatic compaction (HU-02-03), version 4 the ``contexto_esencial`` table (HU-02-06.1) and
-version 5 the ``mensajes`` table of the resumable conversation (HU-03-04). A
+version 5 the ``mensajes`` table of the resumable conversation (HU-03-04) and version 6 the
+``memorias`` table of the persistent memory (HU-04-01). A
 database at the current version is accepted as is; anything else (a newer version, or a database
 that has tables but no version) is refused without being modified. Every change runs in one
 transaction.
@@ -16,7 +17,7 @@ import sqlite3
 
 from harness_agent.adapters.storage.errors import SchemaVersionError
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 _V1 = """
 CREATE TABLE sessions (
@@ -116,8 +117,21 @@ CREATE TABLE mensajes (
 CREATE INDEX idx_mensajes_evento ON mensajes (evento_id);
 """
 
+# The persistent memory (HU-04-01): one row per key, apart from sessions and events. It has no
+# foreign key on purpose: deleting or compacting a session must not touch it.
+_V6 = """
+CREATE TABLE memorias (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    clave        TEXT NOT NULL UNIQUE CHECK (length(trim(clave)) > 0),
+    contenido    TEXT NOT NULL CHECK (length(trim(contenido)) > 0),
+    creada       TEXT NOT NULL,
+    actualizada  TEXT NOT NULL
+);
+CREATE INDEX idx_memorias_actualizada ON memorias (actualizada, id);
+"""
+
 # What each version adds on top of the one before it.
-_STEPS = {1: _V1, 2: _V2, 3: _V3, 4: _V4, 5: _V5}
+_STEPS = {1: _V1, 2: _V2, 3: _V3, 4: _V4, 5: _V5, 6: _V6}
 
 
 def _script(first: int) -> str:

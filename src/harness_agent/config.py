@@ -29,8 +29,10 @@ from harness_agent.config_mcp import McpServerConfig as McpServerConfig
 from harness_agent.core import (
     CONTEXT_FIELD_RANGES,
     DEFAULT_MAX_OUTPUT_CHARS,
+    MEMORY_FIELD_RANGES,
     MIN_MAX_OUTPUT_CHARS,
     ContextSettings,
+    MemorySettings,
     requirement_of,
 )
 from harness_agent.core.permissions import PermissionRules
@@ -68,6 +70,8 @@ _PATH_FIELDS = ("workspace_root", "sessions_db")
 # Optional ``[subagents]`` section (HU-09-04): the limits of each subagent, apart from the
 # session's.
 _SUBAGENT_FIELDS = ("enabled", "max_turns", "max_seconds", "max_tokens")
+# Optional ``[memory]`` section (HU-04-01 and HU-04-02): off by default.
+_MEMORY_FIELDS = ("enabled", "budget_tokens", "max_entries", "max_content_chars")
 _PERMISSION_FIELDS = ("deny", "ask")
 # Optional ``[context]`` section (HU-02-03): the fields, in the order they are reported.
 _CONTEXT_FIELDS = tuple(CONTEXT_FIELD_RANGES)
@@ -107,6 +111,7 @@ _TABLE_FIELDS: Mapping[str, tuple[str, ...]] = MappingProxyType(
         "retries": _RETRY_FIELDS,
         "subagents": _SUBAGENT_FIELDS,
         "failover": _FAILOVER_FIELDS,
+        "memory": _MEMORY_FIELDS,
         "paths": _PATH_FIELDS,
         "permissions": (*_PERMISSION_FIELDS, _DENY_COMMANDS_FIELD, _READ_ONLY_FIELD),
     }
@@ -460,6 +465,7 @@ class HarnessConfig:
     retries: Retries = Retries()
     models: tuple[ModelAlias, ...] = ()
     subagents: SubagentSettings = SubagentSettings()
+    memory: MemorySettings = MemorySettings()
     failover: tuple[str, ...] = ()
 
 
@@ -627,6 +633,28 @@ def _check_context(table: Mapping[str, Any], present: list[ConfigProblem]) -> Co
         if not valid:
             present.append(ConfigProblem(f"context.{field}", requirement_of(field)))
     return ContextSettings(**values)
+
+
+def _check_memory(table: Mapping[str, Any], present: list[ConfigProblem]) -> MemorySettings:
+    """The ``[memory]`` section: a boolean and integers in their ranges; never repeats a value."""
+    values: dict[str, Any] = {}
+    for field in _MEMORY_FIELDS:
+        if field not in table:
+            continue
+        value = table[field]
+        if field == "enabled":
+            if isinstance(value, bool):
+                values[field] = value
+            else:
+                present.append(ConfigProblem("memory.enabled", _NOT_A_BOOLEAN))
+            continue
+        low, high = MEMORY_FIELD_RANGES[field]
+        if isinstance(value, int) and not isinstance(value, bool) and low <= value <= high:
+            values[field] = value
+        else:
+            message = f"debe ser un entero entre {low} y {high}."
+            present.append(ConfigProblem(f"memory.{field}", message))
+    return MemorySettings(**values)
 
 
 def _check_subagents(table: Mapping[str, Any], present: list[ConfigProblem]) -> SubagentSettings:
@@ -860,6 +888,7 @@ def load_config(
     context = _check_context(_table(data, "context", present), present)
     retries = _check_retries(_table(data, "retries", present), present)
     subagents = _check_subagents(_table(data, "subagents", present), present)
+    memory = _check_memory(_table(data, "memory", present), present)
     paths = _check_paths(_table(data, "paths", present), file_path.parent, present)
     permissions_table = _table(data, "permissions", present)
     permissions = _check_permissions(permissions_table, present)
@@ -892,6 +921,7 @@ def load_config(
             models=models,
             subagents=subagents,
             failover=failover,
+            memory=memory,
         )
     value = environment.get(variable)
     if value is None or not value.strip():
@@ -912,4 +942,5 @@ def load_config(
         models=models,
         subagents=subagents,
         failover=failover,
+        memory=memory,
     )

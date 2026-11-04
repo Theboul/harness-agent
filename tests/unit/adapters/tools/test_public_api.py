@@ -49,6 +49,7 @@ TOOLS_API = {
     "Answer",
     # HU-09-01: the delegation tool (authorized change of an existing test, spec 051).
     "DelegateTool",
+    "MemoryTool",
 }
 SYSTEM_API = {
     "BashShell",

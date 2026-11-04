@@ -131,3 +131,19 @@ class ConversationInconsistent(ResumeError):
         super().__init__(
             "Los mensajes guardados de la sesión no son coherentes y no se puede reanudar."
         )
+
+
+class MemoryEntryInvalid(ValueError):
+    """What the model wanted to remember cannot be stored (key or text); nothing was written.
+
+    The messages are fixed sentences: they never repeat the key or the text.
+    """
+
+
+class MemoryFull(RuntimeError):
+    """The memory holds the most entries it may and the key is new; nothing was written."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            "La memoria está llena: borra una entrada con la acción olvidar antes de guardar otra."
+        )

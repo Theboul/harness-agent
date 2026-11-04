@@ -11,6 +11,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from harness_agent.core.context.estimator import estimate_message
+from harness_agent.core.context.memory import is_memory_block
 from harness_agent.core.context.summary import is_summary
 from harness_agent.core.entities import Message, Role
 
@@ -50,6 +51,8 @@ def split_history(history: Sequence[Message]) -> HistoryParts | None:
     index = 0
     while index < len(history) and history[index].role is Role.SYSTEM:
         index += 1
+    if index < len(history) and is_memory_block(history[index]):
+        index += 1  # the memory block (HU-04-02) is protected head: it sits before the request
     if index >= len(history):
         return None
     request = history[index]
