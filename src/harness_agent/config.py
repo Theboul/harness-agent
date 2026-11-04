@@ -65,6 +65,9 @@ _LIMIT_FIELDS = (
 )
 _LIMIT_MINIMUMS = {"max_tool_output_chars": MIN_MAX_OUTPUT_CHARS}
 _PATH_FIELDS = ("workspace_root", "sessions_db")
+# Optional ``[subagents]`` section (HU-09-04): the limits of each subagent, apart from the
+# session's.
+_SUBAGENT_FIELDS = ("enabled", "max_turns", "max_seconds", "max_tokens")
 _PERMISSION_FIELDS = ("deny", "ask")
 # Optional ``[context]`` section (HU-02-03): the fields, in the order they are reported.
 _CONTEXT_FIELDS = tuple(CONTEXT_FIELD_RANGES)
@@ -100,6 +103,7 @@ _TABLE_FIELDS: Mapping[str, tuple[str, ...]] = MappingProxyType(
         "limits": _LIMIT_FIELDS,
         "context": _CONTEXT_FIELDS,
         "retries": _RETRY_FIELDS,
+        "subagents": _SUBAGENT_FIELDS,
         "paths": _PATH_FIELDS,
         "permissions": (*_PERMISSION_FIELDS, _DENY_COMMANDS_FIELD, _READ_ONLY_FIELD),
     }
@@ -352,6 +356,22 @@ class Retries:
 
 
 @dataclass(frozen=True, slots=True)
+class SubagentSettings:
+    """Whether the agent can delegate to subagents, and the limits of each one (HU-09-04).
+
+    The delegation is off by default: it adds a tool to every request, and a subagent spends
+    model calls of its own. ``max_turns`` counts calls to the model, ``max_seconds`` the time the
+    delegation takes and ``max_tokens`` the token budget of the subagent; they are apart from the
+    limits of the orchestrator and each delegation starts its own counters.
+    """
+
+    enabled: bool = False
+    max_turns: int = 10
+    max_seconds: int = 300
+    max_tokens: int = 50000
+
+
+@dataclass(frozen=True, slots=True)
 class Paths:
     """Paths (reserved for HU-01-03 and HU-03-01): the authorized workspace and the sessions DB.
 
@@ -407,6 +427,8 @@ class HarnessConfig:
             defaults apply without a ``[retries]`` section.
         models: Aliases of other models the person can switch to (HU-06-06), from the optional
             ``[models]`` table; empty by default.
+        subagents: Limits of each subagent (HU-09-04); the defaults apply without a
+            ``[subagents]`` section.
     """
 
     model: str
@@ -422,6 +444,7 @@ class HarnessConfig:
     mcp_servers: tuple[McpServerConfig, ...] = ()
     retries: Retries = Retries()
     models: tuple[ModelAlias, ...] = ()
+    subagents: SubagentSettings = SubagentSettings()
 
 
 def _locate(path: str | os.PathLike[str] | None, environ: Mapping[str, str]) -> tuple[Path, str]:
@@ -559,6 +582,25 @@ def _check_context(table: Mapping[str, Any], present: list[ConfigProblem]) -> Co
         if not valid:
             present.append(ConfigProblem(f"context.{field}", requirement_of(field)))
     return ContextSettings(**values)
+
+
+def _check_subagents(table: Mapping[str, Any], present: list[ConfigProblem]) -> SubagentSettings:
+    """The ``[subagents]`` section: a boolean and integers above zero; never repeats a value."""
+    values: dict[str, Any] = {}
+    for field in _SUBAGENT_FIELDS:
+        if field not in table:
+            continue
+        value = table[field]
+        if field == "enabled":
+            if isinstance(value, bool):
+                values[field] = value
+            else:
+                present.append(ConfigProblem("subagents.enabled", _NOT_A_BOOLEAN))
+        elif isinstance(value, int) and not isinstance(value, bool) and value >= 1:
+            values[field] = value
+        else:
+            present.append(ConfigProblem(f"subagents.{field}", _NOT_AN_INTEGER))
+    return SubagentSettings(**values)
 
 
 def _is_seconds(value: object) -> bool:
@@ -772,6 +814,7 @@ def load_config(
     limits = _check_limits(_table(data, "limits", present), present)
     context = _check_context(_table(data, "context", present), present)
     retries = _check_retries(_table(data, "retries", present), present)
+    subagents = _check_subagents(_table(data, "subagents", present), present)
     paths = _check_paths(_table(data, "paths", present), file_path.parent, present)
     permissions_table = _table(data, "permissions", present)
     permissions = _check_permissions(permissions_table, present)
@@ -799,6 +842,7 @@ def load_config(
             mcp_servers=mcp_servers,
             retries=retries,
             models=models,
+            subagents=subagents,
         )
     value = environment.get(variable)
     if value is None or not value.strip():
@@ -817,4 +861,5 @@ def load_config(
         mcp_servers=mcp_servers,
         retries=retries,
         models=models,
+        subagents=subagents,
     )

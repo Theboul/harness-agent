@@ -87,6 +87,7 @@ from harness_agent.adapters.tools import (
     Answer,
     AskFn,
     AskUserTool,
+    DelegateTool,
     ListFilesTool,
     Question,
     ReadFileTool,
@@ -125,6 +126,7 @@ from harness_agent.config import (
     process_environment,
 )
 from harness_agent.core import (
+    DELEGATE_TOOL_NAME,
     AllowedCall,
     ApprovalGate,
     Approver,
@@ -155,6 +157,7 @@ from harness_agent.core import (
     GitPolicy,
     InMemoryEventBus,
     InMemoryToolRegistry,
+    LoopSubagentRunner,
     Message,
     OpenToolsPolicy,
     PermissionPolicy,
@@ -166,6 +169,7 @@ from harness_agent.core import (
     PullRequestPrompter,
     ReadOnlyPolicy,
     ReadOnlySwitch,
+    RegistryView,
     ResumeError,
     ReviewingRunner,
     Role,
@@ -173,6 +177,8 @@ from harness_agent.core import (
     SecretRedactor,
     SessionLimits,
     StartupRoutine,
+    SubagentApprover,
+    SubagentRunner,
     SwitchablePolicy,
     TaskCommand,
     TaskDefinition,
@@ -190,6 +196,7 @@ from harness_agent.core import (
     only_git_reads,
     progress_file_name,
     rejection_message,
+    requester_label,
     resume_session,
     threshold_tokens,
 )
@@ -434,10 +441,23 @@ class Composition:
     progress: ProgressRecorder | None = None
     startup: StartupRoutine | None = None
     ask: AskFn | None = None
+    subagent_runner: SubagentRunner | None = None
 
     def close(self) -> None:
         """Close the session store; safe to call more than once."""
         self.store.close()
+
+
+class _ChildSessions:
+    """Creates the child sessions of the subagents in the session store (HU-09-01)."""
+
+    def __init__(self, store: SqliteSessionStore, model: Callable[[], str]) -> None:
+        self._store = store
+        self._model = model
+
+    def create(self, parent_id: str, goal: str) -> str:
+        """A session of the model in use hanging from ``parent_id`` (the store checks it exists)."""
+        return self._store.create_session(model=self._model(), goal=goal, parent_id=parent_id).id
 
 
 def _default_provider(
@@ -744,11 +764,13 @@ def compose(
     for tool in (read_tools[0], WriteFileTool(area), read_tools[1], read_tools[2], shell_tool):
         registry.register(tool)
     read_names = [tool.name for tool in read_tools]
-    open_tools: tuple[str, ...] = ()
+    # The delegation is opened like the question tool: the chain still decides what the subagent
+    # does. It exists only if the configuration turns it on (HU-09-01).
+    open_tools: tuple[str, ...] = (DELEGATE_TOOL_NAME,) if config.subagents.enabled else ()
     if ask is not None:
         ask_tool = AskUserTool(ask)
         registry.register(ask_tool)
-        open_tools = (ask_tool.name,)
+        open_tools = (*open_tools, ask_tool.name)
         read_names.append(ask_tool.name)  # asking the person writes nothing
     commands = () if task is None else task.commands
     provisional = _provisional_prefix(system, area, commands, task)
@@ -913,6 +935,41 @@ def compose(
             max_tokens=config.limits.max_tokens,
         )
         loop = AgentLoop(provider, registry, policy, bus, approver=approver, limits=limits)
+        # The subagents (HU-09-01, HU-09-03, HU-09-04). Each delegation runs its own loop with the
+        # provider, the bus and the very same policy as this one (so it inherits deny, the protected
+        # paths and the read-only mode, and never has more permissions), a view of the registry
+        # without the delegation (one level only), an approver that says who asks and limits of
+        # its own that do not count against the ones of the session. Only if the configuration
+        # turns it on (``[subagents] enabled``).
+        subagent_runner: SubagentRunner | None = None
+        if config.subagents.enabled:  # off by default: one more tool in every request
+            child_limits = SessionLimits(
+                max_turns=config.subagents.max_turns,
+                max_seconds=config.subagents.max_seconds,
+                max_tokens=config.subagents.max_tokens,
+            )
+
+            async def run_child(session: str, text: str, history: list[Message]) -> TurnResult:
+                child = AgentLoop(
+                    provider,
+                    RegistryView(registry, {DELEGATE_TOOL_NAME}),
+                    policy,
+                    bus,
+                    approver=None
+                    if approver is None
+                    else SubagentApprover(approver, requester_label(session)),
+                    limits=child_limits,
+                )
+                return await child.run_turn(session_id=session, task=text, history=history)
+
+            subagent_runner = LoopSubagentRunner(
+                _ChildSessions(store, lambda: switch.model),
+                run_child,
+                bus,
+                lambda: cursor.value,
+                redact=redactor,
+            )
+            registry.register(DelegateTool(subagent_runner))
         compactor = _compactor(
             provider,
             store,
@@ -1065,6 +1122,7 @@ def compose(
         progress=progress,
         startup=startup,
         ask=ask,
+        subagent_runner=subagent_runner,
         model=config.model,
         model_view=current_view(),
         current_view=current_view,
@@ -1352,6 +1410,8 @@ def _new_command(
         history[:] = composition.history_prefix
         composition.work_mode.forget()  # an empty conversation: the mode is told again
         active.session_id = session
+        if composition.session_cursor is not None:
+            composition.session_cursor.value = session  # the retries and the subagents follow it
         active.compactor = compactor
         active.closures.clear()
         capture.bind(session, history, 1, len(history))

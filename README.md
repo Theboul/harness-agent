@@ -117,6 +117,18 @@ La CI exige que la suite completa cubra al menos el umbral fijado en `.github/wo
 
 La configuración de ejemplo está en `config.example.toml`; copiarla a `config.toml` (ignorado por Git) y poner las claves solo en variables de entorno. `.env.example` lista las variables de entorno. El uso de la CLI se documentará cuando exista un punto de entrada ejecutable.
 
+## Subagentes (opcional, apagados por defecto)
+
+Con `enabled = true` el agente recibe la herramienta `delegar`: entrega una subtarea a un subagente que trabaja en una sesión hija con el contexto vacío (solo conoce lo que el agente le pasa), con su propio bucle y sus propios límites, bajo las mismas reglas de permisos. Lo que vuelve al agente es un resultado breve (`resultado`, `hallazgos_clave`, `fuentes`, `error`, `parcial`), nunca la conversación del subagente. Un subagente no puede delegar; si agota sus turnos devuelve un resultado parcial; si necesita una aprobación, la ves con la línea `Pide:` que dice qué subagente la pide. En solo lectura (`--solo-lectura`, `/plan`) no se puede delegar.
+
+```toml
+[subagents]
+enabled = true
+max_turns = 10      # llamadas al modelo de cada subagente
+max_seconds = 300
+max_tokens = 50000
+```
+
 ## Varios modelos: planear con uno e implementar con otro
 
 Además del `model` de siempre, `config.toml` admite alias de modelos (LiteLLM, `<proveedor>/<modelo>`). Las claves de cada proveedor van **solo** en el entorno o en el `.env` (`GEMINI_API_KEY`, `GROQ_API_KEY`…), nunca en el archivo.
