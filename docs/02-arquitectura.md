@@ -4,6 +4,8 @@
 > Secciones 3 y 4 del contexto original.  
 > Ver también: [01-vision-y-decisiones.md](01-vision-y-decisiones.md) · [03-plan-sprints.md](03-plan-sprints.md)
 
+> La arquitectura **tal como está construida** (capas, cadena de permisos, flujo de una petición, esquema SQLite v7 y subagentes) está en [arquitectura-implementada.md](arquitectura-implementada.md); este documento conserva el diseño y los contratos.
+
 ## 3. Arquitectura
 
 ### 3.1 Bucle del agente

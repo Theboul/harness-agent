@@ -10,6 +10,8 @@
 |---|---|---|
 | [01-vision-y-decisiones.md](01-vision-y-decisiones.md) | Qué es, equipo, alcance y decisiones V-01 a V-17 | §1, §2, §5 |
 | [02-arquitectura.md](02-arquitectura.md) | Diagramas, contratos, eventos y modelo de datos | §3, §4 |
+| [arquitectura-implementada.md](arquitectura-implementada.md) | La arquitectura tal como está construida, con diagramas Mermaid | nuevo |
+| [guion-demostracion.md](guion-demostracion.md) | Guion de la demostración de 10 a 15 minutos y lo que no se demuestra | nuevo |
 | [03-plan-sprints.md](03-plan-sprints.md) | Pruebas, riesgos, épicas, sprints y tareas | §6 a §9 |
 | [04a-historias-fundacion.md](04a-historias-fundacion.md) | E0 Fundaciones, E1 Bucle | §10 |
 | [04b-historias-estado.md](04b-historias-estado.md) | E2 Contexto, E3 Sesiones, E4 Memoria | §10 |
