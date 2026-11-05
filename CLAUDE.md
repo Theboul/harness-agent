@@ -17,6 +17,7 @@ Harness de agente en terminal (Python 3.12, sin dependencias de ejecución): buc
 | Estado de cada historia, evidencia y decisiones abiertas | `docs/PROGRESO.md` (**única** fuente de estado) |
 | Ficha de la historia (AC, reglas, dependencias, responsable) | `docs/04a`…`04e-historias-*.md`, ancla `#hu-xx-yy` (ver `docs/00-indice.md` para saber en qué archivo está cada ID) |
 | Contratos, eventos, modelo de datos SQLite | `docs/02-arquitectura.md` §4 |
+| Lo construido, para quien llega nuevo | `README.md` (instalación, configuración y comandos), `docs/guion-demostracion.md` (demostración de 10 a 15 minutos y lo que NO se demuestra) y `docs/arquitectura-implementada.md` (diagramas de lo implementado). `tests/unit/test_docs_match_cli.py` comprueba que solo nombren comandos `/`, opciones de `harness` y secciones de `config.toml` que existen, y que no llamen terminada a ninguna historia: al añadir o quitar un comando, una opción o una sección, actualiza esos documentos en el mismo cambio |
 | Tareas del sprint (`Sp1-xx`…) y presupuesto en minutos | `docs/03-plan-sprints.md` |
 | Artefactos de una historia ya trabajada | `specs/NNN-slug/` (spec, plan, research, data-model, contracts/, tasks, quickstart) |
 | Decisiones técnicas | `docs/decisiones/D-01-asyncio-cancelacion.md`, `D-02-preservacion-metadatos-conversion.md` |
